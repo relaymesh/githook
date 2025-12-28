@@ -12,3 +12,13 @@ watermill:
   amqp:
     url: amqp://guest:guest@localhost:5672/
     mode: durable_queue
+
+rules:
+  - when: action == "opened" && pull_request.draft == false
+    emit: pr.opened.ready
+
+  - when: action == "closed" && pull_request.merged == true
+    emit: pr.merged
+
+  - when: action == "synchronize"
+    emit: pr.code.updated

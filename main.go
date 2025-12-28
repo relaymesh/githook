@@ -15,22 +15,17 @@ import (
 )
 
 func main() {
-	appConfig, err := internal.LoadAppConfig("app.yaml")
+	config, err := internal.LoadConfig("app.yaml")
 	if err != nil {
-		log.Fatalf("load app config: %v", err)
+		log.Fatalf("load config: %v", err)
 	}
 
-	rulesConfig, err := internal.LoadRulesConfig("config.yaml")
-	if err != nil {
-		log.Fatalf("load rules config: %v", err)
-	}
-
-	ruleEngine, err := internal.NewRuleEngine(rulesConfig)
+	ruleEngine, err := internal.NewRuleEngine(internal.RulesConfig{Rules: config.Rules})
 	if err != nil {
 		log.Fatalf("compile rules: %v", err)
 	}
 
-	publisher, err := internal.NewPublisher(appConfig.Watermill)
+	publisher, err := internal.NewPublisher(config.Watermill)
 	if err != nil {
 		log.Fatalf("publisher: %v", err)
 	}
@@ -38,20 +33,20 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	if appConfig.Providers.GitHub.Enabled {
+	if config.Providers.GitHub.Enabled {
 		ghHandler, err := webhook.NewGitHubHandler(
-			appConfig.Providers.GitHub.Secret,
+			config.Providers.GitHub.Secret,
 			ruleEngine,
 			publisher,
 		)
 		if err != nil {
 			log.Fatalf("github handler: %v", err)
 		}
-		mux.Handle(appConfig.Providers.GitHub.Path, ghHandler)
-		log.Printf("github webhook enabled on %s", appConfig.Providers.GitHub.Path)
+		mux.Handle(config.Providers.GitHub.Path, ghHandler)
+		log.Printf("github webhook enabled on %s", config.Providers.GitHub.Path)
 	}
 
-	addr := ":" + strconv.Itoa(appConfig.Server.Port)
+	addr := ":" + strconv.Itoa(config.Server.Port)
 	server := &http.Server{
 		Addr:              addr,
 		Handler:           mux,

@@ -3,17 +3,19 @@ services:
     build: .
     ports:
       - "8080:8080"
+    expose:
+      - 8080
     environment:
-      GITHUB_WEBHOOK_SECRET: devsecret
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-devsecret}
     volumes:
       - ./app.docker.yaml:/app/app.yaml:ro
-      - ./config.yaml:/app/config.yaml:ro
     depends_on:
       - rabbitmq
       - nats-streaming
       - kafka
       - postgres
       - http-sink
+    restart: unless-stopped
 
   rabbitmq:
     image: rabbitmq:3.12-management

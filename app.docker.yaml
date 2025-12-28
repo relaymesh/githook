@@ -26,3 +26,13 @@ watermill:
     dsn: postgres://githooks:githooks@postgres:5432/githooks?sslmode=disable
     dialect: postgres
     auto_initialize_schema: true
+rules:
+  - when: action == "opened" && pull_request.draft == false
+    emit: pr.opened.ready
+    driver: amqp
+
+  - when: action == "closed" && pull_request.merged == true
+    emit: pr.merged
+
+  - when: action == "synchronize"
+    emit: pr.code.updated

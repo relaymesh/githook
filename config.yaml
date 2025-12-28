@@ -1,9 +1,0 @@
-rules:
-  - when: action == "opened" && draft == false
-    emit: pr.opened.ready
-
-  - when: action == "closed" && merged == true
-    emit: pr.merged
-
-  - when: action == "synchronize"
-    emit: pr.code.updated

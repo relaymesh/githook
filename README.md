@@ -16,7 +16,12 @@ Webhook Provider -> go-playground/webhooks -> Adapter -> Normalized Event -> Rul
 ## Quickstart (Docker Compose)
 One command builds and runs the agent on port 8080 with all local drivers:
 ```bash
-GITHUB_WEBHOOK_SECRET=devsecret docker-compose up --build
+docker-compose up --build
+```
+
+Override the default webhook secret if needed:
+```bash
+GITHUB_WEBHOOK_SECRET=yoursecret docker-compose up --build
 ```
 
 Then send GitHub webhooks to:
@@ -158,14 +163,10 @@ providers:
 
 watermill:
   driver: gochannel
-```
-
-`config.yaml`
-```yaml
 rules:
-  - when: action == "opened" && draft == false
+  - when: action == "opened" && pull_request.draft == false
     emit: pr.opened.ready
-  - when: action == "closed" && merged == true
+  - when: action == "closed" && pull_request.merged == true
     emit: pr.merged
     drivers: [amqp, http]
 ```
