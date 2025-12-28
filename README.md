@@ -29,6 +29,47 @@ go run main.go
 Then send GitHub webhooks to:
 `http://localhost:8080/webhooks/github`
 
+## Local Dependencies (Docker Compose)
+Spin up local brokers and databases:
+```bash
+docker-compose up -d
+```
+
+Useful endpoints:
+- RabbitMQ UI: http://localhost:15672 (guest/guest)
+- NATS Streaming: nats://localhost:4222 (cluster id: test-cluster)
+- Kafka: localhost:9092
+- Postgres: postgres://githooks:githooks@localhost:5432/githooks?sslmode=disable
+- MySQL: githooks:githooks@tcp(localhost:3306)/githooks
+
+## Testing with a Local Publisher
+Start the server:
+```bash
+export GITHUB_WEBHOOK_SECRET=devsecret
+go run main.go
+```
+
+Send a test webhook (pull request opened):
+```bash
+curl -X POST http://localhost:8080/webhooks/github \
+  -H "X-GitHub-Event: pull_request" \
+  -H "X-Hub-Signature-256: sha256=$(printf '{}' | openssl dgst -sha256 -hmac devsecret | sed 's/^.* //')" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"opened","pull_request":{"draft":false,"merged":false,"base":{"ref":"main"},"head":{"ref":"feature"}}}'
+```
+
+## Minimal Code Test (Custom Driver)
+This registers a custom driver on top of gochannel and publishes a single event:
+```go
+internal.RegisterPublisherDriver("gochannel-custom", func(cfg internal.WatermillConfig, logger watermill.LoggerAdapter) (message.Publisher, func() error, error) {
+	pub := gochannel.NewGoChannel(
+		gochannel.Config{OutputChannelBuffer: 1},
+		logger,
+	)
+	return pub, nil, nil
+})
+```
+
 ## Configuration
 `app.yaml`
 ```yaml
@@ -106,6 +147,14 @@ watermill:
     dsn: postgres://user:pass@localhost:5432/dbname?sslmode=disable
     dialect: postgres
     auto_initialize_schema: true
+```
+
+http:
+```yaml
+watermill:
+  driver: http
+  http:
+    mode: topic_url
 ```
 
 ## Notes

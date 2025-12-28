@@ -30,6 +30,9 @@ func TestLoadAppConfigDefaults(t *testing.T) {
 	if cfg.Watermill.GoChannel.OutputChannelBuffer != 64 {
 		t.Fatalf("expected default gochannel output buffer, got %d", cfg.Watermill.GoChannel.OutputChannelBuffer)
 	}
+	if cfg.Watermill.HTTP.Mode != "topic_url" {
+		t.Fatalf("expected default http mode topic_url, got %q", cfg.Watermill.HTTP.Mode)
+	}
 }
 
 func TestLoadRulesConfigInvalidRule(t *testing.T) {

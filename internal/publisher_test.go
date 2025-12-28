@@ -61,3 +61,13 @@ func TestRegisterPublisherDriver(t *testing.T) {
 		t.Fatalf("expected custom close to be called")
 	}
 }
+
+func TestHTTPURLTarget(t *testing.T) {
+	url, err := httpTargetURL(HTTPConfig{Mode: "base_url", BaseURL: "http://localhost:8080/hooks"}, "topic")
+	if err != nil {
+		t.Fatalf("httpTargetURL: %v", err)
+	}
+	if url != "http://localhost:8080/hooks/topic" {
+		t.Fatalf("unexpected url: %q", url)
+	}
+}

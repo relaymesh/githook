@@ -31,6 +31,7 @@ type WatermillConfig struct {
 	NATS      NATSConfig      `yaml:"nats"`
 	AMQP      AMQPConfig      `yaml:"amqp"`
 	SQL       SQLConfig       `yaml:"sql"`
+	HTTP      HTTPConfig      `yaml:"http"`
 }
 
 type GoChannelConfig struct {
@@ -59,6 +60,11 @@ type SQLConfig struct {
 	DSN                  string `yaml:"dsn"`
 	Dialect              string `yaml:"dialect"`
 	AutoInitializeSchema bool   `yaml:"auto_initialize_schema"`
+}
+
+type HTTPConfig struct {
+	BaseURL string `yaml:"base_url"`
+	Mode    string `yaml:"mode"`
 }
 
 type RulesConfig struct {
@@ -114,5 +120,8 @@ func applyDefaults(cfg *AppConfig) {
 	}
 	if cfg.Watermill.GoChannel.OutputChannelBuffer == 0 {
 		cfg.Watermill.GoChannel.OutputChannelBuffer = 64
+	}
+	if cfg.Watermill.HTTP.Mode == "" {
+		cfg.Watermill.HTTP.Mode = "topic_url"
 	}
 }

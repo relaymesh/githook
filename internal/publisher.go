@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/ThreeDotsLabs/watermill"
 	wmamaqp "github.com/ThreeDotsLabs/watermill-amqp/pkg/amqp"
+	wmhttp "github.com/ThreeDotsLabs/watermill-http/v2/pkg/http"
 	wmkafka "github.com/ThreeDotsLabs/watermill-kafka/pkg/kafka"
 	wmnats "github.com/ThreeDotsLabs/watermill-nats/pkg/nats"
 	wmsql "github.com/ThreeDotsLabs/watermill-sql/pkg/sql"
@@ -45,6 +47,27 @@ func NewPublisher(cfg WatermillConfig) (Publisher, error) {
 	logger := watermill.NewStdLogger(false, false)
 
 	switch strings.ToLower(cfg.Driver) {
+	case "http":
+		targetMode := strings.ToLower(cfg.HTTP.Mode)
+		if targetMode != "topic_url" && targetMode != "base_url" {
+			return nil, fmt.Errorf("unsupported http mode: %s", cfg.HTTP.Mode)
+		}
+		if targetMode == "base_url" && cfg.HTTP.BaseURL == "" {
+			return nil, fmt.Errorf("http base_url is required for base_url mode")
+		}
+		pub, err := wmhttp.NewPublisher(wmhttp.PublisherConfig{
+			MarshalMessageFunc: func(topic string, msg *message.Message) (*http.Request, error) {
+				target, err := httpTargetURL(cfg.HTTP, topic)
+				if err != nil {
+					return nil, err
+				}
+				return wmhttp.DefaultMarshalMessageFunc(target, msg)
+			},
+		}, logger)
+		if err != nil {
+			return nil, err
+		}
+		return &watermillPublisher{publisher: pub}, nil
 	case "kafka":
 		if len(cfg.Kafka.Brokers) == 0 {
 			return nil, fmt.Errorf("kafka brokers are required")
@@ -176,5 +199,25 @@ func sqlSchemaAdapter(dialect string) (wmsql.SchemaAdapter, error) {
 		return wmsql.DefaultMySQLSchema{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported sql dialect: %s", dialect)
+	}
+}
+
+func httpTargetURL(cfg HTTPConfig, topic string) (string, error) {
+	switch strings.ToLower(cfg.Mode) {
+	case "topic_url":
+		if topic == "" {
+			return "", fmt.Errorf("http topic url is empty")
+		}
+		return topic, nil
+	case "base_url":
+		if cfg.BaseURL == "" {
+			return "", fmt.Errorf("http base_url is empty")
+		}
+		if topic == "" {
+			return strings.TrimRight(cfg.BaseURL, "/"), nil
+		}
+		return strings.TrimRight(cfg.BaseURL, "/") + "/" + strings.TrimLeft(topic, "/"), nil
+	default:
+		return "", fmt.Errorf("unsupported http mode: %s", cfg.Mode)
 	}
 }

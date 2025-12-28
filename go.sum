@@ -46,8 +46,12 @@ github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMx
 github.com/ThreeDotsLabs/watermill v1.0.0-rc.2/go.mod h1:gjVFKc8aN+vmEHw3pA0kh4mmuwHe02nyfghb6IWWiKE=
 github.com/ThreeDotsLabs/watermill v1.2.0 h1:TU3TML1dnQ/ifK09F2+4JQk2EKhmhXe7Qv7eb5ZpTS8=
 github.com/ThreeDotsLabs/watermill v1.2.0/go.mod h1:IuVxGk/kgCN0cex2S94BLglUiB0PwOm8hbUhm6g2Nx4=
+github.com/ThreeDotsLabs/watermill v1.3.7 h1:NV0PSTmuACVEOV4dMxRnmGXrmbz8U83LENOvpHekN7o=
+github.com/ThreeDotsLabs/watermill v1.3.7/go.mod h1:lBnrLbxOjeMRgcJbv+UiZr8Ylz8RkJ4m6i/VN/Nk+to=
 github.com/ThreeDotsLabs/watermill-amqp v1.1.4 h1:vOdc8a0m0sMPAJZ2CMLx5a+fwlgeeojOFPwgj7+nlJA=
 github.com/ThreeDotsLabs/watermill-amqp v1.1.4/go.mod h1:5RtpKNTriXCWQZ67YDg1G7qsphZoUue/EWOmQqTZi3Q=
+github.com/ThreeDotsLabs/watermill-http/v2 v2.3.1 h1:M0iYM5HsGcoxtiQqprRlYZNZnGk3w5LsE9RbC2R8myQ=
+github.com/ThreeDotsLabs/watermill-http/v2 v2.3.1/go.mod h1:RwGHEzGsEEXC/rQNLWQqR83+WPlABgOgnv2kTB56Y4Y=
 github.com/ThreeDotsLabs/watermill-kafka v1.0.1 h1:YQgkPKNWF0VrN87ito+CpG15AOsXzG/8fXilTROHpZI=
 github.com/ThreeDotsLabs/watermill-kafka v1.0.1/go.mod h1:rkfdt6PpcQpOGhyublmmGIYUs6qGN3ajYT6P3jYpFYE=
 github.com/ThreeDotsLabs/watermill-nats v1.0.7 h1:hOquWq0GAwm5jaIc3wGaDoVCPYL+If4NZPb+RUaHni4=
@@ -183,6 +187,7 @@ github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+
 github.com/google/uuid v1.2.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/googleapis/gax-go/v2 v2.0.4/go.mod h1:0Wqv26UfaUD9n4G6kQubkQ+KchISgw+vpHVxEJEs9eg=
 github.com/googleapis/gax-go/v2 v2.0.5/go.mod h1:DWXyrwAJ9X0FpwwEdw+IPEYBICEFu5mhpdKc/us6bOk=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
