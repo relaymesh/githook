@@ -46,7 +46,7 @@ func TestRegisterPublisherDriver(t *testing.T) {
 		t.Fatalf("new publisher: %v", err)
 	}
 
-	if err := pub.Publish(context.Background(), "custom.topic", Event{Provider: "github"}); err != nil {
+	if err := pub.PublishForDrivers(context.Background(), "custom.topic", Event{Provider: "github"}, nil); err != nil {
 		t.Fatalf("publish: %v", err)
 	}
 
@@ -69,5 +69,45 @@ func TestHTTPURLTarget(t *testing.T) {
 	}
 	if url != "http://localhost:8080/hooks/topic" {
 		t.Fatalf("unexpected url: %q", url)
+	}
+}
+
+func TestMultipleDrivers(t *testing.T) {
+	orig := publisherFactories["multi-a"]
+	origB := publisherFactories["multi-b"]
+	defer func() {
+		if orig != nil {
+			publisherFactories["multi-a"] = orig
+		} else {
+			delete(publisherFactories, "multi-a")
+		}
+		if origB != nil {
+			publisherFactories["multi-b"] = origB
+		} else {
+			delete(publisherFactories, "multi-b")
+		}
+	}()
+
+	a := &stubPublisher{}
+	b := &stubPublisher{}
+
+	RegisterPublisherDriver("multi-a", func(cfg WatermillConfig, logger watermill.LoggerAdapter) (message.Publisher, func() error, error) {
+		return a, nil, nil
+	})
+	RegisterPublisherDriver("multi-b", func(cfg WatermillConfig, logger watermill.LoggerAdapter) (message.Publisher, func() error, error) {
+		return b, nil, nil
+	})
+
+	pub, err := NewPublisher(WatermillConfig{Drivers: []string{"multi-a", "multi-b"}})
+	if err != nil {
+		t.Fatalf("new publisher: %v", err)
+	}
+
+	if err := pub.PublishForDrivers(context.Background(), "multi.topic", Event{Provider: "github"}, nil); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+
+	if a.published != 1 || b.published != 1 {
+		t.Fatalf("expected publish to both drivers, got a=%d b=%d", a.published, b.published)
 	}
 }

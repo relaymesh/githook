@@ -4,6 +4,7 @@ Config-driven webhook router for GitHub (with GitLab/Bitbucket planned). It norm
 
 ## Features
 - Typed webhook parsing via go-playground/webhooks
+- All GitHub webhook events supported
 - Provider-agnostic normalized event model
 - Rule-based routing via govaluate
 - Watermill-backed publishing (gochannel, Kafka, NATS Streaming, AMQP, SQL)
@@ -12,17 +13,27 @@ Config-driven webhook router for GitHub (with GitLab/Bitbucket planned). It norm
 ## Architecture
 Webhook Provider -> go-playground/webhooks -> Adapter -> Normalized Event -> Rule Engine -> Watermill Publisher
 
-## Quickstart
-1) Configure secrets and rules in `app.yaml` and `config.yaml`.
-2) Export any secrets referenced by env vars.
-3) Run:
-```bash
-go run main.go
-```
-
-Example:
+## Quickstart (One-Click Local)
+Start RabbitMQ via Docker Compose, configure AMQP in `app.yaml`, and run the server:
 ```bash
 export GITHUB_WEBHOOK_SECRET=devsecret
+docker-compose up -d
+cat > app.yaml <<'YAML'
+server:
+  port: 8080
+
+providers:
+  github:
+    enabled: true
+    path: /webhooks/github
+    secret: ${GITHUB_WEBHOOK_SECRET}
+
+watermill:
+  driver: amqp
+  amqp:
+    url: amqp://guest:guest@localhost:5672/
+    mode: durable_queue
+YAML
 go run main.go
 ```
 
@@ -147,12 +158,23 @@ rules:
     emit: pr.opened.ready
   - when: action == "closed" && merged == true
     emit: pr.merged
+    drivers: [amqp, http]
 ```
 
 ## Normalized Event Model
 Provider: github, gitlab, bitbucket
 Name:     pull_request, push, ...
 Data:     flattened payload fields used by rules
+
+Nested fields are flattened with dot paths and array indices:
+- `pull_request.draft`
+- `pull_request.commits[0].created`
+- `pull_request.commits[]` (full array)
+
+Rule driver targeting:
+- `drivers` is optional on each rule.
+- When omitted, the event is published to all configured drivers.
+- When set, only those drivers receive the event.
 
 ## Watermill Drivers
 gochannel:
@@ -209,6 +231,18 @@ watermill:
   driver: http
   http:
     mode: topic_url
+```
+
+Multiple drivers (fan-out):
+```yaml
+watermill:
+  drivers: [amqp, http]
+  amqp:
+    url: amqp://guest:guest@localhost:5672/
+    mode: durable_queue
+  http:
+    mode: base_url
+    base_url: http://localhost:9000/hooks
 ```
 
 ## Notes

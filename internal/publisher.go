@@ -22,6 +22,7 @@ import (
 
 type Publisher interface {
 	Publish(ctx context.Context, topic string, event Event) error
+	PublishForDrivers(ctx context.Context, topic string, event Event, drivers []string) error
 	Close() error
 }
 
@@ -44,9 +45,32 @@ func RegisterPublisherDriver(name string, factory PublisherFactory) {
 }
 
 func NewPublisher(cfg WatermillConfig) (Publisher, error) {
+	drivers := cfg.Drivers
+	if len(drivers) == 0 && cfg.Driver != "" {
+		drivers = []string{cfg.Driver}
+	}
+	if len(drivers) == 0 {
+		drivers = []string{"gochannel"}
+	}
+
+	pubs := make(map[string]Publisher, len(drivers))
+	for _, driver := range drivers {
+		pub, err := newSinglePublisher(cfg, driver)
+		if err != nil {
+			for _, existing := range pubs {
+				_ = existing.Close()
+			}
+			return nil, err
+		}
+		pubs[strings.ToLower(driver)] = pub
+	}
+	return &publisherMux{publishers: pubs, defaultDrivers: drivers}, nil
+}
+
+func newSinglePublisher(cfg WatermillConfig, driver string) (Publisher, error) {
 	logger := watermill.NewStdLogger(false, false)
 
-	switch strings.ToLower(cfg.Driver) {
+	switch strings.ToLower(driver) {
 	case "http":
 		targetMode := strings.ToLower(cfg.HTTP.Mode)
 		if targetMode != "topic_url" && targetMode != "base_url" {
@@ -132,14 +156,14 @@ func NewPublisher(cfg WatermillConfig) (Publisher, error) {
 			closeFn:   db.Close,
 		}, nil
 	default:
-		if factory, ok := publisherFactories[strings.ToLower(cfg.Driver)]; ok {
+		if factory, ok := publisherFactories[strings.ToLower(driver)]; ok {
 			pub, closeFn, err := factory(cfg, logger)
 			if err != nil {
 				return nil, err
 			}
 			return &watermillPublisher{publisher: pub, closeFn: closeFn}, nil
 		}
-		return nil, fmt.Errorf("unsupported watermill driver: %s", cfg.Driver)
+		return nil, fmt.Errorf("unsupported watermill driver: %s", driver)
 	}
 }
 
@@ -160,6 +184,47 @@ func (w *watermillPublisher) Close() error {
 	err := w.publisher.Close()
 	if w.closeFn != nil {
 		return errors.Join(err, w.closeFn())
+	}
+	return err
+}
+
+func (w *watermillPublisher) PublishForDrivers(ctx context.Context, topic string, event Event, drivers []string) error {
+	return w.Publish(ctx, topic, event)
+}
+
+type publisherMux struct {
+	publishers     map[string]Publisher
+	defaultDrivers []string
+}
+
+func (m *publisherMux) Publish(ctx context.Context, topic string, event Event) error {
+	return m.PublishForDrivers(ctx, topic, event, nil)
+}
+
+func (m *publisherMux) PublishForDrivers(ctx context.Context, topic string, event Event, drivers []string) error {
+	targets := drivers
+	if len(targets) == 0 {
+		targets = m.defaultDrivers
+	}
+
+	var err error
+	for _, driver := range targets {
+		pub, ok := m.publishers[strings.ToLower(driver)]
+		if !ok {
+			err = errors.Join(err, fmt.Errorf("unknown driver %s", driver))
+			continue
+		}
+		if publishErr := pub.Publish(ctx, topic, event); publishErr != nil {
+			err = errors.Join(err, publishErr)
+		}
+	}
+	return err
+}
+
+func (m *publisherMux) Close() error {
+	var err error
+	for _, pub := range m.publishers {
+		err = errors.Join(err, pub.Close())
 	}
 	return err
 }

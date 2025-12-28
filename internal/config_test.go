@@ -27,6 +27,9 @@ func TestLoadAppConfigDefaults(t *testing.T) {
 	if cfg.Watermill.Driver != "gochannel" {
 		t.Fatalf("expected default watermill driver, got %q", cfg.Watermill.Driver)
 	}
+	if len(cfg.Watermill.Drivers) != 0 {
+		t.Fatalf("expected no default drivers, got %v", cfg.Watermill.Drivers)
+	}
 	if cfg.Watermill.GoChannel.OutputChannelBuffer != 64 {
 		t.Fatalf("expected default gochannel output buffer, got %d", cfg.Watermill.GoChannel.OutputChannelBuffer)
 	}

@@ -26,6 +26,7 @@ type ProviderConfig struct {
 
 type WatermillConfig struct {
 	Driver    string          `yaml:"driver"`
+	Drivers   []string        `yaml:"drivers"`
 	GoChannel GoChannelConfig `yaml:"gochannel"`
 	Kafka     KafkaConfig     `yaml:"kafka"`
 	NATS      NATSConfig      `yaml:"nats"`
@@ -102,6 +103,16 @@ func LoadRulesConfig(path string) (RulesConfig, error) {
 		cfg.Rules[i].Emit = strings.TrimSpace(cfg.Rules[i].Emit)
 		if cfg.Rules[i].When == "" || cfg.Rules[i].Emit == "" {
 			return cfg, fmt.Errorf("rule %d is missing when or emit", i)
+		}
+		if len(cfg.Rules[i].Drivers) > 0 {
+			drivers := make([]string, 0, len(cfg.Rules[i].Drivers))
+			for _, driver := range cfg.Rules[i].Drivers {
+				trimmed := strings.TrimSpace(driver)
+				if trimmed != "" {
+					drivers = append(drivers, trimmed)
+				}
+			}
+			cfg.Rules[i].Drivers = drivers
 		}
 	}
 
