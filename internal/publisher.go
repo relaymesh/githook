@@ -28,20 +28,23 @@ type watermillPublisher struct {
 	closeFn   func() error
 }
 
+type PublisherFactory func(cfg WatermillConfig, logger watermill.LoggerAdapter) (message.Publisher, func() error, error)
+
+var publisherFactories = map[string]PublisherFactory{
+	"gochannel": buildGoChannelPublisher,
+}
+
+func RegisterPublisherDriver(name string, factory PublisherFactory) {
+	if name == "" || factory == nil {
+		return
+	}
+	publisherFactories[strings.ToLower(name)] = factory
+}
+
 func NewPublisher(cfg WatermillConfig) (Publisher, error) {
 	logger := watermill.NewStdLogger(false, false)
 
 	switch strings.ToLower(cfg.Driver) {
-	case "gochannel":
-		pub := gochannel.NewGoChannel(
-			gochannel.Config{
-				OutputChannelBuffer:            cfg.GoChannel.OutputChannelBuffer,
-				Persistent:                     cfg.GoChannel.Persistent,
-				BlockPublishUntilSubscriberAck: cfg.GoChannel.BlockPublishUntilSubscriberAck,
-			},
-			logger,
-		)
-		return &watermillPublisher{publisher: pub}, nil
 	case "kafka":
 		if len(cfg.Kafka.Brokers) == 0 {
 			return nil, fmt.Errorf("kafka brokers are required")
@@ -106,6 +109,13 @@ func NewPublisher(cfg WatermillConfig) (Publisher, error) {
 			closeFn:   db.Close,
 		}, nil
 	default:
+		if factory, ok := publisherFactories[strings.ToLower(cfg.Driver)]; ok {
+			pub, closeFn, err := factory(cfg, logger)
+			if err != nil {
+				return nil, err
+			}
+			return &watermillPublisher{publisher: pub, closeFn: closeFn}, nil
+		}
 		return nil, fmt.Errorf("unsupported watermill driver: %s", cfg.Driver)
 	}
 }
@@ -129,6 +139,18 @@ func (w *watermillPublisher) Close() error {
 		return errors.Join(err, w.closeFn())
 	}
 	return err
+}
+
+func buildGoChannelPublisher(cfg WatermillConfig, logger watermill.LoggerAdapter) (message.Publisher, func() error, error) {
+	pub := gochannel.NewGoChannel(
+		gochannel.Config{
+			OutputChannelBuffer:            cfg.GoChannel.OutputChannelBuffer,
+			Persistent:                     cfg.GoChannel.Persistent,
+			BlockPublishUntilSubscriberAck: cfg.GoChannel.BlockPublishUntilSubscriberAck,
+		},
+		logger,
+	)
+	return pub, nil, nil
 }
 
 func amqpConfigFromMode(url, mode string) (wmamaqp.Config, error) {

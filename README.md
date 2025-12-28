@@ -111,6 +111,21 @@ watermill:
 ## Notes
 - SQL publishing requires a database driver import (e.g., lib/pq or go-sql-driver/mysql) in your app.
 - Rules are evaluated in order; multiple matches publish multiple topics.
+- Custom Watermill drivers can be registered at runtime via `internal.RegisterPublisherDriver`.
+
+Example custom driver (wraps gochannel with custom config):
+```go
+internal.RegisterPublisherDriver("gochannel-custom", func(cfg internal.WatermillConfig, logger watermill.LoggerAdapter) (message.Publisher, func() error, error) {
+	pub := gochannel.NewGoChannel(
+		gochannel.Config{
+			OutputChannelBuffer: 256,
+			Persistent:          true,
+		},
+		logger,
+	)
+	return pub, nil, nil
+})
+```
 
 ## Testing
 ```bash
