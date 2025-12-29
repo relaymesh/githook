@@ -53,6 +53,73 @@ For production use, especially with GitHub, consider using a GitHub App:
 4.  Subscribe to the specific GitHub events you need (e.g., pull requests, pushes).
 5.  Deploy the Githooks service, ensuring the endpoint is publicly reachable.
 
+### SDK (Workers)
+The SDK lets you consume Watermill topics and run user handlers, with per-provider clients and lifecycle listeners.
+
+Example:
+```go
+sub := gochannel.NewGoChannel(gochannel.Config{}, watermill.NewStdLogger(false, false))
+
+clientProvider := webhookworker.ClientProviderFunc(func(ctx context.Context, evt *webhookworker.Event) (interface{}, error) {
+  switch evt.Provider {
+  case "github":
+    return github.NewClient(nil), nil
+  case "gitlab":
+    return gitlab.NewClient("token"), nil
+  case "bitbucket":
+    return bitbucket.NewBasicAuth("user", "pass"), nil
+  default:
+    return nil, nil
+  }
+})
+
+worker := webhookworker.New(
+  webhookworker.WithSubscriber(sub),
+  webhookworker.WithTopics("github.pull_request", "github.push"),
+  webhookworker.WithConcurrency(10), // max workers
+  webhookworker.WithRetry(MyRetryPolicy{}),
+  webhookworker.WithClientProvider(clientProvider),
+  webhookworker.WithListener(webhookworker.Listener{
+    OnStart:  func(ctx context.Context) { log.Println("worker started") },
+    OnExit:   func(ctx context.Context) { log.Println("worker stopped") },
+    OnError:  func(ctx context.Context, evt *webhookworker.Event, err error) { log.Printf("error: %v", err) },
+    OnMessageFinish: func(ctx context.Context, evt *webhookworker.Event, err error) {
+      log.Printf("finished provider=%s type=%s err=%v", evt.Provider, evt.Type, err)
+    },
+  }),
+)
+
+worker.HandleTopic("github.pull_request", func(ctx context.Context, evt *webhookworker.Event) error {
+  if evt.Provider == "github" && evt.Client != nil {
+    gh := evt.Client.(*github.Client)
+    _ = gh
+  }
+  return nil
+})
+
+if err := worker.Run(ctx); err != nil {
+  log.Fatal(err)
+}
+```
+
+Listener hooks are optional and support `OnStart`, `OnExit`, `OnMessageStart`, `OnMessageFinish`, and `OnError` for lifecycle visibility.
+
+Create a subscriber from config (similar to `app.docker.yaml`):
+```go
+cfg := webhookworker.SubscriberConfig{
+  Driver: "amqp",
+  AMQP: webhookworker.AMQPConfig{
+    URL:  "amqp://guest:guest@localhost:5672/",
+    Mode: "durable_queue",
+  },
+}
+
+worker, err := webhookworker.NewFromConfig(cfg, webhookworker.WithTopics("github.pull_request"))
+if err != nil {
+  log.Fatal(err)
+}
+```
+
 ## Configuration
 
 Githooks is configured using a `config.yaml` file. The Docker Compose setup uses `app.docker.yaml` as an example which gets mapped to `config.yaml` inside the container.
