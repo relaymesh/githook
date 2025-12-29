@@ -85,56 +85,6 @@ providers:
 | GitLab | Planned |
 | Bitbucket | Planned |
 
-### Supported GitHub Webhook Events
-| Event |
-| --- |
-| check_run |
-| check_suite |
-| commit_comment |
-| create |
-| delete |
-| dependabot_alert |
-| deploy_key |
-| deployment |
-| deployment_status |
-| fork |
-| gollum |
-| installation |
-| installation_repositories |
-| integration_installation |
-| integration_installation_repositories |
-| issue_comment |
-| issues |
-| label |
-| member |
-| membership |
-| milestone |
-| meta |
-| organization |
-| org_block |
-| page_build |
-| ping |
-| project_card |
-| project_column |
-| project |
-| public |
-| pull_request |
-| pull_request_review |
-| pull_request_review_comment |
-| push |
-| release |
-| repository |
-| repository_vulnerability_alert |
-| security_advisory |
-| status |
-| team |
-| team_add |
-| watch |
-| workflow_dispatch |
-| workflow_job |
-| workflow_run |
-| github_app_authorization |
-
 
 ### Watermill Drivers (Publishers)
 Watermill drivers are used to publish normalized events to various messaging systems. You can configure a single driver or multiple drivers for fan-out.
