@@ -251,6 +251,17 @@ providers:
 ### Watermill Drivers (Publishers)
 Watermill drivers are used to publish normalized events to various messaging systems. You can configure a single driver or multiple drivers for fan-out.
 
+**Driver fields (publisher config):**
+- `watermill.driver`: single driver.
+- `watermill.drivers`: list of drivers to publish to (fan-out).
+- `watermill.http`: publish-only (no subscriber).
+- `watermill.sql`: requires DB driver import.
+
+**Driver fields (worker config):**
+- `watermill.driver`: single subscriber driver.
+- `watermill.drivers`: subscribe to multiple drivers (fan-in). Unsupported drivers like `http` are skipped.
+- `watermill.nats.client_id_suffix`: optional suffix for workers to avoid NATS Streaming client ID conflicts.
+
 **Example `config.yaml` (GitHub + AMQP):**
 ```yaml
 server:
