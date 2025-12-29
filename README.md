@@ -205,6 +205,20 @@ wk := worker.New(
 
 Githooks is configured using a YAML file (for local dev, use `app.docker.yaml`).
 
+## Helm Charts
+
+Helm charts live in `charts/`:
+- `charts/githooks` deploys the webhook server.
+- `charts/githooks-worker` deploys a worker that consumes Watermill topics.
+
+Install locally:
+```sh
+helm install githooks ./charts/githooks
+helm install githooks-worker ./charts/githooks-worker
+```
+
+For chart-specific values, see `charts/githooks/README.md` and `charts/githooks-worker/README.md`.
+
 ### Provider Configuration
 Providers define how Githooks receives webhook events.
 
