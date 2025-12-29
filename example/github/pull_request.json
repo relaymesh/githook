@@ -1,0 +1,9 @@
+{
+  "action": "closed",
+  "pull_request": {
+    "draft": false,
+    "merged": true,
+    "base": {"ref": "main"},
+    "head": {"ref": "feature"}
+  }
+}

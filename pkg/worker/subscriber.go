@@ -1,10 +1,11 @@
-package webhookworker
+package worker
 
 import (
 	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
 	wmamaqp "github.com/ThreeDotsLabs/watermill-amqp/pkg/amqp"
@@ -51,7 +52,9 @@ func BuildSubscriber(cfg SubscriberConfig) (message.Subscriber, error) {
 		if err != nil {
 			return nil, err
 		}
-		return wmamaqp.NewSubscriber(amqpCfg, logger)
+		return retrySubscriber(func() (message.Subscriber, error) {
+			return wmamaqp.NewSubscriber(amqpCfg, logger)
+		})
 	case "nats":
 		if cfg.NATS.ClusterID == "" || cfg.NATS.ClientID == "" {
 			return nil, errors.New("nats cluster_id and client_id are required")
@@ -60,12 +63,14 @@ func BuildSubscriber(cfg SubscriberConfig) (message.Subscriber, error) {
 			ClusterID:   cfg.NATS.ClusterID,
 			ClientID:    cfg.NATS.ClientID,
 			DurableName: cfg.NATS.Durable,
-			Marshaler:   wmnats.GobMarshaler{},
+			Unmarshaler: wmnats.GobMarshaler{},
 		}
 		if cfg.NATS.URL != "" {
 			natsCfg.StanOptions = append(natsCfg.StanOptions, stan.NatsURL(cfg.NATS.URL))
 		}
-		return wmnats.NewStreamingSubscriber(natsCfg, logger)
+		return retrySubscriber(func() (message.Subscriber, error) {
+			return wmnats.NewStreamingSubscriber(natsCfg, logger)
+		})
 	case "kafka":
 		if len(cfg.Kafka.Brokers) == 0 {
 			return nil, errors.New("kafka brokers are required")
@@ -82,24 +87,47 @@ func BuildSubscriber(cfg SubscriberConfig) (message.Subscriber, error) {
 		if err != nil {
 			return nil, err
 		}
-		db, err := sql.Open(cfg.SQL.Driver, cfg.SQL.DSN)
+		initialize := cfg.SQL.InitializeSchema || cfg.SQL.AutoInitializeSchema
+		sub, err := retrySubscriber(func() (message.Subscriber, error) {
+			db, err := sql.Open(cfg.SQL.Driver, cfg.SQL.DSN)
+			if err != nil {
+				return nil, err
+			}
+			sub, err := wmsql.NewSubscriber(db, wmsql.SubscriberConfig{
+				ConsumerGroup:    cfg.SQL.ConsumerGroup,
+				SchemaAdapter:    schemaAdapter,
+				OffsetsAdapter:   offsetsAdapter,
+				InitializeSchema: initialize,
+			}, logger)
+			if err != nil {
+				_ = db.Close()
+				return nil, err
+			}
+			return &closingSubscriber{Subscriber: sub, closeFn: db.Close}, nil
+		})
 		if err != nil {
 			return nil, err
 		}
-		sub, err := wmsql.NewSubscriber(db, wmsql.SubscriberConfig{
-			ConsumerGroup:    cfg.SQL.ConsumerGroup,
-			SchemaAdapter:    schemaAdapter,
-			OffsetsAdapter:   offsetsAdapter,
-			InitializeSchema: cfg.SQL.InitializeSchema,
-		}, logger)
-		if err != nil {
-			_ = db.Close()
-			return nil, err
-		}
-		return &closingSubscriber{Subscriber: sub, closeFn: db.Close}, nil
+		return sub, nil
 	default:
 		return nil, fmt.Errorf("unsupported subscriber driver: %s", driver)
 	}
+}
+
+func retrySubscriber(build func() (message.Subscriber, error)) (message.Subscriber, error) {
+	const attempts = 10
+	const delay = 2 * time.Second
+
+	var lastErr error
+	for i := 0; i < attempts; i++ {
+		sub, err := build()
+		if err == nil {
+			return sub, nil
+		}
+		lastErr = err
+		time.Sleep(delay)
+	}
+	return nil, lastErr
 }
 
 type closingSubscriber struct {

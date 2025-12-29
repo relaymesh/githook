@@ -1,6 +1,9 @@
 services:
   githooks:
-    build: .
+    build: 
+      context: .
+      target: githooks
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
     expose:
@@ -17,6 +20,22 @@ services:
       - http-sink
     restart: unless-stopped
 
+  worker:
+    build: 
+      context: .
+      target: worker
+      dockerfile: Dockerfile
+    environment:
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-devsecret}
+    volumes:
+      - ./app.docker.yaml:/app/config.yaml:ro
+    depends_on:
+      - rabbitmq
+      - nats-streaming
+      - kafka
+      - postgres
+      - http-sink
+    restart: unless-stopped
   rabbitmq:
     image: rabbitmq:3.12-management
     ports:

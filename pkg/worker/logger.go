@@ -1,4 +1,4 @@
-package webhookworker
+package worker
 
 import "log"
 

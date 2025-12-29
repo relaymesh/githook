@@ -27,8 +27,8 @@ watermill:
     dialect: postgres
     auto_initialize_schema: true
 rules:
-  - when:  pull_requests.draft == false && pull_requests.merged == true
+  - when: action == "opened" && pull_request.draft == false
     emit: pr.opened.ready
 
-  - when: action == "closed" && pull_requests.merged == true
+  - when: action == "closed" && pull_request.merged == true
     emit: pr.merged

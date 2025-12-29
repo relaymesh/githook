@@ -1,4 +1,4 @@
-package webhookworker
+package worker
 
 type SubscriberConfig struct {
 	Driver  string   `yaml:"driver"`
@@ -35,9 +35,10 @@ type AMQPConfig struct {
 }
 
 type SQLConfig struct {
-	Driver           string `yaml:"driver"`
-	DSN              string `yaml:"dsn"`
-	Dialect          string `yaml:"dialect"`
-	ConsumerGroup    string `yaml:"consumer_group"`
-	InitializeSchema bool   `yaml:"initialize_schema"`
+	Driver               string `yaml:"driver"`
+	DSN                  string `yaml:"dsn"`
+	Dialect              string `yaml:"dialect"`
+	ConsumerGroup        string `yaml:"consumer_group"`
+	InitializeSchema     bool   `yaml:"initialize_schema"`
+	AutoInitializeSchema bool   `yaml:"auto_initialize_schema"`
 }

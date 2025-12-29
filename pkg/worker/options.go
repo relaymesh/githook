@@ -1,4 +1,4 @@
-package webhookworker
+package worker
 
 import "github.com/ThreeDotsLabs/watermill/message"
 

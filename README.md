@@ -60,39 +60,53 @@ Example:
 ```go
 sub := gochannel.NewGoChannel(gochannel.Config{}, watermill.NewStdLogger(false, false))
 
-clientProvider := webhookworker.ClientProviderFunc(func(ctx context.Context, evt *webhookworker.Event) (interface{}, error) {
-  switch evt.Provider {
-  case "github":
-    return github.NewClient(nil), nil
-  case "gitlab":
-    return gitlab.NewClient("token"), nil
-  case "bitbucket":
-    return bitbucket.NewBasicAuth("user", "pass"), nil
-  default:
-    return nil, nil
-  }
-})
+githubAppClient := newGitHubAppClient(appID, installationID, privateKeyPEM)
+gitlabClient := newGitLabClient(token)
+bitbucketClient := newBitbucketClient(username, appPassword)
 
-worker := webhookworker.New(
-  webhookworker.WithSubscriber(sub),
-  webhookworker.WithTopics("github.pull_request", "github.push"),
-  webhookworker.WithConcurrency(10), // max workers
-  webhookworker.WithRetry(MyRetryPolicy{}),
-  webhookworker.WithClientProvider(clientProvider),
-  webhookworker.WithListener(webhookworker.Listener{
+clientProvider := worker.ProviderClients{
+  GitHub: func(ctx context.Context, evt *worker.Event) (interface{}, error) {
+    return githubAppClient, nil
+  },
+  GitLab: func(ctx context.Context, evt *worker.Event) (interface{}, error) {
+    return gitlabClient, nil
+  },
+  Bitbucket: func(ctx context.Context, evt *worker.Event) (interface{}, error) {
+    return bitbucketClient, nil
+  },
+}
+
+worker := worker.New(
+  worker.WithSubscriber(sub),
+  worker.WithTopics("github.pull_request", "github.push"),
+  worker.WithConcurrency(10), // max workers
+  worker.WithRetry(MyRetryPolicy{}),
+  worker.WithClientProvider(clientProvider),
+  worker.WithListener(worker.Listener{
     OnStart:  func(ctx context.Context) { log.Println("worker started") },
     OnExit:   func(ctx context.Context) { log.Println("worker stopped") },
-    OnError:  func(ctx context.Context, evt *webhookworker.Event, err error) { log.Printf("error: %v", err) },
-    OnMessageFinish: func(ctx context.Context, evt *webhookworker.Event, err error) {
+    OnError:  func(ctx context.Context, evt *worker.Event, err error) { log.Printf("error: %v", err) },
+    OnMessageFinish: func(ctx context.Context, evt *worker.Event, err error) {
       log.Printf("finished provider=%s type=%s err=%v", evt.Provider, evt.Type, err)
     },
   }),
 )
 
-worker.HandleTopic("github.pull_request", func(ctx context.Context, evt *webhookworker.Event) error {
-  if evt.Provider == "github" && evt.Client != nil {
+worker.HandleTopic("github.pull_request", func(ctx context.Context, evt *worker.Event) error {
+  if evt.Provider != "github" {
+    return nil
+  }
+  if evt.Client != nil {
     gh := evt.Client.(*github.Client)
     _ = gh
+  }
+
+  action, _ := evt.Normalized["action"].(string)
+  pr, _ := evt.Normalized["pull_request"].(map[string]interface{})
+  draft, _ := pr["draft"].(bool)
+
+  if action == "opened" && !draft {
+    log.Printf("ready PR event on topic=%s", evt.Topic)
   }
   return nil
 })
@@ -106,15 +120,15 @@ Listener hooks are optional and support `OnStart`, `OnExit`, `OnMessageStart`, `
 
 Create a subscriber from config (similar to `app.docker.yaml`):
 ```go
-cfg := webhookworker.SubscriberConfig{
+cfg := worker.SubscriberConfig{
   Driver: "amqp",
-  AMQP: webhookworker.AMQPConfig{
+  AMQP: worker.AMQPConfig{
     URL:  "amqp://guest:guest@localhost:5672/",
     Mode: "durable_queue",
   },
 }
 
-worker, err := webhookworker.NewFromConfig(cfg, webhookworker.WithTopics("github.pull_request"))
+worker, err := worker.NewFromConfig(cfg, worker.WithTopics("github.pull_request"))
 if err != nil {
   log.Fatal(err)
 }

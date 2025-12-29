@@ -146,9 +146,10 @@ func newSinglePublisher(cfg WatermillConfig, driver string) (Publisher, error) {
 		if err != nil {
 			return nil, err
 		}
+		autoInit := cfg.SQL.AutoInitializeSchema || cfg.SQL.InitializeSchema
 		pub, err := wmsql.NewPublisher(db, wmsql.PublisherConfig{
 			SchemaAdapter:        schemaAdapter,
-			AutoInitializeSchema: cfg.SQL.AutoInitializeSchema,
+			AutoInitializeSchema: autoInit,
 		}, logger)
 		if err != nil {
 			_ = db.Close()

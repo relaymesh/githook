@@ -66,6 +66,7 @@ type SQLConfig struct {
 	Driver               string `yaml:"driver"`
 	DSN                  string `yaml:"dsn"`
 	Dialect              string `yaml:"dialect"`
+	InitializeSchema     bool   `yaml:"initialize_schema"`
 	AutoInitializeSchema bool   `yaml:"auto_initialize_schema"`
 }
 
