@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: githooks
+      POSTGRES_PASSWORD: githooks
+      POSTGRES_DB: githooks
+    ports:
+      - "5433:5432"
+    volumes:
+      - riverqueue_postgres:/var/lib/postgresql/data
+
+volumes:
+  riverqueue_postgres:

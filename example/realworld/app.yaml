@@ -1,0 +1,74 @@
+server:
+  port: 8080
+
+providers:
+  github:
+    enabled: true
+    webhook:
+      secret: ${GITHUB_WEBHOOK_SECRET}
+    app:
+      app_id: ${GITHUB_APP_ID}
+      private_key_path: ${GITHUB_PRIVATE_KEY_PATH}
+    api:
+      base_url: https://api.github.com
+
+watermill:
+  drivers: [amqp, nats, kafka, http, sql]
+  amqp:
+    url: amqp://guest:guest@localhost:5672/
+    mode: durable_queue
+  nats:
+    cluster_id: test-cluster
+    client_id: githooks-realworld
+    url: nats://localhost:4222
+  kafka:
+    brokers: ["localhost:29092"]
+  http:
+    mode: base_url
+    base_url: http://localhost:8081
+  sql:
+    driver: postgres
+    dsn: postgres://githooks:githooks@localhost:5432/githooks?sslmode=disable
+    dialect: postgres
+    auto_initialize_schema: true
+
+rules:
+  - when: action == "opened" && pull_request.draft == false
+    emit: pr.opened.ready
+    drivers: [amqp, nats]
+
+  - when: action == "opened" && pull_request.draft == true
+    emit: github.pr.draft
+
+  - when: action == "ready_for_review"
+    emit: github.pr.ready
+
+  - when: action == "synchronize"
+    emit: github.pr.synchronized
+
+  - when: action == "closed" && pull_request.merged == true
+    emit: pr.merged
+    drivers: [kafka, sql]
+
+  - when: action == "created" && issue.pull_request.url != null
+    emit: github.pr.comment.created
+
+  - when: action == "created" && issue.pull_request.url == null
+    emit: github.issue.comment.created
+
+  - when: action == "submitted"
+    emit: github.pr.review.submitted
+
+  - when: action == "created" && pull_request.url != null
+    emit: github.pr.review.comment.created
+
+  - when: action == "created" && comment.commit_id != null
+    emit: github.commit.comment.created
+
+  - when: ref == "refs/heads/main"
+    emit: github.push.main
+    drivers: [amqp, kafka]
+
+  - when: ref_type == "tag"
+    emit: release.tag.created
+    drivers: [http, amqp]

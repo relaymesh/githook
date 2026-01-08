@@ -1,0 +1,55 @@
+version: 2
+project_name: githooks
+
+builds:
+  - id: githooks
+    main: ./main.go
+    binary: githooks
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - "-s -w"
+
+archives:
+  - id: githooks
+    builds: [githooks]
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+brews:
+  - ids: [githooks]
+    homepage: "https://github.com/yindia/githooks"
+    description: "Webhook router + worker SDK for GitHub, GitLab, Bitbucket. Route events by rules and consume via Watermill."
+    license: "MIT"
+    directory: Formula
+    repository:
+      owner: "yindia"
+      name: "githooks"
+    test: |
+      system "#{bin}/githooks", "--help"
+    install: |
+      bin.install "githooks"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  github:
+    owner: "yindia"
+    name: "githooks"
+  draft: true

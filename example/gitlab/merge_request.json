@@ -1,0 +1,14 @@
+{
+  "object_kind": "merge_request",
+  "event_type": "merge_request",
+  "user": {"name": "Dev"},
+  "project": {"path_with_namespace": "org/repo"},
+  "object_attributes": {
+    "id": 1,
+    "action": "open",
+    "state": "opened",
+    "merge_status": "can_be_merged",
+    "source_branch": "feature",
+    "target_branch": "main"
+  }
+}

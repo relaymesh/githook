@@ -1,0 +1,22 @@
+name: Buf CI
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  buf:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+      - name: Lint
+        run: buf lint
+      - name: Format
+        run: buf format -d
+      - name: Breaking
+        run: buf breaking --against '.git#branch=main'

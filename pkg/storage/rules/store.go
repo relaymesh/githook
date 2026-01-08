@@ -1,0 +1,272 @@
+package rules
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
+	"githooks/pkg/storage"
+
+	"github.com/glebarez/sqlite"
+	"github.com/google/uuid"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+)
+
+// Config mirrors the storage configuration for the rules table.
+type Config struct {
+	Driver      string
+	DSN         string
+	Dialect     string
+	Table       string
+	AutoMigrate bool
+}
+
+// Store implements storage.RuleStore on top of GORM.
+type Store struct {
+	db    *gorm.DB
+	table string
+}
+
+type row struct {
+	ID          string    `gorm:"column:id;size:64;primaryKey"`
+	TenantID    string    `gorm:"column:tenant_id;size:64;not null;default:'';index"`
+	When        string    `gorm:"column:when;type:text;not null"`
+	EmitJSON    string    `gorm:"column:emit_json;type:text"`
+	DriversJSON string    `gorm:"column:drivers_json;type:text"`
+	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime"`
+}
+
+// Open creates a GORM-backed rules store.
+func Open(cfg Config) (*Store, error) {
+	if cfg.Driver == "" && cfg.Dialect == "" {
+		return nil, errors.New("storage driver or dialect is required")
+	}
+	if cfg.DSN == "" {
+		return nil, errors.New("storage dsn is required")
+	}
+	driver := normalizeDriver(cfg.Driver)
+	if driver == "" {
+		driver = normalizeDriver(cfg.Dialect)
+	}
+	if driver == "" {
+		return nil, errors.New("unsupported storage driver")
+	}
+	gormDB, err := openGorm(driver, cfg.DSN)
+	if err != nil {
+		return nil, err
+	}
+	table := cfg.Table
+	if table == "" {
+		table = "githooks_rules"
+	}
+	store := &Store{db: gormDB, table: table}
+	if cfg.AutoMigrate {
+		if err := store.migrate(); err != nil {
+			return nil, err
+		}
+	}
+	return store, nil
+}
+
+// Close closes the underlying DB connection.
+func (s *Store) Close() error {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}
+
+// ListRules returns all stored rules.
+func (s *Store) ListRules(ctx context.Context) ([]storage.RuleRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("store is not initialized")
+	}
+	var data []row
+	query := s.tableDB().WithContext(ctx).Order("created_at asc")
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	if err := query.Find(&data).Error; err != nil {
+		return nil, err
+	}
+	out := make([]storage.RuleRecord, 0, len(data))
+	for _, item := range data {
+		out = append(out, fromRow(item))
+	}
+	return out, nil
+}
+
+// GetRule fetches a rule by ID.
+func (s *Store) GetRule(ctx context.Context, id string) (*storage.RuleRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("store is not initialized")
+	}
+	var data row
+	query := s.tableDB().WithContext(ctx).Where("id = ?", id)
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	err := query.Take(&data).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	record := fromRow(data)
+	return &record, nil
+}
+
+// CreateRule inserts a new rule.
+func (s *Store) CreateRule(ctx context.Context, record storage.RuleRecord) (*storage.RuleRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("store is not initialized")
+	}
+	if record.When == "" {
+		return nil, errors.New("when is required")
+	}
+	if record.TenantID == "" {
+		record.TenantID = storage.TenantFromContext(ctx)
+	}
+	if record.ID == "" {
+		record.ID = uuid.NewString()
+	}
+	now := time.Now().UTC()
+	if record.CreatedAt.IsZero() {
+		record.CreatedAt = now
+	}
+	record.UpdatedAt = now
+	data, err := toRow(record)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.tableDB().WithContext(ctx).Create(&data).Error; err != nil {
+		return nil, err
+	}
+	out := fromRow(data)
+	return &out, nil
+}
+
+// UpdateRule updates an existing rule.
+func (s *Store) UpdateRule(ctx context.Context, record storage.RuleRecord) (*storage.RuleRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("store is not initialized")
+	}
+	if record.ID == "" {
+		return nil, errors.New("id is required")
+	}
+	if record.When == "" {
+		return nil, errors.New("when is required")
+	}
+	if record.TenantID == "" {
+		record.TenantID = storage.TenantFromContext(ctx)
+	}
+	record.UpdatedAt = time.Now().UTC()
+	data, err := toRow(record)
+	if err != nil {
+		return nil, err
+	}
+	query := s.tableDB().WithContext(ctx).Where("id = ?", record.ID)
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	if err := query.Updates(&data).Error; err != nil {
+		return nil, err
+	}
+	out := fromRow(data)
+	return &out, nil
+}
+
+// DeleteRule removes a rule.
+func (s *Store) DeleteRule(ctx context.Context, id string) error {
+	if s == nil || s.db == nil {
+		return errors.New("store is not initialized")
+	}
+	query := s.tableDB().WithContext(ctx).Where("id = ?", id)
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	return query.Delete(&row{}).Error
+}
+
+func (s *Store) migrate() error {
+	return s.tableDB().AutoMigrate(&row{})
+}
+
+func (s *Store) tableDB() *gorm.DB {
+	return s.db.Table(s.table)
+}
+
+func toRow(record storage.RuleRecord) (row, error) {
+	emitJSON, err := json.Marshal(record.Emit)
+	if err != nil {
+		return row{}, err
+	}
+	driversJSON, err := json.Marshal(record.Drivers)
+	if err != nil {
+		return row{}, err
+	}
+	return row{
+		ID:          record.ID,
+		TenantID:    record.TenantID,
+		When:        record.When,
+		EmitJSON:    string(emitJSON),
+		DriversJSON: string(driversJSON),
+		CreatedAt:   record.CreatedAt,
+		UpdatedAt:   record.UpdatedAt,
+	}, nil
+}
+
+func fromRow(data row) storage.RuleRecord {
+	record := storage.RuleRecord{
+		ID:        data.ID,
+		TenantID:  data.TenantID,
+		When:      data.When,
+		CreatedAt: data.CreatedAt,
+		UpdatedAt: data.UpdatedAt,
+	}
+	if data.EmitJSON != "" {
+		_ = json.Unmarshal([]byte(data.EmitJSON), &record.Emit)
+	}
+	if data.DriversJSON != "" {
+		_ = json.Unmarshal([]byte(data.DriversJSON), &record.Drivers)
+	}
+	return record
+}
+
+func normalizeDriver(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case "postgres", "postgresql", "pgx":
+		return "postgres"
+	case "mysql":
+		return "mysql"
+	case "sqlite", "sqlite3":
+		return "sqlite"
+	default:
+		return ""
+	}
+}
+
+func openGorm(driver, dsn string) (*gorm.DB, error) {
+	switch driver {
+	case "postgres":
+		return gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	case "mysql":
+		return gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	case "sqlite":
+		return gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	default:
+		return nil, fmt.Errorf("unsupported driver %q", driver)
+	}
+}

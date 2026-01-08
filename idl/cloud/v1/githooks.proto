@@ -1,0 +1,300 @@
+syntax = "proto3";
+
+package cloud.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "githooks/pkg/gen/cloud/v1;cloudv1";
+
+service InstallationsService {
+  rpc ListInstallations(ListInstallationsRequest) returns (ListInstallationsResponse);
+  rpc GetInstallationByID(GetInstallationByIDRequest) returns (GetInstallationByIDResponse);
+}
+
+service NamespacesService {
+  rpc ListNamespaces(ListNamespacesRequest) returns (ListNamespacesResponse);
+  rpc SyncNamespaces(SyncNamespacesRequest) returns (SyncNamespacesResponse);
+  rpc GetNamespaceWebhook(GetNamespaceWebhookRequest) returns (GetNamespaceWebhookResponse);
+  rpc SetNamespaceWebhook(SetNamespaceWebhookRequest) returns (SetNamespaceWebhookResponse);
+}
+
+service RulesService {
+  rpc MatchRules(MatchRulesRequest) returns (MatchRulesResponse);
+  rpc ListRules(ListRulesRequest) returns (ListRulesResponse);
+  rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
+  rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse);
+  rpc UpdateRule(UpdateRuleRequest) returns (UpdateRuleResponse);
+  rpc DeleteRule(DeleteRuleRequest) returns (DeleteRuleResponse);
+}
+
+service DriversService {
+  rpc ListDrivers(ListDriversRequest) returns (ListDriversResponse);
+  rpc GetDriver(GetDriverRequest) returns (GetDriverResponse);
+  rpc UpsertDriver(UpsertDriverRequest) returns (UpsertDriverResponse);
+  rpc DeleteDriver(DeleteDriverRequest) returns (DeleteDriverResponse);
+}
+
+service ProvidersService {
+  rpc ListProviders(ListProvidersRequest) returns (ListProvidersResponse);
+  rpc GetProvider(GetProviderRequest) returns (GetProviderResponse);
+  rpc UpsertProvider(UpsertProviderRequest) returns (UpsertProviderResponse);
+  rpc DeleteProvider(DeleteProviderRequest) returns (DeleteProviderResponse);
+}
+
+message InstallRecord {
+  string provider = 1 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+  string account_id = 2;
+  string account_name = 3;
+  string installation_id = 4;
+  string access_token = 5;
+  string refresh_token = 6;
+  google.protobuf.Timestamp expires_at = 7;
+  string metadata_json = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message NamespaceRecord {
+  string provider = 1 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+  string repo_id = 2;
+  string account_id = 3;
+  string installation_id = 4;
+  string owner = 5;
+  string repo_name = 6;
+  string full_name = 7;
+  string visibility = 8;
+  string default_branch = 9;
+  string http_url = 10;
+  string ssh_url = 11;
+  bool webhooks_enabled = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+}
+
+message ListInstallationsRequest {
+  string state_id = 1;
+  string provider = 2 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+}
+
+message ListInstallationsResponse {
+  repeated InstallRecord installations = 1;
+}
+
+message GetInstallationByIDRequest {
+  string provider = 1 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+  string installation_id = 2;
+}
+
+message GetInstallationByIDResponse {
+  InstallRecord installation = 1;
+}
+
+message ListNamespacesRequest {
+  string state_id = 1;
+  string provider = 2 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+  string owner = 3;
+  string repo = 4;
+  string full_name = 5;
+}
+
+message ListNamespacesResponse {
+  repeated NamespaceRecord namespaces = 1;
+}
+
+message SyncNamespacesRequest {
+  string state_id = 1;
+  string provider = 2 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+}
+
+message SyncNamespacesResponse {
+  repeated NamespaceRecord namespaces = 1;
+}
+
+message GetNamespaceWebhookRequest {
+  string state_id = 1;
+  string provider = 2 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+  string repo_id = 3;
+}
+
+message SetNamespaceWebhookRequest {
+  string state_id = 1;
+  string provider = 2 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+  string repo_id = 3;
+  bool enabled = 4;
+}
+
+message GetNamespaceWebhookResponse {
+  bool enabled = 1;
+}
+
+message SetNamespaceWebhookResponse {
+  bool enabled = 1;
+}
+
+message Rule {
+  string when = 1 [(buf.validate.field).string.min_len = 1];
+  repeated string emit = 2 [
+    (buf.validate.field).repeated.min_items = 1,
+    (buf.validate.field).repeated.items.string.min_len = 1
+  ];
+  repeated string drivers = 3 [(buf.validate.field).repeated.items.string.min_len = 1];
+}
+
+message RuleRecord {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  string when = 2 [(buf.validate.field).string.min_len = 1];
+  repeated string emit = 3 [
+    (buf.validate.field).repeated.min_items = 1,
+    (buf.validate.field).repeated.items.string.min_len = 1
+  ];
+  repeated string drivers = 4 [(buf.validate.field).repeated.items.string.min_len = 1];
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message DriverRecord {
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+  string config_json = 2;
+  bool enabled = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message ProviderRecord {
+  string provider = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
+  string key = 2 [(buf.validate.field).string.min_len = 1];
+  string config_json = 3;
+  bool enabled = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message EventPayload {
+  string provider = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+  bytes payload = 3 [(buf.validate.field).bytes.min_len = 1];
+}
+
+message RuleMatch {
+  string when = 1;
+  repeated string emit = 2;
+  repeated string drivers = 3;
+}
+
+message MatchRulesRequest {
+  EventPayload event = 1 [(buf.validate.field).required = true];
+  repeated Rule rules = 2 [(buf.validate.field).repeated.min_items = 1];
+  bool strict = 3;
+}
+
+message MatchRulesResponse {
+  repeated RuleMatch matches = 1;
+}
+
+message ListRulesRequest {}
+
+message ListRulesResponse {
+  repeated RuleRecord rules = 1;
+}
+
+message GetRuleRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message GetRuleResponse {
+  RuleRecord rule = 1;
+}
+
+message CreateRuleRequest {
+  Rule rule = 1 [(buf.validate.field).required = true];
+}
+
+message CreateRuleResponse {
+  RuleRecord rule = 1;
+}
+
+message UpdateRuleRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  Rule rule = 2 [(buf.validate.field).required = true];
+}
+
+message UpdateRuleResponse {
+  RuleRecord rule = 1;
+}
+
+message DeleteRuleRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message DeleteRuleResponse {}
+
+message ListDriversRequest {}
+
+message ListDriversResponse {
+  repeated DriverRecord drivers = 1;
+}
+
+message GetDriverRequest {
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message GetDriverResponse {
+  DriverRecord driver = 1;
+}
+
+message UpsertDriverRequest {
+  DriverRecord driver = 1 [(buf.validate.field).required = true];
+}
+
+message UpsertDriverResponse {
+  DriverRecord driver = 1;
+}
+
+message DeleteDriverRequest {
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message DeleteDriverResponse {}
+
+message ListProvidersRequest {
+  string provider = 1 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+}
+
+message ListProvidersResponse {
+  repeated ProviderRecord providers = 1;
+}
+
+message GetProviderRequest {
+  string provider = 1 [(buf.validate.field).string.min_len = 1];
+  string key = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message GetProviderResponse {
+  ProviderRecord provider = 1;
+}
+
+message UpsertProviderRequest {
+  ProviderRecord provider = 1 [(buf.validate.field).required = true];
+}
+
+message UpsertProviderResponse {
+  ProviderRecord provider = 1;
+}
+
+message DeleteProviderRequest {
+  string provider = 1 [(buf.validate.field).string.min_len = 1];
+  string key = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message DeleteProviderResponse {}

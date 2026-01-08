@@ -1,0 +1,1047 @@
+package api
+
+import (
+	"context"
+	"errors"
+	"log"
+	"strings"
+	"time"
+
+	"connectrpc.com/connect"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"githooks/pkg/auth"
+	"githooks/pkg/core"
+	driverspkg "githooks/pkg/drivers"
+	cloudv1 "githooks/pkg/gen/cloud/v1"
+	"githooks/pkg/oauth"
+	"githooks/pkg/providerinstance"
+	"githooks/pkg/storage"
+)
+
+// InstallationsService implements the Connect/GRPC InstallationsService.
+type InstallationsService struct {
+	Store     storage.Store
+	Providers auth.Config
+	Logger    *log.Logger
+}
+
+func (s *InstallationsService) ListInstallations(
+	ctx context.Context,
+	req *connect.Request[cloudv1.ListInstallationsRequest],
+) (*connect.Response[cloudv1.ListInstallationsResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	stateID := strings.TrimSpace(req.Msg.GetStateId())
+	if stateID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing state_id"))
+	}
+	provider := strings.TrimSpace(req.Msg.GetProvider())
+	enabledProviders := enabledProvidersList(s.Providers)
+	if provider != "" && !providerEnabled(provider, enabledProviders) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(providerNotEnabledMessage(provider, enabledProviders)))
+	}
+	if provider == "" && len(enabledProviders) > 1 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("provider is required when multiple providers are enabled"))
+	}
+
+	var records []storage.InstallRecord
+	if provider != "" {
+		items, err := s.Store.ListInstallations(ctx, provider, stateID)
+		if err != nil {
+			logError(s.Logger, "list installations failed", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("list installations failed"))
+		}
+		records = items
+	} else {
+		items, err := s.Store.ListInstallations(ctx, enabledProviders[0], stateID)
+		if err != nil {
+			logError(s.Logger, "list installations failed", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("list installations failed"))
+		}
+		records = items
+	}
+
+	resp := &cloudv1.ListInstallationsResponse{
+		Installations: toProtoInstallations(records),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *InstallationsService) GetInstallationByID(
+	ctx context.Context,
+	req *connect.Request[cloudv1.GetInstallationByIDRequest],
+) (*connect.Response[cloudv1.GetInstallationByIDResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	provider := strings.TrimSpace(req.Msg.GetProvider())
+	installationID := strings.TrimSpace(req.Msg.GetInstallationId())
+	if provider == "" || installationID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing provider or installation_id"))
+	}
+	if !providerEnabled(provider, enabledProvidersList(s.Providers)) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(providerNotEnabledMessage(provider, enabledProvidersList(s.Providers))))
+	}
+	record, err := s.Store.GetInstallationByInstallationID(ctx, provider, installationID)
+	if err != nil {
+		logError(s.Logger, "get installation failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("get installation failed"))
+	}
+	if record == nil {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("installation not found"))
+	}
+	resp := &cloudv1.GetInstallationByIDResponse{
+		Installation: toProtoInstallation(*record),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+// NamespacesService implements the Connect/GRPC NamespacesService.
+type NamespacesService struct {
+	Store         storage.NamespaceStore
+	InstallStore  storage.Store
+	Providers     auth.Config
+	PublicBaseURL string
+	Logger        *log.Logger
+}
+
+// RulesService implements rule matching over a payload with inline rules.
+type RulesService struct {
+	Store  storage.RuleStore
+	Engine *core.RuleEngine
+	Strict bool
+	Logger *log.Logger
+}
+
+// DriversService handles CRUD for driver configs.
+type DriversService struct {
+	Store  storage.DriverStore
+	Cache  *driverspkg.Cache
+	Logger *log.Logger
+}
+
+// ProvidersService handles CRUD for provider instances.
+type ProvidersService struct {
+	Store  storage.ProviderInstanceStore
+	Cache  *providerinstance.Cache
+	Logger *log.Logger
+}
+
+func (s *RulesService) MatchRules(
+	ctx context.Context,
+	req *connect.Request[cloudv1.MatchRulesRequest],
+) (*connect.Response[cloudv1.MatchRulesResponse], error) {
+	event := req.Msg.GetEvent()
+	if event == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing event"))
+	}
+
+	rules := make([]core.Rule, 0, len(req.Msg.GetRules()))
+	for _, rule := range req.Msg.GetRules() {
+		if rule == nil {
+			continue
+		}
+		rules = append(rules, core.Rule{
+			When:    rule.GetWhen(),
+			Emit:    core.EmitList(rule.GetEmit()),
+			Drivers: rule.GetDrivers(),
+		})
+	}
+
+	engine, err := core.NewRuleEngine(core.RulesConfig{
+		Rules:  rules,
+		Strict: req.Msg.GetStrict(),
+		Logger: s.Logger,
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	matches := engine.EvaluateRules(core.Event{
+		Provider:   event.GetProvider(),
+		Name:       event.GetName(),
+		RawPayload: event.GetPayload(),
+	})
+
+	resp := &cloudv1.MatchRulesResponse{
+		Matches: toProtoRuleMatches(matches),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *DriversService) ListDrivers(
+	ctx context.Context,
+	req *connect.Request[cloudv1.ListDriversRequest],
+) (*connect.Response[cloudv1.ListDriversResponse], error) {
+	_ = req
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	records, err := s.Store.ListDrivers(ctx)
+	if err != nil {
+		logError(s.Logger, "list drivers failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("list drivers failed"))
+	}
+	resp := &cloudv1.ListDriversResponse{
+		Drivers: toProtoDriverRecords(records),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *DriversService) GetDriver(
+	ctx context.Context,
+	req *connect.Request[cloudv1.GetDriverRequest],
+) (*connect.Response[cloudv1.GetDriverResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	name := strings.TrimSpace(req.Msg.GetName())
+	if name == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("driver name is required"))
+	}
+	record, err := s.Store.GetDriver(ctx, name)
+	if err != nil {
+		logError(s.Logger, "get driver failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("get driver failed"))
+	}
+	if record == nil {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("driver not found"))
+	}
+	resp := &cloudv1.GetDriverResponse{
+		Driver: toProtoDriverRecord(record),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *DriversService) UpsertDriver(
+	ctx context.Context,
+	req *connect.Request[cloudv1.UpsertDriverRequest],
+) (*connect.Response[cloudv1.UpsertDriverResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	driver := req.Msg.GetDriver()
+	if driver == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("driver is required"))
+	}
+	record, err := s.Store.UpsertDriver(ctx, storage.DriverRecord{
+		Name:       strings.TrimSpace(driver.GetName()),
+		ConfigJSON: strings.TrimSpace(driver.GetConfigJson()),
+		Enabled:    driver.GetEnabled(),
+	})
+	if err != nil {
+		logError(s.Logger, "upsert driver failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("upsert driver failed"))
+	}
+	if s.Cache != nil {
+		if err := s.Cache.Refresh(ctx); err != nil {
+			logError(s.Logger, "driver cache refresh failed", err)
+		}
+	}
+	resp := &cloudv1.UpsertDriverResponse{
+		Driver: toProtoDriverRecord(record),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *DriversService) DeleteDriver(
+	ctx context.Context,
+	req *connect.Request[cloudv1.DeleteDriverRequest],
+) (*connect.Response[cloudv1.DeleteDriverResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	name := strings.TrimSpace(req.Msg.GetName())
+	if name == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("driver name is required"))
+	}
+	if err := s.Store.DeleteDriver(ctx, name); err != nil {
+		logError(s.Logger, "delete driver failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("delete driver failed"))
+	}
+	if s.Cache != nil {
+		if err := s.Cache.Refresh(ctx); err != nil {
+			logError(s.Logger, "driver cache refresh failed", err)
+		}
+	}
+	return connect.NewResponse(&cloudv1.DeleteDriverResponse{}), nil
+}
+
+func (s *RulesService) ListRules(
+	ctx context.Context,
+	req *connect.Request[cloudv1.ListRulesRequest],
+) (*connect.Response[cloudv1.ListRulesResponse], error) {
+	_ = req
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	records, err := s.Store.ListRules(ctx)
+	if err != nil {
+		logError(s.Logger, "list rules failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("list rules failed"))
+	}
+	resp := &cloudv1.ListRulesResponse{
+		Rules: toProtoRuleRecords(records),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *RulesService) GetRule(
+	ctx context.Context,
+	req *connect.Request[cloudv1.GetRuleRequest],
+) (*connect.Response[cloudv1.GetRuleResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	id := strings.TrimSpace(req.Msg.GetId())
+	if id == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing id"))
+	}
+	record, err := s.Store.GetRule(ctx, id)
+	if err != nil {
+		logError(s.Logger, "get rule failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("get rule failed"))
+	}
+	if record == nil {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("rule not found"))
+	}
+	resp := &cloudv1.GetRuleResponse{
+		Rule: toProtoRuleRecord(*record),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *RulesService) CreateRule(
+	ctx context.Context,
+	req *connect.Request[cloudv1.CreateRuleRequest],
+) (*connect.Response[cloudv1.CreateRuleResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	incoming := req.Msg.GetRule()
+	if incoming == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing rule"))
+	}
+	normalized, err := normalizeProtoRule(incoming)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	record, err := s.Store.CreateRule(ctx, storage.RuleRecord{
+		When:    normalized.When,
+		Emit:    normalized.Emit.Values(),
+		Drivers: normalized.Drivers,
+	})
+	if err != nil {
+		logError(s.Logger, "create rule failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("create rule failed"))
+	}
+	if err := s.refreshEngine(ctx); err != nil {
+		logError(s.Logger, "rule engine refresh failed", err)
+	}
+	resp := &cloudv1.CreateRuleResponse{
+		Rule: toProtoRuleRecord(*record),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *RulesService) UpdateRule(
+	ctx context.Context,
+	req *connect.Request[cloudv1.UpdateRuleRequest],
+) (*connect.Response[cloudv1.UpdateRuleResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	id := strings.TrimSpace(req.Msg.GetId())
+	if id == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing id"))
+	}
+	incoming := req.Msg.GetRule()
+	if incoming == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing rule"))
+	}
+	existing, err := s.Store.GetRule(ctx, id)
+	if err != nil {
+		logError(s.Logger, "get rule failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("get rule failed"))
+	}
+	if existing == nil {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("rule not found"))
+	}
+	normalized, err := normalizeProtoRule(incoming)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	record, err := s.Store.UpdateRule(ctx, storage.RuleRecord{
+		ID:        id,
+		When:      normalized.When,
+		Emit:      normalized.Emit.Values(),
+		Drivers:   normalized.Drivers,
+		CreatedAt: existing.CreatedAt,
+	})
+	if err != nil {
+		logError(s.Logger, "update rule failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("update rule failed"))
+	}
+	if err := s.refreshEngine(ctx); err != nil {
+		logError(s.Logger, "rule engine refresh failed", err)
+	}
+	resp := &cloudv1.UpdateRuleResponse{
+		Rule: toProtoRuleRecord(*record),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *RulesService) DeleteRule(
+	ctx context.Context,
+	req *connect.Request[cloudv1.DeleteRuleRequest],
+) (*connect.Response[cloudv1.DeleteRuleResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	id := strings.TrimSpace(req.Msg.GetId())
+	if id == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing id"))
+	}
+	if err := s.Store.DeleteRule(ctx, id); err != nil {
+		logError(s.Logger, "delete rule failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("delete rule failed"))
+	}
+	if err := s.refreshEngine(ctx); err != nil {
+		logError(s.Logger, "rule engine refresh failed", err)
+	}
+	return connect.NewResponse(&cloudv1.DeleteRuleResponse{}), nil
+}
+
+func (s *ProvidersService) ListProviders(
+	ctx context.Context,
+	req *connect.Request[cloudv1.ListProvidersRequest],
+) (*connect.Response[cloudv1.ListProvidersResponse], error) {
+	_ = req
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	provider := strings.TrimSpace(req.Msg.GetProvider())
+	records, err := s.Store.ListProviderInstances(ctx, provider)
+	if err != nil {
+		logError(s.Logger, "list provider instances failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("list provider instances failed"))
+	}
+	resp := &cloudv1.ListProvidersResponse{
+		Providers: toProtoProviderRecords(records),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *ProvidersService) GetProvider(
+	ctx context.Context,
+	req *connect.Request[cloudv1.GetProviderRequest],
+) (*connect.Response[cloudv1.GetProviderResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	provider := strings.TrimSpace(req.Msg.GetProvider())
+	key := strings.TrimSpace(req.Msg.GetKey())
+	if provider == "" || key == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("provider and key are required"))
+	}
+	record, err := s.Store.GetProviderInstance(ctx, provider, key)
+	if err != nil {
+		logError(s.Logger, "get provider instance failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("get provider instance failed"))
+	}
+	resp := &cloudv1.GetProviderResponse{
+		Provider: toProtoProviderRecord(record),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *ProvidersService) UpsertProvider(
+	ctx context.Context,
+	req *connect.Request[cloudv1.UpsertProviderRequest],
+) (*connect.Response[cloudv1.UpsertProviderResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	provider := req.Msg.GetProvider()
+	if provider == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("provider is required"))
+	}
+	record, err := s.Store.UpsertProviderInstance(ctx, storage.ProviderInstanceRecord{
+		Provider:   strings.TrimSpace(provider.GetProvider()),
+		Key:        strings.TrimSpace(provider.GetKey()),
+		ConfigJSON: strings.TrimSpace(provider.GetConfigJson()),
+		Enabled:    provider.GetEnabled(),
+	})
+	if err != nil {
+		logError(s.Logger, "upsert provider instance failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("upsert provider instance failed"))
+	}
+	if s.Cache != nil {
+		if err := s.Cache.Refresh(ctx); err != nil {
+			logError(s.Logger, "provider instance cache refresh failed", err)
+		}
+	}
+	resp := &cloudv1.UpsertProviderResponse{
+		Provider: toProtoProviderRecord(record),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *ProvidersService) DeleteProvider(
+	ctx context.Context,
+	req *connect.Request[cloudv1.DeleteProviderRequest],
+) (*connect.Response[cloudv1.DeleteProviderResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	provider := strings.TrimSpace(req.Msg.GetProvider())
+	key := strings.TrimSpace(req.Msg.GetKey())
+	if provider == "" || key == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("provider and key are required"))
+	}
+	if err := s.Store.DeleteProviderInstance(ctx, provider, key); err != nil {
+		logError(s.Logger, "delete provider instance failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("delete provider instance failed"))
+	}
+	if s.Cache != nil {
+		if err := s.Cache.Refresh(ctx); err != nil {
+			logError(s.Logger, "provider instance cache refresh failed", err)
+		}
+	}
+	return connect.NewResponse(&cloudv1.DeleteProviderResponse{}), nil
+}
+
+func (s *NamespacesService) ListNamespaces(
+	ctx context.Context,
+	req *connect.Request[cloudv1.ListNamespacesRequest],
+) (*connect.Response[cloudv1.ListNamespacesResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	stateID := strings.TrimSpace(req.Msg.GetStateId())
+	if stateID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing state_id"))
+	}
+
+	provider := strings.TrimSpace(req.Msg.GetProvider())
+	enabledProviders := enabledProvidersList(s.Providers)
+	if provider != "" && !providerEnabled(provider, enabledProviders) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(providerNotEnabledMessage(provider, enabledProviders)))
+	}
+	if provider == "" && len(enabledProviders) > 1 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("provider is required when multiple providers are enabled"))
+	}
+
+	filter := storage.NamespaceFilter{
+		Provider:  provider,
+		AccountID: stateID,
+		Owner:     strings.TrimSpace(req.Msg.GetOwner()),
+		RepoName:  strings.TrimSpace(req.Msg.GetRepo()),
+		FullName:  strings.TrimSpace(req.Msg.GetFullName()),
+	}
+	if filter.Provider == "" && len(enabledProviders) > 0 {
+		filter.Provider = enabledProviders[0]
+	}
+	records, err := s.Store.ListNamespaces(ctx, filter)
+	if err != nil {
+		logError(s.Logger, "list namespaces failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("list namespaces failed"))
+	}
+
+	resp := &cloudv1.ListNamespacesResponse{
+		Namespaces: toProtoNamespaces(records),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *NamespacesService) SyncNamespaces(
+	ctx context.Context,
+	req *connect.Request[cloudv1.SyncNamespacesRequest],
+) (*connect.Response[cloudv1.SyncNamespacesResponse], error) {
+	if s.InstallStore == nil || s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	stateID := strings.TrimSpace(req.Msg.GetStateId())
+	if stateID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing state_id"))
+	}
+	provider := strings.TrimSpace(req.Msg.GetProvider())
+	if provider != "github" && provider != "gitlab" && provider != "bitbucket" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("provider must be github, gitlab, or bitbucket"))
+	}
+	if !providerEnabled(provider, enabledProvidersList(s.Providers)) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(providerNotEnabledMessage(provider, enabledProvidersList(s.Providers))))
+	}
+
+	record, err := latestInstallation(ctx, s.InstallStore, provider, stateID)
+	if err != nil {
+		logError(s.Logger, "installation lookup failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("installation lookup failed"))
+	}
+	if provider != "github" {
+		if record == nil || record.AccessToken == "" {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("access token missing"))
+		}
+	}
+
+	accessToken := ""
+	if record != nil {
+		accessToken = record.AccessToken
+	}
+	if provider != "github" && shouldRefresh(record.ExpiresAt) && record.RefreshToken != "" {
+		switch provider {
+		case "gitlab":
+			refreshed, err := oauth.RefreshGitLabToken(ctx, s.Providers.GitLab, record.RefreshToken)
+			if err != nil {
+				logError(s.Logger, "gitlab token refresh failed", err)
+				return nil, connect.NewError(connect.CodeInternal, errors.New("token refresh failed"))
+			}
+			accessToken = refreshed.AccessToken
+			record.AccessToken = refreshed.AccessToken
+			record.RefreshToken = refreshed.RefreshToken
+			record.ExpiresAt = refreshed.ExpiresAt
+		case "bitbucket":
+			refreshed, err := oauth.RefreshBitbucketToken(ctx, s.Providers.Bitbucket, record.RefreshToken)
+			if err != nil {
+				logError(s.Logger, "bitbucket token refresh failed", err)
+				return nil, connect.NewError(connect.CodeInternal, errors.New("token refresh failed"))
+			}
+			accessToken = refreshed.AccessToken
+			record.AccessToken = refreshed.AccessToken
+			record.RefreshToken = refreshed.RefreshToken
+			record.ExpiresAt = refreshed.ExpiresAt
+		}
+		if err := s.InstallStore.UpsertInstallation(ctx, *record); err != nil {
+			logError(s.Logger, "token refresh persist failed", err)
+		}
+	}
+
+	switch provider {
+	case "github":
+		// No remote sync for GitHub; namespaces come from install webhooks.
+	case "gitlab":
+		if err := oauth.SyncGitLabNamespaces(ctx, s.Store, s.Providers.GitLab, accessToken, stateID, record.InstallationID, record.ProviderInstanceKey); err != nil {
+			logError(s.Logger, "gitlab namespace sync failed", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("namespace sync failed"))
+		}
+	case "bitbucket":
+		if err := oauth.SyncBitbucketNamespaces(ctx, s.Store, s.Providers.Bitbucket, accessToken, stateID, record.InstallationID, record.ProviderInstanceKey); err != nil {
+			logError(s.Logger, "bitbucket namespace sync failed", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("namespace sync failed"))
+		}
+	}
+
+	records, err := s.Store.ListNamespaces(ctx, storage.NamespaceFilter{
+		Provider:  provider,
+		AccountID: stateID,
+	})
+	if err != nil {
+		logError(s.Logger, "list namespaces failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("list namespaces failed"))
+	}
+	resp := &cloudv1.SyncNamespacesResponse{
+		Namespaces: toProtoNamespaces(records),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *NamespacesService) GetNamespaceWebhook(
+	ctx context.Context,
+	req *connect.Request[cloudv1.GetNamespaceWebhookRequest],
+) (*connect.Response[cloudv1.GetNamespaceWebhookResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	provider := strings.TrimSpace(req.Msg.GetProvider())
+	repoID := strings.TrimSpace(req.Msg.GetRepoId())
+	stateID := strings.TrimSpace(req.Msg.GetStateId())
+	if provider == "" || repoID == "" || stateID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing provider, repo_id, or state_id"))
+	}
+	if !providerEnabled(provider, enabledProvidersList(s.Providers)) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(providerNotEnabledMessage(provider, enabledProvidersList(s.Providers))))
+	}
+
+	record, err := s.Store.GetNamespace(ctx, provider, repoID, "")
+	if err != nil {
+		logError(s.Logger, "namespace lookup failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("namespace lookup failed"))
+	}
+	if record == nil {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("namespace not found"))
+	}
+	if record.AccountID != stateID {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("state_id mismatch"))
+	}
+	return connect.NewResponse(&cloudv1.GetNamespaceWebhookResponse{
+		Enabled: record.WebhooksEnabled,
+	}), nil
+}
+
+func (s *NamespacesService) SetNamespaceWebhook(
+	ctx context.Context,
+	req *connect.Request[cloudv1.SetNamespaceWebhookRequest],
+) (*connect.Response[cloudv1.SetNamespaceWebhookResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	if s.InstallStore == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("installation storage not configured"))
+	}
+	provider := strings.TrimSpace(req.Msg.GetProvider())
+	repoID := strings.TrimSpace(req.Msg.GetRepoId())
+	stateID := strings.TrimSpace(req.Msg.GetStateId())
+	if provider == "" || repoID == "" || stateID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("missing provider, repo_id, or state_id"))
+	}
+	if provider != "github" && provider != "gitlab" && provider != "bitbucket" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("unsupported provider"))
+	}
+	if !providerEnabled(provider, enabledProvidersList(s.Providers)) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("provider not enabled"))
+	}
+
+	record, err := s.Store.GetNamespace(ctx, provider, repoID, "")
+	if err != nil {
+		logError(s.Logger, "namespace lookup failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("namespace lookup failed"))
+	}
+	if record == nil {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("namespace not found"))
+	}
+	if record.AccountID != stateID {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("state_id mismatch"))
+	}
+	if provider == "github" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("github webhooks are always enabled"))
+	}
+	webhookURL, err := webhookURL(s.PublicBaseURL, provider)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	install, err := latestInstallation(ctx, s.InstallStore, provider, stateID)
+	if err != nil || install == nil || install.AccessToken == "" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("access token missing"))
+	}
+
+	if req.Msg.GetEnabled() {
+		if err := enableProviderWebhook(ctx, provider, s.Providers, install.AccessToken, *record, webhookURL); err != nil {
+			logError(s.Logger, "webhook enable failed", err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("webhook enable failed"))
+		}
+		record.WebhooksEnabled = true
+	} else {
+		if err := disableProviderWebhook(ctx, provider, s.Providers, install.AccessToken, *record, webhookURL); err != nil {
+			logError(s.Logger, "webhook disable failed", err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("webhook disable failed"))
+		}
+		record.WebhooksEnabled = false
+	}
+	if err := s.Store.UpsertNamespace(ctx, *record); err != nil {
+		logError(s.Logger, "namespace update failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("namespace update failed"))
+	}
+
+	return connect.NewResponse(&cloudv1.SetNamespaceWebhookResponse{
+		Enabled: record.WebhooksEnabled,
+	}), nil
+}
+
+func logError(logger *log.Logger, message string, err error) {
+	if logger == nil {
+		return
+	}
+	logger.Printf("%s: %v", message, err)
+}
+
+func toProtoInstallations(records []storage.InstallRecord) []*cloudv1.InstallRecord {
+	out := make([]*cloudv1.InstallRecord, 0, len(records))
+	for _, record := range records {
+		out = append(out, toProtoInstallation(record))
+	}
+	return out
+}
+
+func toProtoInstallation(record storage.InstallRecord) *cloudv1.InstallRecord {
+	return &cloudv1.InstallRecord{
+		Provider:       record.Provider,
+		AccountId:      record.AccountID,
+		AccountName:    record.AccountName,
+		InstallationId: record.InstallationID,
+		AccessToken:    record.AccessToken,
+		RefreshToken:   record.RefreshToken,
+		ExpiresAt:      toProtoTimestampPtr(record.ExpiresAt),
+		MetadataJson:   record.MetadataJSON,
+		CreatedAt:      toProtoTimestamp(record.CreatedAt),
+		UpdatedAt:      toProtoTimestamp(record.UpdatedAt),
+	}
+}
+
+func toProtoNamespaces(records []storage.NamespaceRecord) []*cloudv1.NamespaceRecord {
+	out := make([]*cloudv1.NamespaceRecord, 0, len(records))
+	for _, record := range records {
+		out = append(out, toProtoNamespace(record))
+	}
+	return out
+}
+
+func toProtoNamespace(record storage.NamespaceRecord) *cloudv1.NamespaceRecord {
+	return &cloudv1.NamespaceRecord{
+		Provider:        record.Provider,
+		RepoId:          record.RepoID,
+		AccountId:       record.AccountID,
+		InstallationId:  record.InstallationID,
+		Owner:           record.Owner,
+		RepoName:        record.RepoName,
+		FullName:        record.FullName,
+		Visibility:      record.Visibility,
+		DefaultBranch:   record.DefaultBranch,
+		HttpUrl:         record.HTTPURL,
+		SshUrl:          record.SSHURL,
+		WebhooksEnabled: record.WebhooksEnabled,
+		CreatedAt:       toProtoTimestamp(record.CreatedAt),
+		UpdatedAt:       toProtoTimestamp(record.UpdatedAt),
+	}
+}
+
+func toProtoTimestamp(value time.Time) *timestamppb.Timestamp {
+	if value.IsZero() {
+		return nil
+	}
+	return timestamppb.New(value)
+}
+
+func toProtoTimestampPtr(value *time.Time) *timestamppb.Timestamp {
+	if value == nil || value.IsZero() {
+		return nil
+	}
+	return timestamppb.New(*value)
+}
+
+func toProtoRuleMatches(matches []core.MatchedRule) []*cloudv1.RuleMatch {
+	out := make([]*cloudv1.RuleMatch, 0, len(matches))
+	for _, match := range matches {
+		out = append(out, &cloudv1.RuleMatch{
+			When:    match.When,
+			Emit:    append([]string(nil), match.Emit...),
+			Drivers: append([]string(nil), match.Drivers...),
+		})
+	}
+	return out
+}
+
+func toProtoDriverRecord(record *storage.DriverRecord) *cloudv1.DriverRecord {
+	if record == nil {
+		return nil
+	}
+	return &cloudv1.DriverRecord{
+		Name:       record.Name,
+		ConfigJson: record.ConfigJSON,
+		Enabled:    record.Enabled,
+		CreatedAt:  toProtoTimestamp(record.CreatedAt),
+		UpdatedAt:  toProtoTimestamp(record.UpdatedAt),
+	}
+}
+
+func toProtoDriverRecords(records []storage.DriverRecord) []*cloudv1.DriverRecord {
+	out := make([]*cloudv1.DriverRecord, 0, len(records))
+	for _, record := range records {
+		item := record
+		out = append(out, toProtoDriverRecord(&item))
+	}
+	return out
+}
+
+func enabledProvidersList(cfg auth.Config) []string {
+	out := make([]string, 0, 3)
+	if cfg.GitHub.Enabled {
+		out = append(out, "github")
+	}
+	if cfg.GitLab.Enabled {
+		out = append(out, "gitlab")
+	}
+	if cfg.Bitbucket.Enabled {
+		out = append(out, "bitbucket")
+	}
+	return out
+}
+
+func providerEnabled(provider string, enabled []string) bool {
+	for _, item := range enabled {
+		if item == provider {
+			return true
+		}
+	}
+	return false
+}
+
+func providerNotEnabledMessage(provider string, enabled []string) string {
+	if len(enabled) == 0 {
+		return "provider not enabled (no providers enabled)"
+	}
+	return "provider not enabled; enabled=" + strings.Join(enabled, ",")
+}
+
+func toProtoRuleRecords(records []storage.RuleRecord) []*cloudv1.RuleRecord {
+	out := make([]*cloudv1.RuleRecord, 0, len(records))
+	for _, record := range records {
+		out = append(out, toProtoRuleRecord(record))
+	}
+	return out
+}
+
+func toProtoRuleRecord(record storage.RuleRecord) *cloudv1.RuleRecord {
+	return &cloudv1.RuleRecord{
+		Id:        record.ID,
+		When:      record.When,
+		Emit:      append([]string(nil), record.Emit...),
+		Drivers:   append([]string(nil), record.Drivers...),
+		CreatedAt: toProtoTimestamp(record.CreatedAt),
+		UpdatedAt: toProtoTimestamp(record.UpdatedAt),
+	}
+}
+
+func normalizeProtoRule(rule *cloudv1.Rule) (core.Rule, error) {
+	if rule == nil {
+		return core.Rule{}, errors.New("missing rule")
+	}
+	drivers := make([]string, 0, len(rule.GetDrivers()))
+	for _, value := range rule.GetDrivers() {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			drivers = append(drivers, trimmed)
+		}
+	}
+	coreRule := core.Rule{
+		When:    strings.TrimSpace(rule.GetWhen()),
+		Emit:    core.EmitList(rule.GetEmit()),
+		Drivers: drivers,
+	}
+	normalized, err := core.NormalizeRules([]core.Rule{coreRule})
+	if err != nil {
+		return core.Rule{}, err
+	}
+	if len(normalized) == 0 {
+		return core.Rule{}, errors.New("rule is empty")
+	}
+	return normalized[0], nil
+}
+
+func (s *RulesService) refreshEngine(ctx context.Context) error {
+	if s.Store == nil || s.Engine == nil {
+		return nil
+	}
+	records, err := s.Store.ListRules(ctx)
+	if err != nil {
+		return err
+	}
+	tenantID := storage.TenantFromContext(ctx)
+	if tenantID != "" {
+		loaded := make([]core.Rule, 0, len(records))
+		for _, record := range records {
+			loaded = append(loaded, core.Rule{
+				When:    record.When,
+				Emit:    core.EmitList(record.Emit),
+				Drivers: record.Drivers,
+			})
+		}
+		normalized, err := core.NormalizeRules(loaded)
+		if err != nil {
+			return err
+		}
+		return s.Engine.Update(core.RulesConfig{
+			Rules:    normalized,
+			Strict:   s.Strict,
+			TenantID: tenantID,
+			Logger:   s.Logger,
+		})
+	}
+
+	grouped := make(map[string][]core.Rule)
+	for _, record := range records {
+		grouped[record.TenantID] = append(grouped[record.TenantID], core.Rule{
+			When:    record.When,
+			Emit:    core.EmitList(record.Emit),
+			Drivers: record.Drivers,
+		})
+	}
+	for id, rules := range grouped {
+		normalized, err := core.NormalizeRules(rules)
+		if err != nil {
+			return err
+		}
+		if err := s.Engine.Update(core.RulesConfig{
+			Rules:    normalized,
+			Strict:   s.Strict,
+			TenantID: id,
+			Logger:   s.Logger,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func latestInstallation(ctx context.Context, store storage.Store, provider, accountID string) (*storage.InstallRecord, error) {
+	records, err := store.ListInstallations(ctx, provider, accountID)
+	if err != nil {
+		return nil, err
+	}
+	var latest *storage.InstallRecord
+	for i := range records {
+		item := records[i]
+		if latest == nil || item.UpdatedAt.After(latest.UpdatedAt) {
+			copy := item
+			latest = &copy
+		}
+	}
+	return latest, nil
+}
+
+func shouldRefresh(expiresAt *time.Time) bool {
+	if expiresAt == nil {
+		return false
+	}
+	return time.Now().UTC().After(expiresAt.Add(-1 * time.Minute))
+}
+
+func webhookURL(publicBaseURL, provider string) (string, error) {
+	publicBaseURL = strings.TrimSpace(publicBaseURL)
+	publicBaseURL = strings.TrimRight(publicBaseURL, "/")
+	if publicBaseURL == "" {
+		return "", errors.New("public_base_url is required for webhook management")
+	}
+	switch provider {
+	case "gitlab":
+		return publicBaseURL + "/webhooks/gitlab", nil
+	case "bitbucket":
+		return publicBaseURL + "/webhooks/bitbucket", nil
+	default:
+		return "", errors.New("unsupported provider for webhook management")
+	}
+}
+
+func toProtoProviderRecord(record *storage.ProviderInstanceRecord) *cloudv1.ProviderRecord {
+	if record == nil {
+		return nil
+	}
+	return &cloudv1.ProviderRecord{
+		Provider:   record.Provider,
+		Key:        record.Key,
+		ConfigJson: record.ConfigJSON,
+		Enabled:    record.Enabled,
+		CreatedAt:  timestamppb.New(record.CreatedAt),
+		UpdatedAt:  timestamppb.New(record.UpdatedAt),
+	}
+}
+
+func toProtoProviderRecords(records []storage.ProviderInstanceRecord) []*cloudv1.ProviderRecord {
+	out := make([]*cloudv1.ProviderRecord, 0, len(records))
+	for _, record := range records {
+		item := record
+		out = append(out, toProtoProviderRecord(&item))
+	}
+	return out
+}

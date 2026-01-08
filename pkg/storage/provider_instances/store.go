@@ -1,0 +1,243 @@
+package provider_instances
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
+	"githooks/pkg/storage"
+
+	"github.com/glebarez/sqlite"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+)
+
+// Config mirrors the storage configuration for the provider instances table.
+type Config struct {
+	Driver      string
+	DSN         string
+	Dialect     string
+	Table       string
+	AutoMigrate bool
+}
+
+// Store implements storage.ProviderInstanceStore on top of GORM.
+type Store struct {
+	db    *gorm.DB
+	table string
+}
+
+type row struct {
+	TenantID   string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_provider_instance,priority:1"`
+	Provider   string    `gorm:"column:provider;size:32;not null;uniqueIndex:idx_provider_instance,priority:2"`
+	Key        string    `gorm:"column:instance_key;size:64;not null;uniqueIndex:idx_provider_instance,priority:3"`
+	ConfigJSON string    `gorm:"column:config_json;type:text"`
+	Enabled    bool      `gorm:"column:enabled;not null;default:true"`
+	CreatedAt  time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt  time.Time `gorm:"column:updated_at;autoUpdateTime"`
+}
+
+// Open creates a GORM-backed provider instances store.
+func Open(cfg Config) (*Store, error) {
+	if cfg.Driver == "" && cfg.Dialect == "" {
+		return nil, errors.New("storage driver or dialect is required")
+	}
+	if cfg.DSN == "" {
+		return nil, errors.New("storage dsn is required")
+	}
+	driver := normalizeDriver(cfg.Driver)
+	if driver == "" {
+		driver = normalizeDriver(cfg.Dialect)
+	}
+	if driver == "" {
+		return nil, errors.New("unsupported storage driver")
+	}
+
+	gormDB, err := openGorm(driver, cfg.DSN)
+	if err != nil {
+		return nil, err
+	}
+	table := cfg.Table
+	if table == "" {
+		table = "githooks_provider_instances"
+	}
+	store := &Store{db: gormDB, table: table}
+	if cfg.AutoMigrate {
+		if err := store.migrate(); err != nil {
+			return nil, err
+		}
+	}
+	return store, nil
+}
+
+// Close closes the underlying DB connection.
+func (s *Store) Close() error {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}
+
+// ListProviderInstances returns all instances for a provider.
+func (s *Store) ListProviderInstances(ctx context.Context, provider string) ([]storage.ProviderInstanceRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("store is not initialized")
+	}
+	query := s.tableDB().WithContext(ctx).Order("instance_key asc")
+	if provider = strings.TrimSpace(provider); provider != "" {
+		query = query.Where("provider = ?", provider)
+	}
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	var data []row
+	if err := query.Find(&data).Error; err != nil {
+		return nil, err
+	}
+	out := make([]storage.ProviderInstanceRecord, 0, len(data))
+	for _, item := range data {
+		out = append(out, fromRow(item))
+	}
+	return out, nil
+}
+
+// GetProviderInstance returns a provider instance by key.
+func (s *Store) GetProviderInstance(ctx context.Context, provider, key string) (*storage.ProviderInstanceRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("store is not initialized")
+	}
+	provider = strings.TrimSpace(provider)
+	key = strings.TrimSpace(key)
+	if provider == "" || key == "" {
+		return nil, errors.New("provider and key are required")
+	}
+	query := s.tableDB().WithContext(ctx).Where("provider = ? AND instance_key = ?", provider, key)
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	var data row
+	err := query.Take(&data).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	record := fromRow(data)
+	return &record, nil
+}
+
+// UpsertProviderInstance inserts or updates a provider instance.
+func (s *Store) UpsertProviderInstance(ctx context.Context, record storage.ProviderInstanceRecord) (*storage.ProviderInstanceRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("store is not initialized")
+	}
+	if record.Provider == "" || record.Key == "" {
+		return nil, errors.New("provider and key are required")
+	}
+	if record.TenantID == "" {
+		record.TenantID = storage.TenantFromContext(ctx)
+	}
+	now := time.Now().UTC()
+	if record.CreatedAt.IsZero() {
+		record.CreatedAt = now
+	}
+	record.UpdatedAt = now
+	data := toRow(record)
+	err := s.tableDB().
+		WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "tenant_id"}, {Name: "provider"}, {Name: "instance_key"}},
+			DoUpdates: clause.AssignmentColumns([]string{"config_json", "enabled", "updated_at"}),
+		}).
+		Create(&data).Error
+	if err != nil {
+		return nil, err
+	}
+	out := fromRow(data)
+	return &out, nil
+}
+
+// DeleteProviderInstance removes a provider instance.
+func (s *Store) DeleteProviderInstance(ctx context.Context, provider, key string) error {
+	if s == nil || s.db == nil {
+		return errors.New("store is not initialized")
+	}
+	provider = strings.TrimSpace(provider)
+	key = strings.TrimSpace(key)
+	if provider == "" || key == "" {
+		return errors.New("provider and key are required")
+	}
+	query := s.tableDB().WithContext(ctx).Where("provider = ? AND instance_key = ?", provider, key)
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	return query.Delete(&row{}).Error
+}
+
+func (s *Store) migrate() error {
+	return s.tableDB().AutoMigrate(&row{})
+}
+
+func (s *Store) tableDB() *gorm.DB {
+	return s.db.Table(s.table)
+}
+
+func normalizeDriver(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case "postgres", "postgresql", "pgx":
+		return "postgres"
+	case "mysql":
+		return "mysql"
+	case "sqlite", "sqlite3":
+		return "sqlite"
+	default:
+		return ""
+	}
+}
+
+func openGorm(driver, dsn string) (*gorm.DB, error) {
+	switch driver {
+	case "postgres":
+		return gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	case "mysql":
+		return gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	case "sqlite":
+		return gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	default:
+		return nil, fmt.Errorf("unsupported storage driver: %s", driver)
+	}
+}
+
+func toRow(record storage.ProviderInstanceRecord) row {
+	return row{
+		TenantID:   record.TenantID,
+		Provider:   record.Provider,
+		Key:        record.Key,
+		ConfigJSON: record.ConfigJSON,
+		Enabled:    record.Enabled,
+		CreatedAt:  record.CreatedAt,
+		UpdatedAt:  record.UpdatedAt,
+	}
+}
+
+func fromRow(data row) storage.ProviderInstanceRecord {
+	return storage.ProviderInstanceRecord{
+		TenantID:   data.TenantID,
+		Provider:   data.Provider,
+		Key:        data.Key,
+		ConfigJSON: data.ConfigJSON,
+		Enabled:    data.Enabled,
+		CreatedAt:  data.CreatedAt,
+		UpdatedAt:  data.UpdatedAt,
+	}
+}

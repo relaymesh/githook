@@ -1,0 +1,131 @@
+package storage
+
+import (
+	"context"
+	"time"
+)
+
+// InstallRecord stores SCM installation or token metadata.
+type InstallRecord struct {
+	TenantID            string
+	Provider            string
+	AccountID           string
+	AccountName         string
+	InstallationID      string
+	ProviderInstanceKey string
+	AccessToken         string
+	RefreshToken        string
+	ExpiresAt           *time.Time
+	MetadataJSON        string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
+// NamespaceRecord stores provider repository metadata.
+type NamespaceRecord struct {
+	TenantID            string
+	Provider            string
+	AccountID           string
+	InstallationID      string
+	ProviderInstanceKey string
+	RepoID              string
+	Owner               string
+	RepoName            string
+	FullName            string
+	Visibility          string
+	DefaultBranch       string
+	HTTPURL             string
+	SSHURL              string
+	WebhooksEnabled     bool
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
+// RuleRecord stores rule metadata.
+type RuleRecord struct {
+	TenantID  string
+	ID        string
+	When      string
+	Emit      []string
+	Drivers   []string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// DriverRecord stores per-tenant Watermill driver config.
+type DriverRecord struct {
+	TenantID   string
+	Name       string
+	ConfigJSON string
+	Enabled    bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+// ProviderInstanceRecord stores per-tenant provider instance config.
+type ProviderInstanceRecord struct {
+	TenantID   string
+	Provider   string
+	Key        string
+	ConfigJSON string
+	Enabled    bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+// NamespaceFilter selects namespace rows.
+type NamespaceFilter struct {
+	TenantID            string
+	Provider            string
+	AccountID           string
+	ProviderInstanceKey string
+	RepoID              string
+	Owner               string
+	RepoName            string
+	FullName            string
+}
+
+// Store defines the persistence interface for installation records.
+type Store interface {
+	UpsertInstallation(ctx context.Context, record InstallRecord) error
+	GetInstallation(ctx context.Context, provider, accountID, installationID string) (*InstallRecord, error)
+	GetInstallationByInstallationID(ctx context.Context, provider, installationID string) (*InstallRecord, error)
+	ListInstallations(ctx context.Context, provider, accountID string) ([]InstallRecord, error)
+	Close() error
+}
+
+// NamespaceStore defines persistence for provider repository metadata.
+type NamespaceStore interface {
+	UpsertNamespace(ctx context.Context, record NamespaceRecord) error
+	GetNamespace(ctx context.Context, provider, repoID, instanceKey string) (*NamespaceRecord, error)
+	ListNamespaces(ctx context.Context, filter NamespaceFilter) ([]NamespaceRecord, error)
+	Close() error
+}
+
+// RuleStore defines persistence for rules.
+type RuleStore interface {
+	ListRules(ctx context.Context) ([]RuleRecord, error)
+	GetRule(ctx context.Context, id string) (*RuleRecord, error)
+	CreateRule(ctx context.Context, record RuleRecord) (*RuleRecord, error)
+	UpdateRule(ctx context.Context, record RuleRecord) (*RuleRecord, error)
+	DeleteRule(ctx context.Context, id string) error
+	Close() error
+}
+
+// ProviderInstanceStore defines persistence for provider instance configs.
+type ProviderInstanceStore interface {
+	ListProviderInstances(ctx context.Context, provider string) ([]ProviderInstanceRecord, error)
+	GetProviderInstance(ctx context.Context, provider, key string) (*ProviderInstanceRecord, error)
+	UpsertProviderInstance(ctx context.Context, record ProviderInstanceRecord) (*ProviderInstanceRecord, error)
+	DeleteProviderInstance(ctx context.Context, provider, key string) error
+	Close() error
+}
+
+// DriverStore defines persistence for per-tenant driver configs.
+type DriverStore interface {
+	ListDrivers(ctx context.Context) ([]DriverRecord, error)
+	GetDriver(ctx context.Context, name string) (*DriverRecord, error)
+	UpsertDriver(ctx context.Context, record DriverRecord) (*DriverRecord, error)
+	DeleteDriver(ctx context.Context, name string) error
+	Close() error
+}

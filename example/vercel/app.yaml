@@ -1,0 +1,76 @@
+server:
+  port: 8080
+  public_base_url: https://6b53ba11d182.ngrok-free.app
+oauth:
+  redirect_base_url: http://localhost:3000
+providers:
+  github:
+    enabled: true
+    webhook:
+      secret: ${GITHUB_WEBHOOK_SECRET}
+    app:
+      app_id: ${GITHUB_APP_ID}
+      app_slug: Runner-gh-pool
+      private_key_path: ${GITHUB_PRIVATE_KEY_PATH}
+    api:
+      base_url: https://api.github.com
+    oauth:
+      client_id: ${GITHUB_OAUTH_CLIENT_ID}
+      client_secret: ${GITHUB_OAUTH_CLIENT_SECRET}
+      scopes: ["read:user"]
+  gitlab:
+    enabled: true
+    webhook:
+      secret: ${GITLAB_WEBHOOK_SECRET}
+    api:
+      base_url: https://gitlab.com/api/v4
+    oauth:
+      client_id: ${GITLAB_OAUTH_CLIENT_ID}
+      client_secret: ${GITLAB_OAUTH_CLIENT_SECRET}
+  bitbucket:
+    enabled: true
+    webhook:
+      secret: ${BITBUCKET_WEBHOOK_SECRET}
+    api:
+      base_url: https://api.bitbucket.org/2.0
+    oauth:
+      client_id: ${BITBUCKET_OAUTH_CLIENT_ID}
+      client_secret: ${BITBUCKET_OAUTH_CLIENT_SECRET}
+watermill:
+  driver: amqp
+  amqp:
+    url: amqp://guest:guest@localhost:5672/
+    mode: durable_queue
+storage:
+  driver: postgres
+  dsn: postgres://githooks:githooks@localhost:5432/githooks?sslmode=disable
+  dialect: postgres
+  table: githooks_installations
+  auto_migrate: true
+rules:
+  - when: action == "opened" && pull_request.draft == false && pull_request.base.ref == "dummy-preview-branch" 
+    emit: vercel.preview
+
+  - when: action == "synchronize" && pull_request.draft == false && pull_request.base.ref == "dummy-preview-branch" 
+    emit: vercel.preview
+
+  - when: action == "reopened" && pull_request.draft == false && pull_request.base.ref == "dummy-preview-branch" 
+    emit: vercel.preview
+
+  - when: action == "closed" && pull_request.merged == true && pull_request.base.ref == "dummy-prod-branch" 
+    emit: vercel.production
+
+  - when: object_kind == "merge_request" && object_attributes.state == "opened" && object_attributes.draft == false && object_attributes.target_branch == "dummy-preview-branch" 
+    emit: vercel.preview
+
+  - when: object_kind == "merge_request" && object_attributes.state == "merged" && object_attributes.target_branch == "dummy-prod-branch" 
+    emit: vercel.production
+
+  - when: event_key == "pullrequest:created" && pullrequest.state == "OPEN" && pullrequest.destination.branch.name == "dummy-preview-branch" 
+    emit: vercel.preview
+
+  - when: event_key == "pullrequest:updated" && pullrequest.state == "OPEN" && pullrequest.destination.branch.name == "dummy-preview-branch" 
+    emit: vercel.preview
+
+  - when: event_key == "pullrequest:fulfilled" && pullrequest.destination.branch.name == "dummy-prod-branch" 
+    emit: vercel.production

@@ -1,0 +1,10 @@
+{
+  "actor": {"display_name": "Dev"},
+  "pullrequest": {
+    "id": 1,
+    "title": "My PR",
+    "state": "OPEN",
+    "source": {"branch": {"name": "feature"}},
+    "destination": {"branch": {"name": "main"}}
+  }
+}

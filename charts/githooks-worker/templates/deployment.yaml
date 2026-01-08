@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "githooks-worker.fullname" . }}
+  labels:
+    {{- include "githooks-worker.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "githooks-worker.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "githooks-worker.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: githooks-worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
+          env:
+            - name: GITHOOKS_API_BASE_URL
+              value: {{ .Values.endpoint.baseURL | quote }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+            {{- if .Values.extraConfigMapName }}
+            - name: extra-config
+              mountPath: /app/extra-config
+            {{- end }}
+            {{- if .Values.extraSecretName }}
+            - name: extra-secret
+              mountPath: /app/extra-secret
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config
+          secret:
+            secretName: {{ include "githooks-worker.fullname" . }}-secrets
+        {{- if .Values.extraConfigMapName }}
+        - name: extra-config
+          configMap:
+            name: {{ .Values.extraConfigMapName }}
+        {{- end }}
+        {{- if .Values.extraSecretName }}
+        - name: extra-secret
+          secret:
+            secretName: {{ .Values.extraSecretName }}
+        {{- end }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}

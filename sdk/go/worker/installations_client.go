@@ -1,0 +1,96 @@
+package worker
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	"connectrpc.com/connect"
+	"connectrpc.com/validate"
+
+	cloudv1 "githooks/pkg/gen/cloud/v1"
+	cloudv1connect "githooks/pkg/gen/cloud/v1/cloudv1connect"
+)
+
+// InstallationRecord mirrors the server installation response.
+type InstallationRecord struct {
+	Provider       string     `json:"provider"`
+	AccountID      string     `json:"account_id"`
+	AccountName    string     `json:"account_name"`
+	InstallationID string     `json:"installation_id"`
+	AccessToken    string     `json:"access_token"`
+	RefreshToken   string     `json:"refresh_token"`
+	ExpiresAt      *time.Time `json:"expires_at"`
+}
+
+// InstallationsClient fetches installation records from the server API.
+type InstallationsClient struct {
+	BaseURL    string
+	HTTPClient *http.Client
+}
+
+// GetByInstallationID fetches the latest installation record by provider + installation_id.
+func (c *InstallationsClient) GetByInstallationID(ctx context.Context, provider, installationID string) (*InstallationRecord, error) {
+	if installationID == "" {
+		return nil, errors.New("installation_id is required")
+	}
+	if provider == "" {
+		return nil, errors.New("provider is required")
+	}
+	base := strings.TrimRight(strings.TrimSpace(c.BaseURL), "/")
+	if base == "" {
+		return nil, errors.New("base url is required")
+	}
+
+	client := c.HTTPClient
+	if client == nil {
+		client = &http.Client{Timeout: 10 * time.Second}
+	}
+
+	interceptor := validate.NewInterceptor()
+	connectClient := cloudv1connect.NewInstallationsServiceClient(
+		client,
+		base,
+		connect.WithInterceptors(interceptor),
+	)
+	req := connect.NewRequest(&cloudv1.GetInstallationByIDRequest{
+		Provider:       provider,
+		InstallationId: installationID,
+	})
+	if token, err := oauth2Token(ctx); err == nil && token != "" {
+		req.Header().Set("Authorization", "Bearer "+token)
+	}
+	resp, err := connectClient.GetInstallationByID(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("installations api failed: %w", err)
+	}
+	if resp.Msg.GetInstallation() == nil {
+		return nil, nil
+	}
+	record := fromProtoInstallation(resp.Msg.GetInstallation())
+	return &record, nil
+}
+
+func fromProtoInstallation(record *cloudv1.InstallRecord) InstallationRecord {
+	if record == nil {
+		return InstallationRecord{}
+	}
+	expiresAt := record.GetExpiresAt()
+	var expiresTime *time.Time
+	if expiresAt != nil {
+		t := expiresAt.AsTime()
+		expiresTime = &t
+	}
+	return InstallationRecord{
+		Provider:       record.GetProvider(),
+		AccountID:      record.GetAccountId(),
+		AccountName:    record.GetAccountName(),
+		InstallationID: record.GetInstallationId(),
+		AccessToken:    record.GetAccessToken(),
+		RefreshToken:   record.GetRefreshToken(),
+		ExpiresAt:      expiresTime,
+	}
+}

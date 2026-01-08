@@ -1,0 +1,41 @@
+server:
+  port: 8080
+
+providers:
+  gitlab:
+    enabled: true
+    webhook:
+      secret: ${GITLAB_WEBHOOK_SECRET}
+    api:
+      base_url: https://gitlab.com/api/v4
+    oauth:
+      client_id: ${GITLAB_OAUTH_CLIENT_ID}
+      client_secret: ${GITLAB_OAUTH_CLIENT_SECRET}
+
+watermill:
+  driver: gochannel
+
+rules:
+  - when: object_kind == "merge_request" && object_attributes.state == "opened" && object_attributes.draft == true
+    emit: gitlab.mr.draft
+
+  - when: object_kind == "merge_request" && object_attributes.state == "opened" && object_attributes.draft == false
+    emit: gitlab.mr.opened
+
+  - when: object_kind == "merge_request" && object_attributes.state == "merged"
+    emit: gitlab.mr.merged
+
+  - when: object_kind == "note" && object_attributes.action == "create" && object_attributes.noteable_type == "MergeRequest"
+    emit: gitlab.mr.comment.created
+
+  - when: object_kind == "note" && object_attributes.action == "create" && object_attributes.noteable_type == "Commit"
+    emit: gitlab.commit.comment.created
+
+  - when: object_kind == "note" && object_attributes.action == "create" && object_attributes.noteable_type == "Issue"
+    emit: gitlab.issue.comment.created
+
+  - when: object_kind == "push" && ref == "refs/heads/main"
+    emit: gitlab.push.main
+
+  - when: object_kind == "push"
+    emit: gitlab.push

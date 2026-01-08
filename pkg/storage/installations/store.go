@@ -1,0 +1,260 @@
+package installations
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
+	"githooks/pkg/storage"
+
+	"github.com/glebarez/sqlite"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+)
+
+// Config mirrors the storage configuration for the installations table.
+type Config struct {
+	Driver      string
+	DSN         string
+	Dialect     string
+	Table       string
+	AutoMigrate bool
+}
+
+// Store implements storage.Store on top of GORM.
+type Store struct {
+	db    *gorm.DB
+	table string
+}
+
+type row struct {
+	TenantID       string     `gorm:"column:tenant_id;size:64;not null;default:''"`
+	Provider       string     `gorm:"column:provider;size:32;not null"`
+	AccountID      string     `gorm:"column:account_id;size:128;not null"`
+	AccountName    string     `gorm:"column:account_name;size:255"`
+	InstallationID string     `gorm:"column:installation_id;size:128;not null"`
+	InstanceKey    string     `gorm:"column:provider_instance_key;size:64"`
+	AccessToken    string     `gorm:"column:access_token"`
+	RefreshToken   string     `gorm:"column:refresh_token"`
+	ExpiresAt      *time.Time `gorm:"column:expires_at"`
+	MetadataJSON   string     `gorm:"column:metadata_json;type:text"`
+	CreatedAt      time.Time  `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt      time.Time  `gorm:"column:updated_at;autoUpdateTime"`
+}
+
+// Open creates a GORM-backed installations store.
+func Open(cfg Config) (*Store, error) {
+	if cfg.Driver == "" && cfg.Dialect == "" {
+		return nil, errors.New("storage driver or dialect is required")
+	}
+	if cfg.DSN == "" {
+		return nil, errors.New("storage dsn is required")
+	}
+	driver := normalizeDriver(cfg.Driver)
+	if driver == "" {
+		driver = normalizeDriver(cfg.Dialect)
+	}
+	if driver == "" {
+		return nil, errors.New("unsupported storage driver")
+	}
+
+	gormDB, err := openGorm(driver, cfg.DSN)
+	if err != nil {
+		return nil, err
+	}
+	table := cfg.Table
+	if table == "" {
+		table = "githooks_installations"
+	}
+	store := &Store{
+		db:    gormDB,
+		table: table,
+	}
+	if cfg.AutoMigrate {
+		if err := store.migrate(); err != nil {
+			return nil, err
+		}
+	}
+	return store, nil
+}
+
+// Close closes the underlying DB connection.
+func (s *Store) Close() error {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}
+
+// UpsertInstallation inserts or updates an installation record.
+func (s *Store) UpsertInstallation(ctx context.Context, record storage.InstallRecord) error {
+	if s == nil || s.db == nil {
+		return errors.New("store is not initialized")
+	}
+	if record.Provider == "" {
+		return errors.New("provider is required")
+	}
+	if record.TenantID == "" {
+		record.TenantID = storage.TenantFromContext(ctx)
+	}
+	now := time.Now().UTC()
+	if record.CreatedAt.IsZero() {
+		record.CreatedAt = now
+	}
+	record.UpdatedAt = now
+
+	data := toRow(record)
+	return s.tableDB().
+		WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "tenant_id"}, {Name: "provider"}, {Name: "account_id"}, {Name: "installation_id"}, {Name: "provider_instance_key"}},
+			DoUpdates: clause.AssignmentColumns([]string{"account_name", "provider_instance_key", "access_token", "refresh_token", "expires_at", "metadata_json", "updated_at"}),
+		}).
+		Create(&data).Error
+}
+
+// GetInstallation fetches a single installation record.
+func (s *Store) GetInstallation(ctx context.Context, provider, accountID, installationID string) (*storage.InstallRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("store is not initialized")
+	}
+	var data row
+	query := s.tableDB().
+		WithContext(ctx).
+		Where("provider = ? AND account_id = ? AND installation_id = ?", provider, accountID, installationID)
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	err := query.Take(&data).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	record := fromRow(data)
+	return &record, nil
+}
+
+// GetInstallationByInstallationID fetches the latest installation record for a provider.
+func (s *Store) GetInstallationByInstallationID(ctx context.Context, provider, installationID string) (*storage.InstallRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("store is not initialized")
+	}
+	var data row
+	query := s.tableDB().
+		WithContext(ctx).
+		Where("provider = ? AND installation_id = ?", provider, installationID)
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	err := query.Order("updated_at desc").Take(&data).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	record := fromRow(data)
+	return &record, nil
+}
+
+// ListInstallations lists installations for a provider/account.
+func (s *Store) ListInstallations(ctx context.Context, provider, accountID string) ([]storage.InstallRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("store is not initialized")
+	}
+	var data []row
+	query := s.tableDB().
+		WithContext(ctx).
+		Where("provider = ? AND account_id = ?", provider, accountID)
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	err := query.Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+	records := make([]storage.InstallRecord, 0, len(data))
+	for _, item := range data {
+		records = append(records, fromRow(item))
+	}
+	return records, nil
+}
+
+func (s *Store) migrate() error {
+	return s.tableDB().AutoMigrate(&row{})
+}
+
+func (s *Store) tableDB() *gorm.DB {
+	return s.db.Table(s.table)
+}
+
+func normalizeDriver(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case "postgres", "postgresql", "pgx":
+		return "postgres"
+	case "mysql":
+		return "mysql"
+	case "sqlite", "sqlite3":
+		return "sqlite"
+	default:
+		return ""
+	}
+}
+
+func openGorm(driver, dsn string) (*gorm.DB, error) {
+	switch driver {
+	case "postgres":
+		return gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	case "mysql":
+		return gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	case "sqlite":
+		return gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	default:
+		return nil, fmt.Errorf("unsupported storage driver: %s", driver)
+	}
+}
+
+func toRow(record storage.InstallRecord) row {
+	return row{
+		TenantID:       record.TenantID,
+		Provider:       record.Provider,
+		AccountID:      record.AccountID,
+		AccountName:    record.AccountName,
+		InstallationID: record.InstallationID,
+		InstanceKey:    record.ProviderInstanceKey,
+		AccessToken:    record.AccessToken,
+		RefreshToken:   record.RefreshToken,
+		ExpiresAt:      record.ExpiresAt,
+		MetadataJSON:   record.MetadataJSON,
+		CreatedAt:      record.CreatedAt,
+		UpdatedAt:      record.UpdatedAt,
+	}
+}
+
+func fromRow(data row) storage.InstallRecord {
+	return storage.InstallRecord{
+		TenantID:       data.TenantID,
+		Provider:       data.Provider,
+		AccountID:      data.AccountID,
+		AccountName:    data.AccountName,
+		InstallationID: data.InstallationID,
+		ProviderInstanceKey: data.InstanceKey,
+		AccessToken:    data.AccessToken,
+		RefreshToken:   data.RefreshToken,
+		ExpiresAt:      data.ExpiresAt,
+		MetadataJSON:   data.MetadataJSON,
+		CreatedAt:      data.CreatedAt,
+		UpdatedAt:      data.UpdatedAt,
+	}
+}

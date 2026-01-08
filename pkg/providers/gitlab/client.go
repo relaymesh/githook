@@ -1,0 +1,32 @@
+package gitlab
+
+import (
+	"errors"
+	"strings"
+
+	"githooks/pkg/auth"
+
+	gl "github.com/xanzy/go-gitlab"
+)
+
+// Client is the official GitLab SDK client.
+type Client = gl.Client
+
+// NewTokenClient returns a GitLab SDK client.
+func NewTokenClient(cfg auth.ProviderConfig, token string) (*Client, error) {
+	if token == "" {
+		return nil, errors.New("gitlab access token is required")
+	}
+	opts := []gl.ClientOptionFunc{}
+	if base := normalizeBaseURL(cfg.API.BaseURL); base != "" {
+		opts = append(opts, gl.WithBaseURL(base))
+	}
+	return gl.NewClient(token, opts...)
+}
+
+func normalizeBaseURL(base string) string {
+	if base == "" {
+		return "https://gitlab.com/api/v4"
+	}
+	return strings.TrimRight(base, "/")
+}
