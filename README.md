@@ -212,7 +212,7 @@ auth:
     audience: api://githooks
 ```
 
-When enabled, all Connect RPC endpoints require a bearer token. Webhooks and `/oauth/*` remain public.
+When enabled, all Connect RPC endpoints require a bearer token. Webhooks and `/auth/*` remain public.
 See `docs/auth.md` for client_credentials and human login flows.
 
 ### Installation Storage
@@ -233,9 +233,9 @@ oauth:
 ```
 
 Callback endpoints:
-- `/oauth/github/callback`
-- `/oauth/gitlab/callback`
-- `/oauth/bitbucket/callback`
+- `/auth/github/callback`
+- `/auth/gitlab/callback`
+- `/auth/bitbucket/callback`
 
 GitHub App installs are initiated from the GitHub App installation page. The GitHub callback is only used when "Request user authorization" is enabled in the app settings.
 

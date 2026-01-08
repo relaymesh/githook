@@ -17,7 +17,7 @@ If you enable **Request user authorization (OAuth) during installation** in the
 GitHub App settings, set the App **Callback URL** to:
 
 ```
-https://<your-domain>/oauth/github/callback
+https://<your-domain>/auth/github/callback
 ```
 
 This callback is separate from the webhook URL (`/webhooks/github`).
@@ -38,9 +38,9 @@ The redirect URL receives query params such as:
 
 ## Endpoints
 
-- `/oauth/github/callback`
-- `/oauth/gitlab/callback`
-- `/oauth/bitbucket/callback`
+- `/auth/github/callback`
+- `/auth/gitlab/callback`
+- `/auth/bitbucket/callback`
 
 ## Install/Authorize entry
 

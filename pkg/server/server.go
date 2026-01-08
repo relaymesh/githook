@@ -395,7 +395,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		}
 		mux.Handle(config.Providers.GitHub.Webhook.Path, ghHandler)
 		logger.Printf(
-			"provider=github webhook=enabled path=%s oauth_callback=/oauth/github/callback app_id=%d",
+			"provider=github webhook=enabled path=%s oauth_callback=/auth/github/callback app_id=%d",
 			config.Providers.GitHub.Webhook.Path,
 			config.Providers.GitHub.App.AppID,
 		)
@@ -416,7 +416,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		}
 		mux.Handle(config.Providers.GitLab.Webhook.Path, glHandler)
 		logger.Printf(
-			"provider=gitlab webhook=enabled path=%s oauth_callback=/oauth/gitlab/callback",
+			"provider=gitlab webhook=enabled path=%s oauth_callback=/auth/gitlab/callback",
 			config.Providers.GitLab.Webhook.Path,
 		)
 	}
@@ -436,7 +436,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		}
 		mux.Handle(config.Providers.Bitbucket.Webhook.Path, bbHandler)
 		logger.Printf(
-			"provider=bitbucket webhook=enabled path=%s oauth_callback=/oauth/bitbucket/callback",
+			"provider=bitbucket webhook=enabled path=%s oauth_callback=/auth/bitbucket/callback",
 			config.Providers.Bitbucket.Webhook.Path,
 		)
 	}
@@ -456,9 +456,9 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 			PublicBaseURL:         config.Server.PublicBaseURL,
 		}
 	}
-	mux.Handle("/oauth/github/callback", oauthHandler("github", config.Providers.GitHub))
-	mux.Handle("/oauth/gitlab/callback", oauthHandler("gitlab", config.Providers.GitLab))
-	mux.Handle("/oauth/bitbucket/callback", oauthHandler("bitbucket", config.Providers.Bitbucket))
+	mux.Handle("/auth/github/callback", oauthHandler("github", config.Providers.GitHub))
+	mux.Handle("/auth/gitlab/callback", oauthHandler("gitlab", config.Providers.GitLab))
+	mux.Handle("/auth/bitbucket/callback", oauthHandler("bitbucket", config.Providers.Bitbucket))
 
 	corsHandler := cors.New(cors.Options{
 		AllowedMethods: []string{

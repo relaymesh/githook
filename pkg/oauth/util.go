@@ -10,7 +10,7 @@ import (
 func callbackURL(r *http.Request, provider, publicBaseURL string) string {
 	publicBaseURL = strings.TrimRight(strings.TrimSpace(publicBaseURL), "/")
 	if publicBaseURL != "" {
-		return fmt.Sprintf("%s/oauth/%s/callback", publicBaseURL, provider)
+		return fmt.Sprintf("%s/auth/%s/callback", publicBaseURL, provider)
 	}
 	scheme := forwardedProto(r)
 	host := forwardedHost(r)
@@ -23,7 +23,7 @@ func callbackURL(r *http.Request, provider, publicBaseURL string) string {
 	if host == "" {
 		return ""
 	}
-	return fmt.Sprintf("%s://%s/oauth/%s/callback", scheme, host, provider)
+	return fmt.Sprintf("%s://%s/auth/%s/callback", scheme, host, provider)
 }
 
 func forwardedProto(r *http.Request) string {
@@ -46,11 +46,11 @@ func forwardedHost(r *http.Request) string {
 func providerFromPath(path string) string {
 	path = strings.TrimRight(path, "/")
 	switch {
-	case strings.HasSuffix(path, "/oauth/github/callback"):
+	case strings.HasSuffix(path, "/auth/github/callback"):
 		return "github"
-	case strings.HasSuffix(path, "/oauth/gitlab/callback"):
+	case strings.HasSuffix(path, "/auth/gitlab/callback"):
 		return "gitlab"
-	case strings.HasSuffix(path, "/oauth/bitbucket/callback"):
+	case strings.HasSuffix(path, "/auth/bitbucket/callback"):
 		return "bitbucket"
 	default:
 		return ""
