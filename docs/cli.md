@@ -73,6 +73,8 @@ githooks --endpoint http://localhost:8080 providers set --provider github --key 
 githooks --endpoint http://localhost:8080 providers delete --provider github --key default
 ```
 
+`--key` defaults to `default` when omitted.
+
 ## Drivers
 
 ```bash

@@ -278,9 +278,13 @@ githooks --endpoint http://localhost:8080 namespaces webhook get --state-id <sta
 githooks --endpoint http://localhost:8080 namespaces webhook set --state-id <state-id> --provider gitlab --repo-id <repo-id> --enabled
 githooks --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml
 githooks --endpoint http://localhost:8080 providers list --provider github
+githooks --endpoint http://localhost:8080 providers get --provider github --key default
 githooks --endpoint http://localhost:8080 providers set --provider github --key acme-prod --config-file github.json
+githooks --endpoint http://localhost:8080 providers delete --provider github --key default
 githooks --endpoint http://localhost:8080 drivers list
+githooks --endpoint http://localhost:8080 drivers get --name amqp
 githooks --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.json
+githooks --endpoint http://localhost:8080 drivers delete --name amqp
 ```
 
 ### Install/Authorize Entry
