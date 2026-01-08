@@ -93,27 +93,56 @@ func bootstrapRules(ctx context.Context, store storage.RuleStore, engine *core.R
 	if len(records) == 0 {
 		return nil
 	}
-	loaded := make([]core.Rule, 0, len(records))
+	if tenantID != "" {
+		loaded := make([]core.Rule, 0, len(records))
+		for _, record := range records {
+			loaded = append(loaded, core.Rule{
+				When:    record.When,
+				Emit:    core.EmitList(record.Emit),
+				Drivers: record.Drivers,
+			})
+		}
+		normalized, err := core.NormalizeRules(loaded)
+		if err != nil {
+			return err
+		}
+		if logger != nil {
+			logger.Printf("rules bootstrap: loaded %d rules from storage", len(normalized))
+		}
+		return engine.Update(core.RulesConfig{
+			Rules:    normalized,
+			Strict:   strict,
+			TenantID: tenantID,
+			Logger:   logger,
+		})
+	}
+
+	grouped := make(map[string][]core.Rule)
 	for _, record := range records {
-		loaded = append(loaded, core.Rule{
+		grouped[record.TenantID] = append(grouped[record.TenantID], core.Rule{
 			When:    record.When,
 			Emit:    core.EmitList(record.Emit),
 			Drivers: record.Drivers,
 		})
 	}
-	normalized, err := core.NormalizeRules(loaded)
-	if err != nil {
-		return err
+	for id, rules := range grouped {
+		normalized, err := core.NormalizeRules(rules)
+		if err != nil {
+			return err
+		}
+		if logger != nil {
+			logger.Printf("rules bootstrap: loaded %d rules from storage tenant=%s", len(normalized), id)
+		}
+		if err := engine.Update(core.RulesConfig{
+			Rules:    normalized,
+			Strict:   strict,
+			TenantID: id,
+			Logger:   logger,
+		}); err != nil {
+			return err
+		}
 	}
-	if logger != nil {
-		logger.Printf("rules bootstrap: loaded %d rules from storage", len(normalized))
-	}
-	return engine.Update(core.RulesConfig{
-		Rules:    normalized,
-		Strict:   strict,
-		TenantID: tenantID,
-		Logger:   logger,
-	})
+	return nil
 }
 
 func bootstrapDrivers(ctx context.Context, store storage.DriverStore, cfg core.WatermillConfig, logger *log.Logger) error {
