@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"log"
 	"strings"
@@ -442,11 +444,11 @@ func (s *ProvidersService) GetProvider(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
 	provider := strings.TrimSpace(req.Msg.GetProvider())
-	key := strings.TrimSpace(req.Msg.GetKey())
-	if provider == "" || key == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("provider and key are required"))
+	hash := strings.TrimSpace(req.Msg.GetHash())
+	if provider == "" || hash == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("provider and hash are required"))
 	}
-	record, err := s.Store.GetProviderInstance(ctx, provider, key)
+	record, err := s.Store.GetProviderInstance(ctx, provider, hash)
 	if err != nil {
 		logError(s.Logger, "get provider instance failed", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("get provider instance failed"))
@@ -468,9 +470,18 @@ func (s *ProvidersService) UpsertProvider(
 	if provider == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("provider is required"))
 	}
+	providerName := strings.TrimSpace(provider.GetProvider())
+	if providerName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("provider is required"))
+	}
+	hash, err := generateProviderInstanceHash(ctx, s.Store, providerName)
+	if err != nil {
+		logError(s.Logger, "generate provider instance hash failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("generate provider instance hash failed"))
+	}
 	record, err := s.Store.UpsertProviderInstance(ctx, storage.ProviderInstanceRecord{
-		Provider:   strings.TrimSpace(provider.GetProvider()),
-		Key:        strings.TrimSpace(provider.GetKey()),
+		Provider:   providerName,
+		Key:        hash,
 		ConfigJSON: strings.TrimSpace(provider.GetConfigJson()),
 		Enabled:    provider.GetEnabled(),
 	})
@@ -497,11 +508,11 @@ func (s *ProvidersService) DeleteProvider(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
 	provider := strings.TrimSpace(req.Msg.GetProvider())
-	key := strings.TrimSpace(req.Msg.GetKey())
-	if provider == "" || key == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("provider and key are required"))
+	hash := strings.TrimSpace(req.Msg.GetHash())
+	if provider == "" || hash == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("provider and hash are required"))
 	}
-	if err := s.Store.DeleteProviderInstance(ctx, provider, key); err != nil {
+	if err := s.Store.DeleteProviderInstance(ctx, provider, hash); err != nil {
 		logError(s.Logger, "delete provider instance failed", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("delete provider instance failed"))
 	}
@@ -1023,13 +1034,46 @@ func webhookURL(publicBaseURL, provider string) (string, error) {
 	}
 }
 
+const (
+	providerInstanceHashBytes    = 32
+	providerInstanceHashAttempts = 5
+)
+
+func generateProviderInstanceHash(ctx context.Context, store storage.ProviderInstanceStore, provider string) (string, error) {
+	for i := 0; i < providerInstanceHashAttempts; i++ {
+		hash, err := randomHex(providerInstanceHashBytes)
+		if err != nil {
+			return "", err
+		}
+		existing, err := store.GetProviderInstance(ctx, provider, hash)
+		if err != nil {
+			return "", err
+		}
+		if existing == nil {
+			return hash, nil
+		}
+	}
+	return "", errors.New("unable to generate unique provider instance hash")
+}
+
+func randomHex(size int) (string, error) {
+	if size <= 0 {
+		return "", errors.New("random hex size must be positive")
+	}
+	buf := make([]byte, size)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
+}
+
 func toProtoProviderRecord(record *storage.ProviderInstanceRecord) *cloudv1.ProviderRecord {
 	if record == nil {
 		return nil
 	}
 	return &cloudv1.ProviderRecord{
 		Provider:   record.Provider,
-		Key:        record.Key,
+		Hash:       record.Key,
 		ConfigJson: record.ConfigJSON,
 		Enabled:    record.Enabled,
 		CreatedAt:  timestamppb.New(record.CreatedAt),

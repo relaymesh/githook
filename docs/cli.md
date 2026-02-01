@@ -68,12 +68,12 @@ githooks --endpoint http://localhost:8080 rules delete --id <rule-id>
 
 ```bash
 githooks --endpoint http://localhost:8080 providers list
-githooks --endpoint http://localhost:8080 providers get --provider github --key default
-githooks --endpoint http://localhost:8080 providers set --provider github --key default --config-file github.json
-githooks --endpoint http://localhost:8080 providers delete --provider github --key default
+githooks --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>
+githooks --endpoint http://localhost:8080 providers set --provider github --config-file github.json
+githooks --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>
 ```
 
-`--key` defaults to `default` when omitted.
+When creating a provider instance with `providers set`, the server always generates the instance hash. The response includes the generated hash, which you must pass to `providers get`/`providers delete` and `instance=` query parameters.
 
 ## Drivers
 

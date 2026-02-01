@@ -111,7 +111,7 @@ Requests use or generate `X-Request-Id`, which is echoed back in responses and i
 ### Providers
 
 The `providers` section configures webhook endpoints and SCM auth for each Git provider.
-`providers.*.key` sets the provider instance key (default: `default`). Use different keys to run multiple app installs per provider.
+Provider instances created from config are stored on startup with a server-generated instance hash. Use the Providers API to fetch it when you need to target a specific instance.
 If `webhook.path` is omitted, defaults are used: `/webhooks/github`, `/webhooks/gitlab`, `/webhooks/bitbucket`.
 Set `server.public_base_url` when running behind ngrok or a reverse proxy so OAuth callbacks resolve to your public domain.
 `providers.*.oauth` is reserved for OAuth2 expansion in future releases.
@@ -120,7 +120,6 @@ Set `server.public_base_url` when running behind ngrok or a reverse proxy so OAu
 providers:
   github:
     enabled: true
-    key: default
     webhook:
       path: /webhooks/github
       secret: ${GITHUB_WEBHOOK_SECRET}
@@ -137,7 +136,6 @@ providers:
       scopes: ["read:user"]
   gitlab:
     enabled: false
-    key: default
     webhook:
       path: /webhooks/gitlab
       secret: ${GITLAB_WEBHOOK_SECRET} # Optional
@@ -150,7 +148,6 @@ providers:
       scopes: ["read_api"]
   bitbucket:
     enabled: false
-    key: default
     webhook:
       path: /webhooks/bitbucket
       secret: ${BITBUCKET_WEBHOOK_SECRET} # Optional, for X-Hook-UUID
@@ -278,9 +275,9 @@ githooks --endpoint http://localhost:8080 namespaces webhook get --state-id <sta
 githooks --endpoint http://localhost:8080 namespaces webhook set --state-id <state-id> --provider gitlab --repo-id <repo-id> --enabled
 githooks --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml
 githooks --endpoint http://localhost:8080 providers list --provider github
-githooks --endpoint http://localhost:8080 providers get --provider github --key default
-githooks --endpoint http://localhost:8080 providers set --provider github --key acme-prod --config-file github.json
-githooks --endpoint http://localhost:8080 providers delete --provider github --key default
+githooks --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>
+githooks --endpoint http://localhost:8080 providers set --provider github --config-file github.json
+githooks --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>
 githooks --endpoint http://localhost:8080 drivers list
 githooks --endpoint http://localhost:8080 drivers get --name amqp
 githooks --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.json
@@ -297,7 +294,7 @@ http://localhost:8080/?provider=gitlab
 http://localhost:8080/?provider=bitbucket
 ```
 
-To target a specific provider instance, pass `instance=<key>`:
+To target a specific provider instance, pass `instance=<hash>` (required when multiple instances exist):
 
 ```
 http://localhost:8080/?provider=github&instance=acme-prod

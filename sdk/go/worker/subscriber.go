@@ -309,7 +309,7 @@ func amqpSubscriberConfigFromMode(url, mode string) (wmamaqp.Config, error) {
 func sqlAdapters(dialect string) (wmsql.SchemaAdapter, wmsql.OffsetsAdapter, error) {
 	switch strings.ToLower(dialect) {
 	case "postgres", "postgresql":
-		return wmsql.DefaultPostgreSQLSchema{}, wmsql.DefaultPostgreSQLOffsetsAdapter{}, nil
+		return postgresBinarySchema{}, wmsql.DefaultPostgreSQLOffsetsAdapter{}, nil
 	case "mysql":
 		return wmsql.DefaultMySQLSchema{}, wmsql.DefaultMySQLOffsetsAdapter{}, nil
 	default:

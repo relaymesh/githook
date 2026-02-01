@@ -134,7 +134,7 @@ type OAuthConfig struct {
 }
 
 // LoadAppConfig loads the main application configuration from a YAML file.
-// It expands environment variables and applies default values.
+// It applies default values.
 func LoadAppConfig(path string) (AppConfig, error) {
 	var cfg AppConfig
 	data, err := os.ReadFile(path)
@@ -142,8 +142,7 @@ func LoadAppConfig(path string) (AppConfig, error) {
 		return cfg, err
 	}
 
-	expanded := os.ExpandEnv(string(data))
-	if err := yaml.Unmarshal([]byte(expanded), &cfg); err != nil {
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return cfg, err
 	}
 
@@ -152,7 +151,7 @@ func LoadAppConfig(path string) (AppConfig, error) {
 }
 
 // LoadConfig loads the full application configuration, including rules, from a YAML file.
-// It expands environment variables, applies defaults, and normalizes rules.
+// It applies defaults and normalizes rules.
 func LoadConfig(path string) (Config, error) {
 	var cfg Config
 	data, err := os.ReadFile(path)
@@ -160,8 +159,7 @@ func LoadConfig(path string) (Config, error) {
 		return cfg, err
 	}
 
-	expanded := os.ExpandEnv(string(data))
-	if err := yaml.Unmarshal([]byte(expanded), &cfg); err != nil {
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return cfg, err
 	}
 

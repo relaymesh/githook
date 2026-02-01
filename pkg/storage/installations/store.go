@@ -190,6 +190,29 @@ func (s *Store) ListInstallations(ctx context.Context, provider, accountID strin
 	return records, nil
 }
 
+// UpdateProviderInstanceKey updates the provider instance key for a provider and tenant.
+func (s *Store) UpdateProviderInstanceKey(ctx context.Context, provider, oldKey, newKey, tenantID string) (int64, error) {
+	if s == nil || s.db == nil {
+		return 0, errors.New("store is not initialized")
+	}
+	provider = strings.TrimSpace(provider)
+	oldKey = strings.TrimSpace(oldKey)
+	newKey = strings.TrimSpace(newKey)
+	tenantID = strings.TrimSpace(tenantID)
+	if provider == "" || oldKey == "" || newKey == "" {
+		return 0, errors.New("provider and keys are required")
+	}
+	query := s.tableDB().
+		WithContext(ctx).
+		Where("provider = ? AND provider_instance_key = ?", provider, oldKey).
+		Where("tenant_id = ?", tenantID)
+	result := query.Updates(map[string]interface{}{
+		"provider_instance_key": newKey,
+		"updated_at":            time.Now().UTC(),
+	})
+	return result.RowsAffected, result.Error
+}
+
 func (s *Store) migrate() error {
 	return s.tableDB().AutoMigrate(&row{})
 }
@@ -244,17 +267,17 @@ func toRow(record storage.InstallRecord) row {
 
 func fromRow(data row) storage.InstallRecord {
 	return storage.InstallRecord{
-		TenantID:       data.TenantID,
-		Provider:       data.Provider,
-		AccountID:      data.AccountID,
-		AccountName:    data.AccountName,
-		InstallationID: data.InstallationID,
+		TenantID:            data.TenantID,
+		Provider:            data.Provider,
+		AccountID:           data.AccountID,
+		AccountName:         data.AccountName,
+		InstallationID:      data.InstallationID,
 		ProviderInstanceKey: data.InstanceKey,
-		AccessToken:    data.AccessToken,
-		RefreshToken:   data.RefreshToken,
-		ExpiresAt:      data.ExpiresAt,
-		MetadataJSON:   data.MetadataJSON,
-		CreatedAt:      data.CreatedAt,
-		UpdatedAt:      data.UpdatedAt,
+		AccessToken:         data.AccessToken,
+		RefreshToken:        data.RefreshToken,
+		ExpiresAt:           data.ExpiresAt,
+		MetadataJSON:        data.MetadataJSON,
+		CreatedAt:           data.CreatedAt,
+		UpdatedAt:           data.UpdatedAt,
 	}
 }

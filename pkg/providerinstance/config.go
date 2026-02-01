@@ -9,25 +9,22 @@ import (
 	"githooks/pkg/storage"
 )
 
-// DefaultKey is the instance key used for config-defined providers.
-const DefaultKey = "default"
-
-// RecordsFromConfig converts provider config into default instance records.
+// RecordsFromConfig converts provider config into instance records.
 func RecordsFromConfig(cfg auth.Config) ([]storage.ProviderInstanceRecord, error) {
 	out := make([]storage.ProviderInstanceRecord, 0, 3)
-	if record, err := instanceRecord("github", cfg.GitHub); err != nil {
+	if record, ok, err := instanceRecordFromConfig("github", cfg.GitHub); err != nil {
 		return nil, err
-	} else {
+	} else if ok {
 		out = append(out, record)
 	}
-	if record, err := instanceRecord("gitlab", cfg.GitLab); err != nil {
+	if record, ok, err := instanceRecordFromConfig("gitlab", cfg.GitLab); err != nil {
 		return nil, err
-	} else {
+	} else if ok {
 		out = append(out, record)
 	}
-	if record, err := instanceRecord("bitbucket", cfg.Bitbucket); err != nil {
+	if record, ok, err := instanceRecordFromConfig("bitbucket", cfg.Bitbucket); err != nil {
 		return nil, err
-	} else {
+	} else if ok {
 		out = append(out, record)
 	}
 	return out, nil
@@ -44,20 +41,47 @@ func ProviderConfigFromRecord(record storage.ProviderInstanceRecord) (auth.Provi
 }
 
 func instanceRecord(provider string, cfg auth.ProviderConfig) (storage.ProviderInstanceRecord, error) {
+	cfg.Key = ""
 	raw, err := json.Marshal(cfg)
 	if err != nil {
 		return storage.ProviderInstanceRecord{}, err
 	}
-	key := strings.TrimSpace(cfg.Key)
-	if key == "" {
-		key = DefaultKey
-	}
 	return storage.ProviderInstanceRecord{
 		Provider:   provider,
-		Key:        key,
+		Key:        "",
 		ConfigJSON: string(raw),
 		Enabled:    cfg.Enabled,
 	}, nil
+}
+
+func instanceRecordFromConfig(provider string, cfg auth.ProviderConfig) (storage.ProviderInstanceRecord, bool, error) {
+	if !hasProviderConfig(cfg) {
+		return storage.ProviderInstanceRecord{}, false, nil
+	}
+	record, err := instanceRecord(provider, cfg)
+	if err != nil {
+		return storage.ProviderInstanceRecord{}, false, err
+	}
+	return record, true, nil
+}
+
+func hasProviderConfig(cfg auth.ProviderConfig) bool {
+	if cfg.Enabled {
+		return true
+	}
+	if strings.TrimSpace(cfg.Webhook.Path) != "" || strings.TrimSpace(cfg.Webhook.Secret) != "" {
+		return true
+	}
+	if cfg.App.AppID != 0 || strings.TrimSpace(cfg.App.PrivateKeyPath) != "" || strings.TrimSpace(cfg.App.AppSlug) != "" {
+		return true
+	}
+	if strings.TrimSpace(cfg.OAuth.ClientID) != "" || strings.TrimSpace(cfg.OAuth.ClientSecret) != "" || len(cfg.OAuth.Scopes) > 0 {
+		return true
+	}
+	if strings.TrimSpace(cfg.API.BaseURL) != "" || strings.TrimSpace(cfg.API.WebBaseURL) != "" {
+		return true
+	}
+	return false
 }
 
 func unmarshalConfig(raw string, target interface{}) error {

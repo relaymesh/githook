@@ -52,7 +52,7 @@ http://localhost:8080/?provider=gitlab
 http://localhost:8080/?provider=bitbucket
 ```
 
-To target a specific provider instance, pass `instance=<key>` (defaults to `default`):
+To target a specific provider instance, pass `instance=<hash>` (required when multiple instances exist):
 
 ```
 http://localhost:8080/?provider=github&instance=acme-prod

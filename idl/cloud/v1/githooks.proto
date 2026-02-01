@@ -168,7 +168,8 @@ message ProviderRecord {
     (buf.validate.field).string.in = "gitlab",
     (buf.validate.field).string.in = "bitbucket"
   ];
-  string key = 2 [(buf.validate.field).string.min_len = 1];
+  // Instance hash (server-generated).
+  string hash = 2;
   string config_json = 3;
   bool enabled = 4;
   google.protobuf.Timestamp created_at = 5;
@@ -277,7 +278,7 @@ message ListProvidersResponse {
 
 message GetProviderRequest {
   string provider = 1 [(buf.validate.field).string.min_len = 1];
-  string key = 2 [(buf.validate.field).string.min_len = 1];
+  string hash = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetProviderResponse {
@@ -294,7 +295,7 @@ message UpsertProviderResponse {
 
 message DeleteProviderRequest {
   string provider = 1 [(buf.validate.field).string.min_len = 1];
-  string key = 2 [(buf.validate.field).string.min_len = 1];
+  string hash = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteProviderResponse {}

@@ -405,7 +405,7 @@ func amqpConfigFromMode(url, mode string) (wmamaqp.Config, error) {
 func sqlSchemaAdapter(dialect string) (wmsql.SchemaAdapter, error) {
 	switch strings.ToLower(dialect) {
 	case "postgres", "postgresql":
-		return wmsql.DefaultPostgreSQLSchema{}, nil
+		return postgresBinarySchema{}, nil
 	case "mysql":
 		return wmsql.DefaultMySQLSchema{}, nil
 	default:

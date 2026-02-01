@@ -12,7 +12,6 @@ import (
 
 	cloudv1 "githooks/pkg/gen/cloud/v1"
 	cloudv1connect "githooks/pkg/gen/cloud/v1/cloudv1connect"
-	"githooks/pkg/providerinstance"
 )
 
 func newProvidersCmd() *cobra.Command {
@@ -22,8 +21,7 @@ func newProvidersCmd() *cobra.Command {
 		Long:  "Manage per-tenant provider instances stored on the server.",
 		Example: "  githooks --endpoint http://localhost:8080 providers list\n" +
 			"  githooks --endpoint http://localhost:8080 providers list --provider github\n" +
-			"  githooks --endpoint http://localhost:8080 providers set --provider github --config-file github.json\n" +
-			"  githooks --endpoint http://localhost:8080 providers set --provider github --key acme-prod --config-file github.json",
+			"  githooks --endpoint http://localhost:8080 providers set --provider github --config-file github.json",
 	}
 	cmd.AddCommand(newProviderInstancesListCmd())
 	cmd.AddCommand(newProviderInstancesGetCmd())
@@ -59,18 +57,17 @@ func newProviderInstancesListCmd() *cobra.Command {
 
 func newProviderInstancesGetCmd() *cobra.Command {
 	var provider string
-	var key string
+	var hash string
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get a provider instance",
-		Example: "  githooks --endpoint http://localhost:8080 providers get --provider github\n" +
-			"  githooks --endpoint http://localhost:8080 providers get --provider github --key acme-prod",
+		Example: "  githooks --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(provider) == "" {
 				return fmt.Errorf("provider is required")
 			}
-			if strings.TrimSpace(key) == "" {
-				key = providerinstance.DefaultKey
+			if strings.TrimSpace(hash) == "" {
+				return fmt.Errorf("hash is required")
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -79,7 +76,7 @@ func newProviderInstancesGetCmd() *cobra.Command {
 			client := cloudv1connect.NewProvidersServiceClient(http.DefaultClient, apiBaseURL, opts...)
 			req := connect.NewRequest(&cloudv1.GetProviderRequest{
 				Provider: strings.TrimSpace(provider),
-				Key:      strings.TrimSpace(key),
+				Hash:     strings.TrimSpace(hash),
 			})
 			resp, err := client.GetProvider(context.Background(), req)
 			if err != nil {
@@ -89,27 +86,22 @@ func newProviderInstancesGetCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&provider, "provider", "", "Provider name (github/gitlab/bitbucket)")
-	cmd.Flags().StringVar(&key, "key", "", "Instance key")
+	cmd.Flags().StringVar(&hash, "hash", "", "Instance hash")
 	return cmd
 }
 
 func newProviderInstancesSetCmd() *cobra.Command {
 	var provider string
-	var key string
 	var configFile string
 	var configJSON string
 	var enabled bool
 	cmd := &cobra.Command{
 		Use:   "set",
-		Short: "Create or update a provider instance",
-		Example: "  githooks --endpoint http://localhost:8080 providers set --provider github --config-file github.json\n" +
-			"  githooks --endpoint http://localhost:8080 providers set --provider github --key acme-prod --config-file github.json",
+		Short: "Create a provider instance",
+		Example: "  githooks --endpoint http://localhost:8080 providers set --provider github --config-file github.json",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(provider) == "" {
 				return fmt.Errorf("provider is required")
-			}
-			if strings.TrimSpace(key) == "" {
-				key = providerinstance.DefaultKey
 			}
 			payload := strings.TrimSpace(configJSON)
 			if configFile != "" {
@@ -127,7 +119,6 @@ func newProviderInstancesSetCmd() *cobra.Command {
 			req := connect.NewRequest(&cloudv1.UpsertProviderRequest{
 				Provider: &cloudv1.ProviderRecord{
 					Provider:   strings.TrimSpace(provider),
-					Key:        strings.TrimSpace(key),
 					ConfigJson: payload,
 					Enabled:    enabled,
 				},
@@ -140,7 +131,6 @@ func newProviderInstancesSetCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&provider, "provider", "", "Provider name (github/gitlab/bitbucket)")
-	cmd.Flags().StringVar(&key, "key", "", "Instance key")
 	cmd.Flags().StringVar(&configFile, "config-file", "", "Path to provider JSON config")
 	cmd.Flags().StringVar(&configJSON, "config-json", "", "Inline provider JSON config")
 	cmd.Flags().BoolVar(&enabled, "enabled", true, "Enable this provider instance")
@@ -149,18 +139,17 @@ func newProviderInstancesSetCmd() *cobra.Command {
 
 func newProviderInstancesDeleteCmd() *cobra.Command {
 	var provider string
-	var key string
+	var hash string
 	cmd := &cobra.Command{
 		Use:   "delete",
 		Short: "Delete a provider instance",
-		Example: "  githooks --endpoint http://localhost:8080 providers delete --provider github\n" +
-			"  githooks --endpoint http://localhost:8080 providers delete --provider github --key acme-prod",
+		Example: "  githooks --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(provider) == "" {
 				return fmt.Errorf("provider is required")
 			}
-			if strings.TrimSpace(key) == "" {
-				key = providerinstance.DefaultKey
+			if strings.TrimSpace(hash) == "" {
+				return fmt.Errorf("hash is required")
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -169,7 +158,7 @@ func newProviderInstancesDeleteCmd() *cobra.Command {
 			client := cloudv1connect.NewProvidersServiceClient(http.DefaultClient, apiBaseURL, opts...)
 			req := connect.NewRequest(&cloudv1.DeleteProviderRequest{
 				Provider: strings.TrimSpace(provider),
-				Key:      strings.TrimSpace(key),
+				Hash:     strings.TrimSpace(hash),
 			})
 			resp, err := client.DeleteProvider(context.Background(), req)
 			if err != nil {
@@ -179,6 +168,6 @@ func newProviderInstancesDeleteCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&provider, "provider", "", "Provider name (github/gitlab/bitbucket)")
-	cmd.Flags().StringVar(&key, "key", "", "Instance key")
+	cmd.Flags().StringVar(&hash, "hash", "", "Instance hash")
 	return cmd
 }

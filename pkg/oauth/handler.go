@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -329,7 +330,29 @@ func (h *Handler) resolveInstanceConfig(ctx context.Context, provider, instanceK
 		return fallback, instanceKey
 	}
 	if instanceKey == "" {
-		instanceKey = providerinstance.DefaultKey
+		if h.ProviderInstanceStore == nil {
+			return fallback, instanceKey
+		}
+		records, err := h.ProviderInstanceStore.ListProviderInstances(ctx, provider)
+		if err != nil || len(records) == 0 {
+			return fallback, instanceKey
+		}
+		if len(records) == 1 {
+			cfg, err := providerinstance.ProviderConfigFromRecord(records[0])
+			if err != nil {
+				return fallback, instanceKey
+			}
+			return cfg, records[0].Key
+		}
+		match, ok := matchProviderConfigRecord(records, fallback)
+		if !ok {
+			return fallback, instanceKey
+		}
+		cfg, err := providerinstance.ProviderConfigFromRecord(match)
+		if err != nil {
+			return fallback, instanceKey
+		}
+		return cfg, match.Key
 	}
 	if h.ProviderInstanceCache != nil {
 		if cfg, ok, err := h.ProviderInstanceCache.ConfigFor(ctx, provider, instanceKey); err == nil && ok {
@@ -348,6 +371,49 @@ func (h *Handler) resolveInstanceConfig(ctx context.Context, provider, instanceK
 		return fallback, instanceKey
 	}
 	return cfg, instanceKey
+}
+
+func matchProviderConfigRecord(records []storage.ProviderInstanceRecord, fallback auth.ProviderConfig) (storage.ProviderInstanceRecord, bool) {
+	configJSON, ok := providerConfigJSON(fallback)
+	if !ok {
+		return storage.ProviderInstanceRecord{}, false
+	}
+	var match *storage.ProviderInstanceRecord
+	for i := range records {
+		record := records[i]
+		if strings.TrimSpace(record.ConfigJSON) != configJSON {
+			continue
+		}
+		if !isProviderInstanceHash(record.Key) {
+			continue
+		}
+		if match != nil {
+			return storage.ProviderInstanceRecord{}, false
+		}
+		match = &record
+	}
+	if match == nil {
+		return storage.ProviderInstanceRecord{}, false
+	}
+	return *match, true
+}
+
+func providerConfigJSON(cfg auth.ProviderConfig) (string, bool) {
+	cfg.Key = ""
+	raw, err := json.Marshal(cfg)
+	if err != nil {
+		return "", false
+	}
+	return strings.TrimSpace(string(raw)), true
+}
+
+func isProviderInstanceHash(value string) bool {
+	value = strings.TrimSpace(value)
+	if len(value) != 64 {
+		return false
+	}
+	_, err := hex.DecodeString(value)
+	return err == nil
 }
 
 type oauthToken struct {

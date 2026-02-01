@@ -84,7 +84,6 @@ Set the webhook secret in `example/github/app.yaml` or export it as an env var:
 providers:
   github:
     enabled: true
-    key: default
     webhook:
       secret: ${GITHUB_WEBHOOK_SECRET}
 ```

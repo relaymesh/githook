@@ -1132,9 +1132,10 @@ func (x *DriverRecord) GetUpdatedAt() *timestamppb.Timestamp {
 }
 
 type ProviderRecord struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Provider string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Instance hash (server-generated).
+	Hash          string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
 	ConfigJson    string                 `protobuf:"bytes,3,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
 	Enabled       bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -1180,9 +1181,9 @@ func (x *ProviderRecord) GetProvider() string {
 	return ""
 }
 
-func (x *ProviderRecord) GetKey() string {
+func (x *ProviderRecord) GetHash() string {
 	if x != nil {
-		return x.Key
+		return x.Hash
 	}
 	return ""
 }
@@ -2298,7 +2299,7 @@ func (x *ListProvidersResponse) GetProviders() []*ProviderRecord {
 type GetProviderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Hash          string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2340,9 +2341,9 @@ func (x *GetProviderRequest) GetProvider() string {
 	return ""
 }
 
-func (x *GetProviderRequest) GetKey() string {
+func (x *GetProviderRequest) GetHash() string {
 	if x != nil {
-		return x.Key
+		return x.Hash
 	}
 	return ""
 }
@@ -2482,7 +2483,7 @@ func (x *UpsertProviderResponse) GetProvider() *ProviderRecord {
 type DeleteProviderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Hash          string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2524,9 +2525,9 @@ func (x *DeleteProviderRequest) GetProvider() string {
 	return ""
 }
 
-func (x *DeleteProviderRequest) GetKey() string {
+func (x *DeleteProviderRequest) GetHash() string {
 	if x != nil {
-		return x.Key
+		return x.Hash
 	}
 	return ""
 }
@@ -2671,10 +2672,10 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x9c\x02\n" +
+	"updated_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x95\x02\n" +
 	"\x0eProviderRecord\x12>\n" +
-	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x19\n" +
-	"\x03key\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03key\x12\x1f\n" +
+	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x12\n" +
+	"\x04hash\x18\x02 \x01(\tR\x04hash\x12\x1f\n" +
 	"\vconfig_json\x18\x03 \x01(\tR\n" +
 	"configJson\x12\x18\n" +
 	"\aenabled\x18\x04 \x01(\bR\aenabled\x129\n" +
@@ -2732,19 +2733,19 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\x14ListProvidersRequest\x12<\n" +
 	"\bprovider\x18\x01 \x01(\tB \xbaH\x1dr\x1bR\x06githubR\x06gitlabR\tbitbucketR\bprovider\"O\n" +
 	"\x15ListProvidersResponse\x126\n" +
-	"\tproviders\x18\x01 \x03(\v2\x18.cloud.v1.ProviderRecordR\tproviders\"T\n" +
+	"\tproviders\x18\x01 \x03(\v2\x18.cloud.v1.ProviderRecordR\tproviders\"V\n" +
 	"\x12GetProviderRequest\x12#\n" +
-	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12\x19\n" +
-	"\x03key\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03key\"K\n" +
+	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12\x1b\n" +
+	"\x04hash\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04hash\"K\n" +
 	"\x13GetProviderResponse\x124\n" +
 	"\bprovider\x18\x01 \x01(\v2\x18.cloud.v1.ProviderRecordR\bprovider\"U\n" +
 	"\x15UpsertProviderRequest\x12<\n" +
 	"\bprovider\x18\x01 \x01(\v2\x18.cloud.v1.ProviderRecordB\x06\xbaH\x03\xc8\x01\x01R\bprovider\"N\n" +
 	"\x16UpsertProviderResponse\x124\n" +
-	"\bprovider\x18\x01 \x01(\v2\x18.cloud.v1.ProviderRecordR\bprovider\"W\n" +
+	"\bprovider\x18\x01 \x01(\v2\x18.cloud.v1.ProviderRecordR\bprovider\"Y\n" +
 	"\x15DeleteProviderRequest\x12#\n" +
-	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12\x19\n" +
-	"\x03key\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03key\"\x18\n" +
+	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12\x1b\n" +
+	"\x04hash\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04hash\"\x18\n" +
 	"\x16DeleteProviderResponse2\xd8\x01\n" +
 	"\x14InstallationsService\x12\\\n" +
 	"\x11ListInstallations\x12\".cloud.v1.ListInstallationsRequest\x1a#.cloud.v1.ListInstallationsResponse\x12b\n" +

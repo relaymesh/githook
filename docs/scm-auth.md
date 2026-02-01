@@ -7,18 +7,15 @@ This guide covers runtime SCM authentication resolved from webhook context. GitL
 ```yaml
 providers:
   github:
-    key: default
     app:
       app_id: 123
       private_key_path: /secrets/github.pem
     api:
       base_url: https://api.github.com
   gitlab:
-    key: default
     api:
       base_url: https://gitlab.com/api/v4
   bitbucket:
-    key: default
     api:
       base_url: https://api.bitbucket.org/2.0
 ```
