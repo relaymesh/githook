@@ -1,12 +1,12 @@
-# Githooks ⚡
+# githook ⚡
 
-Githooks is an event automation layer for GitHub, GitLab, and Bitbucket. It receives webhooks, evaluates configurable rules, and publishes matching events to your message broker via [Watermill](https://watermill.io/). The Worker SDK then consumes those events with provider-aware clients, so your business logic stays focused on outcomes, not plumbing.
+githook is an event automation layer for GitHub, GitLab, and Bitbucket. It receives webhooks, evaluates configurable rules, and publishes matching events to your message broker via [Watermill](https://watermill.io/). The Worker SDK then consumes those events with provider-aware clients, so your business logic stays focused on outcomes, not plumbing.
 
 > **⚠️ Warning:** This project is for research and development only and is **not production-ready**. Do not deploy it in production environments.
 
 ## Quick Start
 
-Get Githooks running locally in 4 steps:
+Get githook running locally in 4 steps:
 
 ```bash
 # 1. Start dependencies (RabbitMQ, Postgres, etc.)
@@ -42,21 +42,21 @@ Now send a test webhook:
 ### Homebrew (macOS/Linux)
 
 ```bash
-brew install yindia/homebrew-yindia/githooks
+brew install yindia/homebrew-yindia/githook
 ```
 
 ### Install Script
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yindia/githooks/refs/heads/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/yindia/githook/refs/heads/main/install.sh | sh
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/yindia/githooks.git
-cd githooks
-go build -o githooks ./main.go
+git clone https://github.com/yindia/githook.git
+cd githook
+go build -o githook ./main.go
 ```
 
 ## How It Works
@@ -64,19 +64,19 @@ go build -o githooks ./main.go
 ```
 ┌─────────────┐      ┌──────────────┐      ┌─────────────┐      ┌─────────────┐
 │   GitHub    │      │              │      │   Message   │      │   Workers   │
-│   GitLab    │─────▶│  Githooks    │─────▶│   Broker    │─────▶│  (Your App) │
+│   GitLab    │─────▶│  githook    │─────▶│   Broker    │─────▶│  (Your App) │
 │  Bitbucket  │      │   Server     │      │   (AMQP)    │      │             │
 └─────────────┘      └──────────────┘      └─────────────┘      └─────────────┘
    Webhooks           Rules Engine          Watermill           Business Logic
                       + Publishing                              + SCM Clients
 ```
 
-1. **Receive**: Githooks receives webhooks from GitHub, GitLab, or Bitbucket
+1. **Receive**: githook receives webhooks from GitHub, GitLab, or Bitbucket
 2. **Evaluate**: Rules engine evaluates JSONPath conditions against the payload
 3. **Publish**: Matching events are published to your message broker
 4. **Consume**: Workers consume events with provider-aware SCM clients ready to use
 
-## Why Githooks ✨
+## Why githook ✨
 
 - **Unify SCM events** without writing three webhook stacks. 🔗
 - **Route events by rules** (JSONPath + boolean logic) instead of hardcoding. 🧠
@@ -120,7 +120,7 @@ go build -o githooks ./main.go
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [How It Works](#how-it-works)
-- [Why Githooks](#why-githooks-)
+- [Why githook](#why-githook-)
 - [Features](#features-)
 - [Common Use Cases](#common-use-cases-)
 - [Security Considerations](#security-considerations-)
@@ -163,7 +163,7 @@ go build -o githooks ./main.go
 
 ## OAuth Onboarding
 
-Githooks supports OAuth-based onboarding for GitLab and Bitbucket, and GitHub Apps with user authorization.
+githook supports OAuth-based onboarding for GitLab and Bitbucket, and GitHub Apps with user authorization.
 
 ### Start Onboarding Flow
 
@@ -211,7 +211,7 @@ See provider-specific guides for detailed OAuth setup:
 ## Configuration
 
 Docs:
-- [API Reference](https://buf.build/githooks/cloud) - Connect RPC API documentation
+- [API Reference](https://buf.build/githook/cloud) - Connect RPC API documentation
 - [Driver configuration](docs/drivers.md)
 - [Event compatibility](docs/events.md)
 - [Getting started (GitHub)](docs/getting-started-github.md)
@@ -228,7 +228,7 @@ Docs:
 - [SDK DSL (portable worker spec)](docs/sdk-dsl.md)
 - [API authentication (OAuth2/OIDC)](docs/auth.md)
 
-Githooks is configured using a single YAML file. Environment variables like `${VAR}` are automatically expanded.
+githook is configured using a single YAML file. Environment variables like `${VAR}` are automatically expanded.
 Requests use or generate `X-Request-Id`, which is echoed back in responses and included in logs.
 
 ### Providers
@@ -291,7 +291,7 @@ providers:
     app:
       app_id: 123
       private_key_path: /secrets/github.pem
-      app_slug: githooks
+      app_slug: githook
     api:
       base_url: https://api.github.com
       web_base_url: https://github.com
@@ -315,7 +315,7 @@ auth:
   oauth2:
     enabled: true
     issuer: https://<your-okta-domain>/oauth2/default
-    audience: api://githooks
+    audience: api://githook
 ```
 
 When enabled, all Connect RPC endpoints require a bearer token. Webhooks and `/auth/*` remain public.
@@ -326,7 +326,7 @@ See `docs/auth.md` for client_credentials and human login flows.
 ```yaml
 storage:
   driver: postgres
-  dsn: postgres://githooks:githooks@localhost:5432/githooks?sslmode=disable
+  dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
   dialect: postgres
   auto_migrate: true
 ```
@@ -389,7 +389,7 @@ watermill:
     dsn: postgres://user:pass@localhost:5432/dbname?sslmode=disable
     table: river_job # Optional, default is river_job
     queue: default   # Optional, default is default
-    kind: githooks.event # The job type to insert
+    kind: githook.event # The job type to insert
 ```
 
 See the [Watermill documentation](https://watermill.io/docs/pub-subs/) for details on each driver's configuration.
@@ -435,7 +435,7 @@ import (
     "context"
     "log"
 
-    "githooks/sdk/go/worker"
+    "githook/sdk/go/worker"
 )
 
 func main() {
@@ -470,7 +470,7 @@ func main() {
 ```
 
 If you need provider‑aware clients inside handlers, set `server.public_base_url` in your worker config
-or export `GITHOOKS_API_BASE_URL` so the worker can resolve installation tokens.
+or export `githook_API_BASE_URL` so the worker can resolve installation tokens.
 
 **Watermill Middleware**
 
@@ -508,4 +508,4 @@ The `example/` directory contains several working examples:
 
 **Made with ❤️ for developers who automate Git workflows**
 
-Questions? Issues? Check the [documentation](docs/) or [open an issue](https://github.com/yindia/githooks/issues).
+Questions? Issues? Check the [documentation](docs/) or [open an issue](https://github.com/yindia/githook/issues).
