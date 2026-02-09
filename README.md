@@ -318,6 +318,7 @@ watermill:
     mode: durable_queue # Or: nondurable_queue, durable_pubsub, nondurable_pubsub
 ```
 
+
 **Multiple Drivers (Fan-Out)**
 ```yaml
 watermill:

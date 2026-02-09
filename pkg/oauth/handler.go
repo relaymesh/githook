@@ -101,26 +101,22 @@ func (h *Handler) handleGitHubApp(w http.ResponseWriter, r *http.Request, logger
 	refreshToken := token.RefreshToken
 	warning := ""
 
+	accountID, accountName, err := resolveGitHubAccount(r.Context(), cfg, installationID)
+	if err != nil {
+		logger.Printf("github account resolve failed: %v", err)
+	}
+
 	record := storage.InstallRecord{
 		TenantID:            stateValue.TenantID,
 		Provider:            "github",
-		AccountID:           stateValue.State,
-		AccountName:         "",
+		AccountID:           accountID,
+		AccountName:         accountName,
 		InstallationID:      installationID,
 		ProviderInstanceKey: instanceKey,
 		AccessToken:         accessToken,
 		RefreshToken:        refreshToken,
 		ExpiresAt:           token.ExpiresAt,
 		MetadataJSON:        token.MetadataJSON(),
-	}
-	if record.AccountID == "" {
-		accountID, accountName, err := resolveGitHubAccount(r.Context(), cfg, installationID)
-		if err != nil {
-			logger.Printf("github account resolve failed: %v", err)
-		} else {
-			record.AccountID = accountID
-			record.AccountName = accountName
-		}
 	}
 	logUpsertAttempt(logger, record, token.AccessToken)
 	if !storeAvailable(h.Store) {
@@ -172,15 +168,9 @@ func (h *Handler) handleGitLab(w http.ResponseWriter, r *http.Request, logger *l
 	warning := ""
 	installationID := randomID()
 
-	accountID := stateValue.State
-	accountName := ""
-	if accountID == "" {
-		if id, name, err := resolveGitLabAccount(r.Context(), cfg, token.AccessToken); err != nil {
-			logger.Printf("gitlab account resolve failed: %v", err)
-		} else {
-			accountID = id
-			accountName = name
-		}
+	accountID, accountName, err := resolveGitLabAccount(r.Context(), cfg, token.AccessToken)
+	if err != nil {
+		logger.Printf("gitlab account resolve failed: %v", err)
 	}
 	if err := SyncGitLabNamespaces(r.Context(), h.NamespaceStore, cfg, token.AccessToken, accountID, installationID, instanceKey); err != nil {
 		logger.Printf("gitlab namespaces sync failed: %v", err)
@@ -250,15 +240,9 @@ func (h *Handler) handleBitbucket(w http.ResponseWriter, r *http.Request, logger
 	warning := ""
 	installationID := randomID()
 
-	accountID := stateValue.State
-	accountName := ""
-	if accountID == "" {
-		if id, name, err := resolveBitbucketAccount(r.Context(), cfg, token.AccessToken); err != nil {
-			logger.Printf("bitbucket account resolve failed: %v", err)
-		} else {
-			accountID = id
-			accountName = name
-		}
+	accountID, accountName, err := resolveBitbucketAccount(r.Context(), cfg, token.AccessToken)
+	if err != nil {
+		logger.Printf("bitbucket account resolve failed: %v", err)
 	}
 	if err := SyncBitbucketNamespaces(r.Context(), h.NamespaceStore, cfg, token.AccessToken, accountID, installationID, instanceKey); err != nil {
 		logger.Printf("bitbucket namespaces sync failed: %v", err)

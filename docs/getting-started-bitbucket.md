@@ -45,6 +45,14 @@ go run ./example/bitbucket/worker/main.go
    - Repo push (optional)
 6. Save the webhook.
 
+### OAuth Callback URL (for onboarding)
+
+If you're using OAuth for onboarding, configure your Bitbucket OAuth consumer with:
+- **Callback URL**: `http://localhost:8080/auth/bitbucket/callback`
+- **Important**: The path must be `/auth/bitbucket/callback` (not `/oauth/bitbucket/callback`)
+
+Configure this at: **Workspace Settings** -> **OAuth consumers** -> **Add consumer** (or edit existing)
+
 ### Update your config
 
 If you use the optional `X-Hook-UUID` validation, set the secret:
@@ -70,9 +78,47 @@ go run ./main.go serve --config example/bitbucket/app.yaml
 ngrok http 8080
 ```
 
-Update the Bitbucket webhook URL to the ngrok URL.
+Update your Bitbucket configuration with your ngrok URL:
+- **Webhook URL**: `https://your-ngrok-url.ngrok-free.app/webhooks/bitbucket`
+- **OAuth Callback URL**: `https://your-ngrok-url.ngrok-free.app/auth/bitbucket/callback`
 
-## 8) Troubleshooting
+Also update your config file with the public base URL:
+
+```yaml
+server:
+  public_base_url: https://your-ngrok-url.ngrok-free.app
+```
+
+## 8) Start the onboarding flow (optional)
+
+If using OAuth onboarding, you can start the Bitbucket onboarding flow by visiting:
+
+```
+http://localhost:8080/?provider=bitbucket
+```
+
+Or with ngrok:
+
+```
+https://your-ngrok-url.ngrok-free.app/?provider=bitbucket
+```
+
+### Using Multiple Provider Instances
+
+If you have multiple Bitbucket provider instances configured, specify which instance to use with the `instance` parameter:
+
+```
+http://localhost:8080/?provider=bitbucket&instance=<instance-key>
+```
+
+To get the instance key, run:
+
+```bash
+go run ./main.go --endpoint http://localhost:8080 providers list --provider bitbucket
+```
+
+## 9) Troubleshooting
 
 - `invalid hook uuid`: secret does not match `X-Hook-UUID`.
 - `no matching rules`: ensure rules in `example/bitbucket/app.yaml` match your payload.
+- `404 page not found` on callback: verify the OAuth consumer callback URL is `/auth/bitbucket/callback`.

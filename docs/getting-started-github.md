@@ -62,12 +62,15 @@ At this point, the full local loop works. Now let us wire real GitHub traffic in
 3. Homepage URL: `http://localhost:8080`.
 4. Webhook URL: `http://localhost:8080/webhooks/github`.
 5. Webhook secret: pick a random string and save it.
-6. Permissions:
+6. **Callback URL** (if using OAuth): `http://localhost:8080/auth/github/callback`
+   - This is required if you enable "Request user authorization (OAuth) during installation"
+   - **Important**: The path must be `/auth/github/callback` (not `/oauth/github/callback`)
+7. Permissions:
    - Repository permissions: set **Pull requests** to **Read-only**.
-7. Subscribe to events:
+8. Subscribe to events:
    - `Pull request`
    - `Push` (optional)
-8. Create the app.
+9. Create the app.
 
 ### Install the app on a repo
 
@@ -75,6 +78,22 @@ At this point, the full local loop works. Now let us wire real GitHub traffic in
 2. Choose a test repository and install.
 
 Optional: you can also start the install flow by visiting `http://localhost:8080/?provider=github`, which redirects to the GitHub App install page when `providers.github.app.app_slug` is set.
+
+### Using Multiple Provider Instances
+
+If you have multiple GitHub provider instances configured (e.g., GitHub.com and GitHub Enterprise), you need to specify which instance to use with the `instance` parameter:
+
+```
+http://localhost:8080/?provider=github&instance=<instance-key>
+```
+
+To get the instance key, run:
+
+```bash
+go run ./main.go --endpoint http://localhost:8080 providers list --provider github
+```
+
+This will show all configured GitHub provider instances and their corresponding instance keys (hashes).
 
 ### Update your config
 
@@ -105,10 +124,21 @@ If GitHub cannot reach your machine:
 ngrok http 8080
 ```
 
-Update the GitHub App webhook URL to the ngrok URL.
+Update the GitHub App configuration with your ngrok URL:
+- **Webhook URL**: `https://your-ngrok-url.ngrok-free.app/webhooks/github`
+- **Callback URL**: `https://your-ngrok-url.ngrok-free.app/auth/github/callback`
+
+Also update your config file with the public base URL:
+
+```yaml
+server:
+  public_base_url: https://your-ngrok-url.ngrok-free.app
+```
 
 ## Troubleshooting
 
 - `missing X-Hub-Signature`: your webhook secret does not match.
 - `no matching rules`: ensure rules in `example/github/app.yaml` match your payload.
 - `connection refused`: make sure Docker Compose is running for broker drivers.
+- `404 page not found` on callback: verify the GitHub App callback URL is `/auth/github/callback` (not `/oauth/github/callback`).
+- `database constraint error`: drop and recreate the `githooks_installations` table if you upgraded from an older version.

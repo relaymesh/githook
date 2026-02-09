@@ -32,12 +32,12 @@ type Store struct {
 }
 
 type row struct {
-	TenantID       string     `gorm:"column:tenant_id;size:64;not null;default:''"`
-	Provider       string     `gorm:"column:provider;size:32;not null"`
-	AccountID      string     `gorm:"column:account_id;size:128;not null"`
+	TenantID       string     `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_installation,priority:1"`
+	Provider       string     `gorm:"column:provider;size:32;not null;uniqueIndex:idx_installation,priority:2"`
+	AccountID      string     `gorm:"column:account_id;size:128;not null;uniqueIndex:idx_installation,priority:3"`
 	AccountName    string     `gorm:"column:account_name;size:255"`
-	InstallationID string     `gorm:"column:installation_id;size:128;not null"`
-	InstanceKey    string     `gorm:"column:provider_instance_key;size:64"`
+	InstallationID string     `gorm:"column:installation_id;size:128;not null;uniqueIndex:idx_installation,priority:4"`
+	InstanceKey    string     `gorm:"column:provider_instance_key;size:64;uniqueIndex:idx_installation,priority:5"`
 	AccessToken    string     `gorm:"column:access_token"`
 	RefreshToken   string     `gorm:"column:refresh_token"`
 	ExpiresAt      *time.Time `gorm:"column:expires_at"`
