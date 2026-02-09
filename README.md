@@ -205,7 +205,6 @@ Docs:
 - [SDK client injection](docs/sdk_clients.md)
 - [SDK DSL (portable worker spec)](docs/sdk-dsl.md)
 - [API authentication (OAuth2/OIDC)](docs/auth.md)
-- [Secure API quickstart](docs/quickstart-secure.md)
 
 Githooks is configured using a single YAML file. Environment variables like `${VAR}` are automatically expanded.
 Requests use or generate `X-Request-Id`, which is echoed back in responses and included in logs.
