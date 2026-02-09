@@ -85,6 +85,24 @@ Now send a test webhook:
 - **Release orchestration**: Trigger CI/CD or internal workflows from PR merges.
 - **Preview automation**: Post preview links on PR/MR events across providers.
 - **Compliance hooks**: Enforce policy when branch protection or approvals change.
+- **Multi-repository automation**: Centralize webhook handling across hundreds of repositories
+- **Event routing**: Route different events to different queues/handlers based on conditions
+
+## Security Considerations 🔒
+
+- **Webhook Signature Validation**: All incoming webhooks are validated using provider-specific signatures
+- **Credential Storage**: OAuth tokens stored in PostgreSQL (encryption recommended for production)
+- **API Authentication**: Optional OAuth2/OIDC support for securing Connect RPC endpoints
+- **CSRF Protection**: OAuth flows use cryptographically random state parameters
+- **Secrets Management**: Use environment variables for credentials, never commit secrets
+- **Network Security**: Deploy behind HTTPS with TLS certificates
+
+**Production Recommendations:**
+- Enable `auth.oauth2` for API endpoint protection
+- Use secret management services (Vault, AWS Secrets Manager)
+- Enable database encryption at rest
+- Implement rate limiting and DDoS protection
+- Regularly rotate OAuth tokens and webhook secrets
 
 ## Table of Contents
 
@@ -94,6 +112,7 @@ Now send a test webhook:
 - [Why Githooks](#why-githooks-)
 - [Features](#features-)
 - [Common Use Cases](#common-use-cases-)
+- [Security Considerations](#security-considerations-)
 - [Getting Started (Local)](#getting-started-local)
 - [OAuth Onboarding](#oauth-onboarding)
 - [Configuration](#configuration)
@@ -110,6 +129,7 @@ Now send a test webhook:
 - [Troubleshooting](#troubleshooting)
 - [Development](#development)
 - [Releases](#releases)
+- [License](#license)
 
 ## Getting Started (Local)
 
@@ -351,7 +371,7 @@ oauth:
 ```
 
 **OAuth Callback Endpoints** (configured in provider settings):
-- GitHub: `/auth/github/callback` ✅ (not `/oauth/github/callback` ❌)
+- GitHub: `/auth/github/callback` ✅ 
 - GitLab: `/auth/gitlab/callback` ✅
 - Bitbucket: `/auth/bitbucket/callback` ✅
 
@@ -709,3 +729,14 @@ go test ./...
 -   When using the SQL publisher, you must blank-import a database driver (e.g., `_ "github.com/lib/pq"`).
 -   The default webhook secret for local testing is `devsecret`.
 -   Rules are evaluated in the order they appear in the config file. Multiple rules can match a single event, causing multiple messages to be published.
+
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+**Made with ❤️ for developers who automate Git workflows**
+
+Questions? Issues? Check the [documentation](docs/) or [open an issue](https://github.com/yindia/githooks/issues).
