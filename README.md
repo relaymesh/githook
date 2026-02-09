@@ -2,7 +2,63 @@
 
 Githooks is an event automation layer for GitHub, GitLab, and Bitbucket. It receives webhooks, evaluates configurable rules, and publishes matching events to your message broker via [Watermill](https://watermill.io/). The Worker SDK then consumes those events with provider-aware clients, so your business logic stays focused on outcomes, not plumbing.
 
-**Warning:** This project is for research and development only and is **not production-ready**. Do not deploy it in production environments.
+> **⚠️ Warning:** This project is for research and development only and is **not production-ready**. Do not deploy it in production environments.
+
+## Quick Start
+
+Get Githooks running locally in 4 steps:
+
+```bash
+# 1. Start dependencies (RabbitMQ, Postgres, etc.)
+docker compose up -d
+
+# 2. Configure GitHub webhook secret
+export GITHUB_WEBHOOK_SECRET=devsecret
+
+# 3. Start the server
+go run ./main.go serve --config config.yaml
+
+# 4. In another terminal, start a worker
+go run ./example/github/worker/main.go --config config.yaml --driver amqp
+```
+
+Now send a test webhook:
+```bash
+./scripts/send_webhook.sh github pull_request example/github/pull_request.json
+```
+
+**Next steps:** See [Getting Started (Local)](#getting-started-local) for detailed setup, or jump to provider-specific guides:
+- [GitHub Setup](docs/getting-started-github.md)
+- [GitLab Setup](docs/getting-started-gitlab.md)
+- [Bitbucket Setup](docs/getting-started-bitbucket.md)
+
+## Prerequisites
+
+- **Go 1.21+**
+- **Docker + Docker Compose** (for local development)
+- **PostgreSQL** (for installation storage)
+- **Message Broker**: RabbitMQ, NATS, Kafka, or any [Watermill-supported broker](https://watermill.io/docs/pub-subs/)
+- **Provider Credentials**:
+  - GitHub: App ID, Private Key, OAuth Client (optional)
+  - GitLab: OAuth Application credentials
+  - Bitbucket: OAuth Consumer credentials
+
+## How It Works
+
+```
+┌─────────────┐      ┌──────────────┐      ┌─────────────┐      ┌─────────────┐
+│   GitHub    │      │              │      │   Message   │      │   Workers   │
+│   GitLab    │─────▶│  Githooks    │─────▶│   Broker    │─────▶│  (Your App) │
+│  Bitbucket  │      │   Server     │      │   (AMQP)    │      │             │
+└─────────────┘      └──────────────┘      └─────────────┘      └─────────────┘
+   Webhooks           Rules Engine          Watermill           Business Logic
+                      + Publishing                              + SCM Clients
+```
+
+1. **Receive**: Githooks receives webhooks from GitHub, GitLab, or Bitbucket
+2. **Evaluate**: Rules engine evaluates JSONPath conditions against the payload
+3. **Publish**: Matching events are published to your message broker
+4. **Consume**: Workers consume events with provider-aware SCM clients ready to use
 
 ## Why Githooks ✨
 
@@ -10,6 +66,7 @@ Githooks is an event automation layer for GitHub, GitLab, and Bitbucket. It rece
 - **Route events by rules** (JSONPath + boolean logic) instead of hardcoding. 🧠
 - **Use any broker** supported by Watermill, with optional fan-out per rule. 📬
 - **Act with real clients** (GitHub App, GitLab, Bitbucket) inside workers. 🔐
+- **Multi-tenant ready** with provider instance management and OAuth onboarding. 🏢
 
 ## Features ✅
 
@@ -31,16 +88,28 @@ Githooks is an event automation layer for GitHub, GitLab, and Bitbucket. It rece
 
 ## Table of Contents
 
+- [Quick Start](#quick-start)
+- [Prerequisites](#prerequisites)
+- [How It Works](#how-it-works)
+- [Why Githooks](#why-githooks-)
+- [Features](#features-)
+- [Common Use Cases](#common-use-cases-)
 - [Getting Started (Local)](#getting-started-local)
+- [OAuth Onboarding](#oauth-onboarding)
 - [Configuration](#configuration)
   - [Providers](#providers)
-  - [Watermill Drivers (Publishing)](#watermill-drivers-publishing)
-  - [Rules](#rules)
+  - [Server Settings](#server-limits)
+  - [OAuth Callbacks](#oauth-callbacks)
+  - [Storage](#installation-storage)
+  - [Watermill Drivers](#watermill-drivers-publishing)
+  - [Rules Engine](#rules)
 - [Worker SDK](#worker-sdk)
+- [CLI Commands](#api-endpoints-connectgrpc)
 - [Examples](#examples)
 - [Helm Charts](#helm-charts)
-- [Releases](#releases)
+- [Troubleshooting](#troubleshooting)
 - [Development](#development)
+- [Releases](#releases)
 
 ## Getting Started (Local)
 
