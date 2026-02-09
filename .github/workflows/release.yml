@@ -60,7 +60,6 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          target: githooks
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |

@@ -37,6 +37,28 @@ Now send a test webhook:
   - GitLab: OAuth Application credentials
   - Bitbucket: OAuth Consumer credentials
 
+## Installation
+
+### Homebrew (macOS/Linux)
+
+```bash
+brew install yindia/homebrew-yindia/githooks
+```
+
+### Install Script
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yindia/githooks/refs/heads/main/install.sh | sh
+```
+
+### From Source
+
+```bash
+git clone https://github.com/yindia/githooks.git
+cd githooks
+go build -o githooks ./main.go
+```
+
 ## How It Works
 
 ```
@@ -96,6 +118,7 @@ Now send a test webhook:
 
 - [Quick Start](#quick-start)
 - [Prerequisites](#prerequisites)
+- [Installation](#installation)
 - [How It Works](#how-it-works)
 - [Why Githooks](#why-githooks-)
 - [Features](#features-)
