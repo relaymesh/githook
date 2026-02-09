@@ -134,7 +134,6 @@ go build -o githooks ./main.go
   - [Rules Engine](#rules)
 - [Worker SDK](#worker-sdk)
 - [Examples](#examples)
-- [Helm Charts](#helm-charts)
 
 ## Getting Started (Local)
 
@@ -504,18 +503,6 @@ The `example/` directory contains several working examples:
 -   **`example/gitlab`**: Sample setup for GitLab webhooks.
 -   **`example/bitbucket`**: Sample setup for Bitbucket webhooks.
 -   **`example/inprocess`**: Single-binary server + multiple workers using GoChannel.
-
-## Helm Charts
-
-Helm charts for deploying the server and a generic worker are available in the `charts/` directory.
-
-**Install from GitHub Pages**
-```sh
-helm repo add githooks https://yindia.github.io/githooks
-helm repo update
-helm install my-githooks githooks/githooks
-helm install my-worker githooks/githooks-worker
-```
 
 ---
 

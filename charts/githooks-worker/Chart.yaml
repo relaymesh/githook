@@ -1,6 +1,0 @@
-apiVersion: v2
-name: githooks-worker
-description: Worker for consuming Githooks Watermill topics.
-type: application
-version: 0.3.0
-appVersion: "0.3.0"

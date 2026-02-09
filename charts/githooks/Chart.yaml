@@ -1,6 +1,0 @@
-apiVersion: v2
-name: githooks
-description: Config-driven webhook router for GitHub webhooks.
-type: application
-version: 0.3.0
-appVersion: "0.3.0"
