@@ -218,7 +218,6 @@ Docs:
 - [Getting started (Bitbucket)](docs/getting-started-bitbucket.md)
 - [Rules engine](docs/rules.md)
 - [Observability](docs/observability.md)
-- [SCM authentication](docs/scm-auth.md)
 - [Installation storage](docs/storage.md)
 - [CLI usage](docs/cli.md)
 - [OAuth callbacks](docs/oauth-callbacks.md)
@@ -281,31 +280,6 @@ providers:
       client_secret: ${BITBUCKET_OAUTH_CLIENT_SECRET}
       scopes: ["repository"]
 ```
-
-### SCM Authentication
-
-```yaml
-providers:
-  github:
-    app:
-      app_id: 123
-      private_key_path: /secrets/github.pem
-      app_slug: githook
-    api:
-      base_url: https://api.github.com
-      web_base_url: https://github.com
-  gitlab:
-    api:
-      base_url: https://gitlab.com/api/v4
-      web_base_url: https://gitlab.com
-  bitbucket:
-    api:
-      base_url: https://api.bitbucket.org/2.0
-      web_base_url: https://bitbucket.org
-```
-
-GitHub Enterprise: set `providers.github.api.base_url` to your API base (for example,
-`https://ghe.example.com/api/v3`). The SDK derives the upload URL automatically.
 
 ### API Authentication
 
