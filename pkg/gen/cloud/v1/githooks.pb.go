@@ -2,19 +2,18 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: cloud/v1/githook.proto
+// source: cloud/v1/githooks.proto
 
 package cloudv1
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -42,7 +41,7 @@ type InstallRecord struct {
 
 func (x *InstallRecord) Reset() {
 	*x = InstallRecord{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[0]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -54,7 +53,7 @@ func (x *InstallRecord) String() string {
 func (*InstallRecord) ProtoMessage() {}
 
 func (x *InstallRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[0]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -67,7 +66,7 @@ func (x *InstallRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallRecord.ProtoReflect.Descriptor instead.
 func (*InstallRecord) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{0}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *InstallRecord) GetProvider() string {
@@ -162,7 +161,7 @@ type NamespaceRecord struct {
 
 func (x *NamespaceRecord) Reset() {
 	*x = NamespaceRecord{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[1]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -174,7 +173,7 @@ func (x *NamespaceRecord) String() string {
 func (*NamespaceRecord) ProtoMessage() {}
 
 func (x *NamespaceRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[1]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -187,7 +186,7 @@ func (x *NamespaceRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NamespaceRecord.ProtoReflect.Descriptor instead.
 func (*NamespaceRecord) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{1}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *NamespaceRecord) GetProvider() string {
@@ -298,7 +297,7 @@ type ListInstallationsRequest struct {
 
 func (x *ListInstallationsRequest) Reset() {
 	*x = ListInstallationsRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[2]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -310,7 +309,7 @@ func (x *ListInstallationsRequest) String() string {
 func (*ListInstallationsRequest) ProtoMessage() {}
 
 func (x *ListInstallationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[2]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -323,7 +322,7 @@ func (x *ListInstallationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInstallationsRequest.ProtoReflect.Descriptor instead.
 func (*ListInstallationsRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{2}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ListInstallationsRequest) GetStateId() string {
@@ -349,7 +348,7 @@ type ListInstallationsResponse struct {
 
 func (x *ListInstallationsResponse) Reset() {
 	*x = ListInstallationsResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[3]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -361,7 +360,7 @@ func (x *ListInstallationsResponse) String() string {
 func (*ListInstallationsResponse) ProtoMessage() {}
 
 func (x *ListInstallationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[3]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -374,7 +373,7 @@ func (x *ListInstallationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInstallationsResponse.ProtoReflect.Descriptor instead.
 func (*ListInstallationsResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{3}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListInstallationsResponse) GetInstallations() []*InstallRecord {
@@ -394,7 +393,7 @@ type GetInstallationByIDRequest struct {
 
 func (x *GetInstallationByIDRequest) Reset() {
 	*x = GetInstallationByIDRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[4]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -406,7 +405,7 @@ func (x *GetInstallationByIDRequest) String() string {
 func (*GetInstallationByIDRequest) ProtoMessage() {}
 
 func (x *GetInstallationByIDRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[4]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -419,7 +418,7 @@ func (x *GetInstallationByIDRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInstallationByIDRequest.ProtoReflect.Descriptor instead.
 func (*GetInstallationByIDRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{4}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetInstallationByIDRequest) GetProvider() string {
@@ -445,7 +444,7 @@ type GetInstallationByIDResponse struct {
 
 func (x *GetInstallationByIDResponse) Reset() {
 	*x = GetInstallationByIDResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[5]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -457,7 +456,7 @@ func (x *GetInstallationByIDResponse) String() string {
 func (*GetInstallationByIDResponse) ProtoMessage() {}
 
 func (x *GetInstallationByIDResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[5]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -470,7 +469,7 @@ func (x *GetInstallationByIDResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInstallationByIDResponse.ProtoReflect.Descriptor instead.
 func (*GetInstallationByIDResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{5}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetInstallationByIDResponse) GetInstallation() *InstallRecord {
@@ -493,7 +492,7 @@ type ListNamespacesRequest struct {
 
 func (x *ListNamespacesRequest) Reset() {
 	*x = ListNamespacesRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[6]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -505,7 +504,7 @@ func (x *ListNamespacesRequest) String() string {
 func (*ListNamespacesRequest) ProtoMessage() {}
 
 func (x *ListNamespacesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[6]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -518,7 +517,7 @@ func (x *ListNamespacesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNamespacesRequest.ProtoReflect.Descriptor instead.
 func (*ListNamespacesRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{6}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListNamespacesRequest) GetStateId() string {
@@ -565,7 +564,7 @@ type ListNamespacesResponse struct {
 
 func (x *ListNamespacesResponse) Reset() {
 	*x = ListNamespacesResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[7]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -577,7 +576,7 @@ func (x *ListNamespacesResponse) String() string {
 func (*ListNamespacesResponse) ProtoMessage() {}
 
 func (x *ListNamespacesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[7]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -590,7 +589,7 @@ func (x *ListNamespacesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNamespacesResponse.ProtoReflect.Descriptor instead.
 func (*ListNamespacesResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{7}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListNamespacesResponse) GetNamespaces() []*NamespaceRecord {
@@ -610,7 +609,7 @@ type SyncNamespacesRequest struct {
 
 func (x *SyncNamespacesRequest) Reset() {
 	*x = SyncNamespacesRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[8]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -622,7 +621,7 @@ func (x *SyncNamespacesRequest) String() string {
 func (*SyncNamespacesRequest) ProtoMessage() {}
 
 func (x *SyncNamespacesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[8]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -635,7 +634,7 @@ func (x *SyncNamespacesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncNamespacesRequest.ProtoReflect.Descriptor instead.
 func (*SyncNamespacesRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{8}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SyncNamespacesRequest) GetStateId() string {
@@ -661,7 +660,7 @@ type SyncNamespacesResponse struct {
 
 func (x *SyncNamespacesResponse) Reset() {
 	*x = SyncNamespacesResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[9]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -673,7 +672,7 @@ func (x *SyncNamespacesResponse) String() string {
 func (*SyncNamespacesResponse) ProtoMessage() {}
 
 func (x *SyncNamespacesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[9]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -686,7 +685,7 @@ func (x *SyncNamespacesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncNamespacesResponse.ProtoReflect.Descriptor instead.
 func (*SyncNamespacesResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{9}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SyncNamespacesResponse) GetNamespaces() []*NamespaceRecord {
@@ -707,7 +706,7 @@ type GetNamespaceWebhookRequest struct {
 
 func (x *GetNamespaceWebhookRequest) Reset() {
 	*x = GetNamespaceWebhookRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[10]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -719,7 +718,7 @@ func (x *GetNamespaceWebhookRequest) String() string {
 func (*GetNamespaceWebhookRequest) ProtoMessage() {}
 
 func (x *GetNamespaceWebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[10]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -732,7 +731,7 @@ func (x *GetNamespaceWebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNamespaceWebhookRequest.ProtoReflect.Descriptor instead.
 func (*GetNamespaceWebhookRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{10}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetNamespaceWebhookRequest) GetStateId() string {
@@ -768,7 +767,7 @@ type SetNamespaceWebhookRequest struct {
 
 func (x *SetNamespaceWebhookRequest) Reset() {
 	*x = SetNamespaceWebhookRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[11]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -780,7 +779,7 @@ func (x *SetNamespaceWebhookRequest) String() string {
 func (*SetNamespaceWebhookRequest) ProtoMessage() {}
 
 func (x *SetNamespaceWebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[11]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -793,7 +792,7 @@ func (x *SetNamespaceWebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNamespaceWebhookRequest.ProtoReflect.Descriptor instead.
 func (*SetNamespaceWebhookRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{11}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SetNamespaceWebhookRequest) GetStateId() string {
@@ -833,7 +832,7 @@ type GetNamespaceWebhookResponse struct {
 
 func (x *GetNamespaceWebhookResponse) Reset() {
 	*x = GetNamespaceWebhookResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[12]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -845,7 +844,7 @@ func (x *GetNamespaceWebhookResponse) String() string {
 func (*GetNamespaceWebhookResponse) ProtoMessage() {}
 
 func (x *GetNamespaceWebhookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[12]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -858,7 +857,7 @@ func (x *GetNamespaceWebhookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNamespaceWebhookResponse.ProtoReflect.Descriptor instead.
 func (*GetNamespaceWebhookResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{12}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetNamespaceWebhookResponse) GetEnabled() bool {
@@ -877,7 +876,7 @@ type SetNamespaceWebhookResponse struct {
 
 func (x *SetNamespaceWebhookResponse) Reset() {
 	*x = SetNamespaceWebhookResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[13]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -889,7 +888,7 @@ func (x *SetNamespaceWebhookResponse) String() string {
 func (*SetNamespaceWebhookResponse) ProtoMessage() {}
 
 func (x *SetNamespaceWebhookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[13]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -902,7 +901,7 @@ func (x *SetNamespaceWebhookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNamespaceWebhookResponse.ProtoReflect.Descriptor instead.
 func (*SetNamespaceWebhookResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{13}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SetNamespaceWebhookResponse) GetEnabled() bool {
@@ -923,7 +922,7 @@ type Rule struct {
 
 func (x *Rule) Reset() {
 	*x = Rule{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[14]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -935,7 +934,7 @@ func (x *Rule) String() string {
 func (*Rule) ProtoMessage() {}
 
 func (x *Rule) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[14]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -948,7 +947,7 @@ func (x *Rule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Rule.ProtoReflect.Descriptor instead.
 func (*Rule) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{14}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Rule) GetWhen() string {
@@ -986,7 +985,7 @@ type RuleRecord struct {
 
 func (x *RuleRecord) Reset() {
 	*x = RuleRecord{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[15]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -998,7 +997,7 @@ func (x *RuleRecord) String() string {
 func (*RuleRecord) ProtoMessage() {}
 
 func (x *RuleRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[15]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1011,7 +1010,7 @@ func (x *RuleRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuleRecord.ProtoReflect.Descriptor instead.
 func (*RuleRecord) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{15}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *RuleRecord) GetId() string {
@@ -1069,7 +1068,7 @@ type DriverRecord struct {
 
 func (x *DriverRecord) Reset() {
 	*x = DriverRecord{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[16]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1081,7 +1080,7 @@ func (x *DriverRecord) String() string {
 func (*DriverRecord) ProtoMessage() {}
 
 func (x *DriverRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[16]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1094,7 +1093,7 @@ func (x *DriverRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DriverRecord.ProtoReflect.Descriptor instead.
 func (*DriverRecord) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{16}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DriverRecord) GetName() string {
@@ -1147,7 +1146,7 @@ type ProviderRecord struct {
 
 func (x *ProviderRecord) Reset() {
 	*x = ProviderRecord{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[17]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1159,7 +1158,7 @@ func (x *ProviderRecord) String() string {
 func (*ProviderRecord) ProtoMessage() {}
 
 func (x *ProviderRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[17]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1172,7 +1171,7 @@ func (x *ProviderRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderRecord.ProtoReflect.Descriptor instead.
 func (*ProviderRecord) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{17}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ProviderRecord) GetProvider() string {
@@ -1228,7 +1227,7 @@ type EventPayload struct {
 
 func (x *EventPayload) Reset() {
 	*x = EventPayload{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[18]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1240,7 +1239,7 @@ func (x *EventPayload) String() string {
 func (*EventPayload) ProtoMessage() {}
 
 func (x *EventPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[18]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1253,7 +1252,7 @@ func (x *EventPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventPayload.ProtoReflect.Descriptor instead.
 func (*EventPayload) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{18}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *EventPayload) GetProvider() string {
@@ -1288,7 +1287,7 @@ type RuleMatch struct {
 
 func (x *RuleMatch) Reset() {
 	*x = RuleMatch{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[19]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1300,7 +1299,7 @@ func (x *RuleMatch) String() string {
 func (*RuleMatch) ProtoMessage() {}
 
 func (x *RuleMatch) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[19]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1313,7 +1312,7 @@ func (x *RuleMatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuleMatch.ProtoReflect.Descriptor instead.
 func (*RuleMatch) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{19}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *RuleMatch) GetWhen() string {
@@ -1348,7 +1347,7 @@ type MatchRulesRequest struct {
 
 func (x *MatchRulesRequest) Reset() {
 	*x = MatchRulesRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[20]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1360,7 +1359,7 @@ func (x *MatchRulesRequest) String() string {
 func (*MatchRulesRequest) ProtoMessage() {}
 
 func (x *MatchRulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[20]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1373,7 +1372,7 @@ func (x *MatchRulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MatchRulesRequest.ProtoReflect.Descriptor instead.
 func (*MatchRulesRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{20}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *MatchRulesRequest) GetEvent() *EventPayload {
@@ -1406,7 +1405,7 @@ type MatchRulesResponse struct {
 
 func (x *MatchRulesResponse) Reset() {
 	*x = MatchRulesResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[21]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1418,7 +1417,7 @@ func (x *MatchRulesResponse) String() string {
 func (*MatchRulesResponse) ProtoMessage() {}
 
 func (x *MatchRulesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[21]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1431,7 +1430,7 @@ func (x *MatchRulesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MatchRulesResponse.ProtoReflect.Descriptor instead.
 func (*MatchRulesResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{21}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *MatchRulesResponse) GetMatches() []*RuleMatch {
@@ -1449,7 +1448,7 @@ type ListRulesRequest struct {
 
 func (x *ListRulesRequest) Reset() {
 	*x = ListRulesRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[22]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1461,7 +1460,7 @@ func (x *ListRulesRequest) String() string {
 func (*ListRulesRequest) ProtoMessage() {}
 
 func (x *ListRulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[22]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1474,7 +1473,7 @@ func (x *ListRulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRulesRequest.ProtoReflect.Descriptor instead.
 func (*ListRulesRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{22}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{22}
 }
 
 type ListRulesResponse struct {
@@ -1486,7 +1485,7 @@ type ListRulesResponse struct {
 
 func (x *ListRulesResponse) Reset() {
 	*x = ListRulesResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[23]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1498,7 +1497,7 @@ func (x *ListRulesResponse) String() string {
 func (*ListRulesResponse) ProtoMessage() {}
 
 func (x *ListRulesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[23]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1511,7 +1510,7 @@ func (x *ListRulesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRulesResponse.ProtoReflect.Descriptor instead.
 func (*ListRulesResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{23}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListRulesResponse) GetRules() []*RuleRecord {
@@ -1530,7 +1529,7 @@ type GetRuleRequest struct {
 
 func (x *GetRuleRequest) Reset() {
 	*x = GetRuleRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[24]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1542,7 +1541,7 @@ func (x *GetRuleRequest) String() string {
 func (*GetRuleRequest) ProtoMessage() {}
 
 func (x *GetRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[24]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1555,7 +1554,7 @@ func (x *GetRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRuleRequest.ProtoReflect.Descriptor instead.
 func (*GetRuleRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{24}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetRuleRequest) GetId() string {
@@ -1574,7 +1573,7 @@ type GetRuleResponse struct {
 
 func (x *GetRuleResponse) Reset() {
 	*x = GetRuleResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[25]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1586,7 +1585,7 @@ func (x *GetRuleResponse) String() string {
 func (*GetRuleResponse) ProtoMessage() {}
 
 func (x *GetRuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[25]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1599,7 +1598,7 @@ func (x *GetRuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRuleResponse.ProtoReflect.Descriptor instead.
 func (*GetRuleResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{25}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetRuleResponse) GetRule() *RuleRecord {
@@ -1618,7 +1617,7 @@ type CreateRuleRequest struct {
 
 func (x *CreateRuleRequest) Reset() {
 	*x = CreateRuleRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[26]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1630,7 +1629,7 @@ func (x *CreateRuleRequest) String() string {
 func (*CreateRuleRequest) ProtoMessage() {}
 
 func (x *CreateRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[26]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1643,7 +1642,7 @@ func (x *CreateRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRuleRequest.ProtoReflect.Descriptor instead.
 func (*CreateRuleRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{26}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CreateRuleRequest) GetRule() *Rule {
@@ -1662,7 +1661,7 @@ type CreateRuleResponse struct {
 
 func (x *CreateRuleResponse) Reset() {
 	*x = CreateRuleResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[27]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1674,7 +1673,7 @@ func (x *CreateRuleResponse) String() string {
 func (*CreateRuleResponse) ProtoMessage() {}
 
 func (x *CreateRuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[27]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1687,7 +1686,7 @@ func (x *CreateRuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRuleResponse.ProtoReflect.Descriptor instead.
 func (*CreateRuleResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{27}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *CreateRuleResponse) GetRule() *RuleRecord {
@@ -1707,7 +1706,7 @@ type UpdateRuleRequest struct {
 
 func (x *UpdateRuleRequest) Reset() {
 	*x = UpdateRuleRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[28]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1719,7 +1718,7 @@ func (x *UpdateRuleRequest) String() string {
 func (*UpdateRuleRequest) ProtoMessage() {}
 
 func (x *UpdateRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[28]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1732,7 +1731,7 @@ func (x *UpdateRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRuleRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRuleRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{28}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *UpdateRuleRequest) GetId() string {
@@ -1758,7 +1757,7 @@ type UpdateRuleResponse struct {
 
 func (x *UpdateRuleResponse) Reset() {
 	*x = UpdateRuleResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[29]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1770,7 +1769,7 @@ func (x *UpdateRuleResponse) String() string {
 func (*UpdateRuleResponse) ProtoMessage() {}
 
 func (x *UpdateRuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[29]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1783,7 +1782,7 @@ func (x *UpdateRuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRuleResponse.ProtoReflect.Descriptor instead.
 func (*UpdateRuleResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{29}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *UpdateRuleResponse) GetRule() *RuleRecord {
@@ -1802,7 +1801,7 @@ type DeleteRuleRequest struct {
 
 func (x *DeleteRuleRequest) Reset() {
 	*x = DeleteRuleRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[30]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1814,7 +1813,7 @@ func (x *DeleteRuleRequest) String() string {
 func (*DeleteRuleRequest) ProtoMessage() {}
 
 func (x *DeleteRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[30]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1827,7 +1826,7 @@ func (x *DeleteRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRuleRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRuleRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{30}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *DeleteRuleRequest) GetId() string {
@@ -1845,7 +1844,7 @@ type DeleteRuleResponse struct {
 
 func (x *DeleteRuleResponse) Reset() {
 	*x = DeleteRuleResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[31]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1857,7 +1856,7 @@ func (x *DeleteRuleResponse) String() string {
 func (*DeleteRuleResponse) ProtoMessage() {}
 
 func (x *DeleteRuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[31]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1870,7 +1869,7 @@ func (x *DeleteRuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRuleResponse.ProtoReflect.Descriptor instead.
 func (*DeleteRuleResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{31}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{31}
 }
 
 type ListDriversRequest struct {
@@ -1881,7 +1880,7 @@ type ListDriversRequest struct {
 
 func (x *ListDriversRequest) Reset() {
 	*x = ListDriversRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[32]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1893,7 +1892,7 @@ func (x *ListDriversRequest) String() string {
 func (*ListDriversRequest) ProtoMessage() {}
 
 func (x *ListDriversRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[32]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1906,7 +1905,7 @@ func (x *ListDriversRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDriversRequest.ProtoReflect.Descriptor instead.
 func (*ListDriversRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{32}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{32}
 }
 
 type ListDriversResponse struct {
@@ -1918,7 +1917,7 @@ type ListDriversResponse struct {
 
 func (x *ListDriversResponse) Reset() {
 	*x = ListDriversResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[33]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1930,7 +1929,7 @@ func (x *ListDriversResponse) String() string {
 func (*ListDriversResponse) ProtoMessage() {}
 
 func (x *ListDriversResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[33]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1943,7 +1942,7 @@ func (x *ListDriversResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDriversResponse.ProtoReflect.Descriptor instead.
 func (*ListDriversResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{33}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListDriversResponse) GetDrivers() []*DriverRecord {
@@ -1962,7 +1961,7 @@ type GetDriverRequest struct {
 
 func (x *GetDriverRequest) Reset() {
 	*x = GetDriverRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[34]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1974,7 +1973,7 @@ func (x *GetDriverRequest) String() string {
 func (*GetDriverRequest) ProtoMessage() {}
 
 func (x *GetDriverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[34]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1987,7 +1986,7 @@ func (x *GetDriverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDriverRequest.ProtoReflect.Descriptor instead.
 func (*GetDriverRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{34}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *GetDriverRequest) GetName() string {
@@ -2006,7 +2005,7 @@ type GetDriverResponse struct {
 
 func (x *GetDriverResponse) Reset() {
 	*x = GetDriverResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[35]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2018,7 +2017,7 @@ func (x *GetDriverResponse) String() string {
 func (*GetDriverResponse) ProtoMessage() {}
 
 func (x *GetDriverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[35]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2031,7 +2030,7 @@ func (x *GetDriverResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDriverResponse.ProtoReflect.Descriptor instead.
 func (*GetDriverResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{35}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *GetDriverResponse) GetDriver() *DriverRecord {
@@ -2050,7 +2049,7 @@ type UpsertDriverRequest struct {
 
 func (x *UpsertDriverRequest) Reset() {
 	*x = UpsertDriverRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[36]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2062,7 +2061,7 @@ func (x *UpsertDriverRequest) String() string {
 func (*UpsertDriverRequest) ProtoMessage() {}
 
 func (x *UpsertDriverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[36]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2075,7 +2074,7 @@ func (x *UpsertDriverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertDriverRequest.ProtoReflect.Descriptor instead.
 func (*UpsertDriverRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{36}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *UpsertDriverRequest) GetDriver() *DriverRecord {
@@ -2094,7 +2093,7 @@ type UpsertDriverResponse struct {
 
 func (x *UpsertDriverResponse) Reset() {
 	*x = UpsertDriverResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[37]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2106,7 +2105,7 @@ func (x *UpsertDriverResponse) String() string {
 func (*UpsertDriverResponse) ProtoMessage() {}
 
 func (x *UpsertDriverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[37]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2119,7 +2118,7 @@ func (x *UpsertDriverResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertDriverResponse.ProtoReflect.Descriptor instead.
 func (*UpsertDriverResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{37}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *UpsertDriverResponse) GetDriver() *DriverRecord {
@@ -2138,7 +2137,7 @@ type DeleteDriverRequest struct {
 
 func (x *DeleteDriverRequest) Reset() {
 	*x = DeleteDriverRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[38]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2150,7 +2149,7 @@ func (x *DeleteDriverRequest) String() string {
 func (*DeleteDriverRequest) ProtoMessage() {}
 
 func (x *DeleteDriverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[38]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2163,7 +2162,7 @@ func (x *DeleteDriverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDriverRequest.ProtoReflect.Descriptor instead.
 func (*DeleteDriverRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{38}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *DeleteDriverRequest) GetName() string {
@@ -2181,7 +2180,7 @@ type DeleteDriverResponse struct {
 
 func (x *DeleteDriverResponse) Reset() {
 	*x = DeleteDriverResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[39]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2193,7 +2192,7 @@ func (x *DeleteDriverResponse) String() string {
 func (*DeleteDriverResponse) ProtoMessage() {}
 
 func (x *DeleteDriverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[39]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2206,7 +2205,7 @@ func (x *DeleteDriverResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDriverResponse.ProtoReflect.Descriptor instead.
 func (*DeleteDriverResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{39}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{39}
 }
 
 type ListProvidersRequest struct {
@@ -2218,7 +2217,7 @@ type ListProvidersRequest struct {
 
 func (x *ListProvidersRequest) Reset() {
 	*x = ListProvidersRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[40]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2230,7 +2229,7 @@ func (x *ListProvidersRequest) String() string {
 func (*ListProvidersRequest) ProtoMessage() {}
 
 func (x *ListProvidersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[40]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2243,7 +2242,7 @@ func (x *ListProvidersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProvidersRequest.ProtoReflect.Descriptor instead.
 func (*ListProvidersRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{40}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *ListProvidersRequest) GetProvider() string {
@@ -2262,7 +2261,7 @@ type ListProvidersResponse struct {
 
 func (x *ListProvidersResponse) Reset() {
 	*x = ListProvidersResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[41]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2274,7 +2273,7 @@ func (x *ListProvidersResponse) String() string {
 func (*ListProvidersResponse) ProtoMessage() {}
 
 func (x *ListProvidersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[41]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2287,7 +2286,7 @@ func (x *ListProvidersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProvidersResponse.ProtoReflect.Descriptor instead.
 func (*ListProvidersResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{41}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *ListProvidersResponse) GetProviders() []*ProviderRecord {
@@ -2307,7 +2306,7 @@ type GetProviderRequest struct {
 
 func (x *GetProviderRequest) Reset() {
 	*x = GetProviderRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[42]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2319,7 +2318,7 @@ func (x *GetProviderRequest) String() string {
 func (*GetProviderRequest) ProtoMessage() {}
 
 func (x *GetProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[42]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2332,7 +2331,7 @@ func (x *GetProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProviderRequest.ProtoReflect.Descriptor instead.
 func (*GetProviderRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{42}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *GetProviderRequest) GetProvider() string {
@@ -2358,7 +2357,7 @@ type GetProviderResponse struct {
 
 func (x *GetProviderResponse) Reset() {
 	*x = GetProviderResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[43]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2370,7 +2369,7 @@ func (x *GetProviderResponse) String() string {
 func (*GetProviderResponse) ProtoMessage() {}
 
 func (x *GetProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[43]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2383,7 +2382,7 @@ func (x *GetProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProviderResponse.ProtoReflect.Descriptor instead.
 func (*GetProviderResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{43}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *GetProviderResponse) GetProvider() *ProviderRecord {
@@ -2402,7 +2401,7 @@ type UpsertProviderRequest struct {
 
 func (x *UpsertProviderRequest) Reset() {
 	*x = UpsertProviderRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[44]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2414,7 +2413,7 @@ func (x *UpsertProviderRequest) String() string {
 func (*UpsertProviderRequest) ProtoMessage() {}
 
 func (x *UpsertProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[44]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2427,7 +2426,7 @@ func (x *UpsertProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertProviderRequest.ProtoReflect.Descriptor instead.
 func (*UpsertProviderRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{44}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *UpsertProviderRequest) GetProvider() *ProviderRecord {
@@ -2446,7 +2445,7 @@ type UpsertProviderResponse struct {
 
 func (x *UpsertProviderResponse) Reset() {
 	*x = UpsertProviderResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[45]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2458,7 +2457,7 @@ func (x *UpsertProviderResponse) String() string {
 func (*UpsertProviderResponse) ProtoMessage() {}
 
 func (x *UpsertProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[45]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2471,7 +2470,7 @@ func (x *UpsertProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertProviderResponse.ProtoReflect.Descriptor instead.
 func (*UpsertProviderResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{45}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *UpsertProviderResponse) GetProvider() *ProviderRecord {
@@ -2491,7 +2490,7 @@ type DeleteProviderRequest struct {
 
 func (x *DeleteProviderRequest) Reset() {
 	*x = DeleteProviderRequest{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[46]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2503,7 +2502,7 @@ func (x *DeleteProviderRequest) String() string {
 func (*DeleteProviderRequest) ProtoMessage() {}
 
 func (x *DeleteProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[46]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2516,7 +2515,7 @@ func (x *DeleteProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProviderRequest.ProtoReflect.Descriptor instead.
 func (*DeleteProviderRequest) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{46}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *DeleteProviderRequest) GetProvider() string {
@@ -2541,7 +2540,7 @@ type DeleteProviderResponse struct {
 
 func (x *DeleteProviderResponse) Reset() {
 	*x = DeleteProviderResponse{}
-	mi := &file_cloud_v1_githook_proto_msgTypes[47]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2553,7 +2552,7 @@ func (x *DeleteProviderResponse) String() string {
 func (*DeleteProviderResponse) ProtoMessage() {}
 
 func (x *DeleteProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cloud_v1_githook_proto_msgTypes[47]
+	mi := &file_cloud_v1_githooks_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2566,14 +2565,14 @@ func (x *DeleteProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProviderResponse.ProtoReflect.Descriptor instead.
 func (*DeleteProviderResponse) Descriptor() ([]byte, []int) {
-	return file_cloud_v1_githook_proto_rawDescGZIP(), []int{47}
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{47}
 }
 
-var File_cloud_v1_githook_proto protoreflect.FileDescriptor
+var File_cloud_v1_githooks_proto protoreflect.FileDescriptor
 
-const file_cloud_v1_githook_proto_rawDesc = "" +
+const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\n" +
-	"\x17cloud/v1/githook.proto\x12\bcloud.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd6\x03\n" +
+	"\x17cloud/v1/githooks.proto\x12\bcloud.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd6\x03\n" +
 	"\rInstallRecord\x12<\n" +
 	"\bprovider\x18\x01 \x01(\tB \xbaH\x1dr\x1bR\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x1d\n" +
 	"\n" +
@@ -2776,23 +2775,23 @@ const file_cloud_v1_githook_proto_rawDesc = "" +
 	"\rListProviders\x12\x1e.cloud.v1.ListProvidersRequest\x1a\x1f.cloud.v1.ListProvidersResponse\x12J\n" +
 	"\vGetProvider\x12\x1c.cloud.v1.GetProviderRequest\x1a\x1d.cloud.v1.GetProviderResponse\x12S\n" +
 	"\x0eUpsertProvider\x12\x1f.cloud.v1.UpsertProviderRequest\x1a .cloud.v1.UpsertProviderResponse\x12S\n" +
-	"\x0eDeleteProvider\x12\x1f.cloud.v1.DeleteProviderRequest\x1a .cloud.v1.DeleteProviderResponseB\x81\x01\n" +
-	"\fcom.cloud.v1B\rGithooksProtoP\x01Z!githook/pkg/gen/cloud/v1;cloudv1\xa2\x02\x03CXX\xaa\x02\bCloud.V1\xca\x02\bCloud\\V1\xe2\x02\x14Cloud\\V1\\GPBMetadata\xea\x02\tCloud::V1b\x06proto3"
+	"\x0eDeleteProvider\x12\x1f.cloud.v1.DeleteProviderRequest\x1a .cloud.v1.DeleteProviderResponseB\x80\x01\n" +
+	"\fcom.cloud.v1B\rGithooksProtoP\x01Z githook/pkg/gen/cloud/v1;cloudv1\xa2\x02\x03CXX\xaa\x02\bCloud.V1\xca\x02\bCloud\\V1\xe2\x02\x14Cloud\\V1\\GPBMetadata\xea\x02\tCloud::V1b\x06proto3"
 
 var (
-	file_cloud_v1_githook_proto_rawDescOnce sync.Once
-	file_cloud_v1_githook_proto_rawDescData []byte
+	file_cloud_v1_githooks_proto_rawDescOnce sync.Once
+	file_cloud_v1_githooks_proto_rawDescData []byte
 )
 
-func file_cloud_v1_githook_proto_rawDescGZIP() []byte {
-	file_cloud_v1_githook_proto_rawDescOnce.Do(func() {
-		file_cloud_v1_githook_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_cloud_v1_githook_proto_rawDesc), len(file_cloud_v1_githook_proto_rawDesc)))
+func file_cloud_v1_githooks_proto_rawDescGZIP() []byte {
+	file_cloud_v1_githooks_proto_rawDescOnce.Do(func() {
+		file_cloud_v1_githooks_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_cloud_v1_githooks_proto_rawDesc), len(file_cloud_v1_githooks_proto_rawDesc)))
 	})
-	return file_cloud_v1_githook_proto_rawDescData
+	return file_cloud_v1_githooks_proto_rawDescData
 }
 
-var file_cloud_v1_githook_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
-var file_cloud_v1_githook_proto_goTypes = []any{
+var file_cloud_v1_githooks_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
+var file_cloud_v1_githooks_proto_goTypes = []any{
 	(*InstallRecord)(nil),               // 0: cloud.v1.InstallRecord
 	(*NamespaceRecord)(nil),             // 1: cloud.v1.NamespaceRecord
 	(*ListInstallationsRequest)(nil),    // 2: cloud.v1.ListInstallationsRequest
@@ -2843,7 +2842,7 @@ var file_cloud_v1_githook_proto_goTypes = []any{
 	(*DeleteProviderResponse)(nil),      // 47: cloud.v1.DeleteProviderResponse
 	(*timestamppb.Timestamp)(nil),       // 48: google.protobuf.Timestamp
 }
-var file_cloud_v1_githook_proto_depIdxs = []int32{
+var file_cloud_v1_githooks_proto_depIdxs = []int32{
 	48, // 0: cloud.v1.InstallRecord.expires_at:type_name -> google.protobuf.Timestamp
 	48, // 1: cloud.v1.InstallRecord.created_at:type_name -> google.protobuf.Timestamp
 	48, // 2: cloud.v1.InstallRecord.updated_at:type_name -> google.protobuf.Timestamp
@@ -2923,26 +2922,26 @@ var file_cloud_v1_githook_proto_depIdxs = []int32{
 	0,  // [0:32] is the sub-list for field type_name
 }
 
-func init() { file_cloud_v1_githook_proto_init() }
-func file_cloud_v1_githook_proto_init() {
-	if File_cloud_v1_githook_proto != nil {
+func init() { file_cloud_v1_githooks_proto_init() }
+func file_cloud_v1_githooks_proto_init() {
+	if File_cloud_v1_githooks_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cloud_v1_githook_proto_rawDesc), len(file_cloud_v1_githook_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cloud_v1_githooks_proto_rawDesc), len(file_cloud_v1_githooks_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   48,
 			NumExtensions: 0,
 			NumServices:   5,
 		},
-		GoTypes:           file_cloud_v1_githook_proto_goTypes,
-		DependencyIndexes: file_cloud_v1_githook_proto_depIdxs,
-		MessageInfos:      file_cloud_v1_githook_proto_msgTypes,
+		GoTypes:           file_cloud_v1_githooks_proto_goTypes,
+		DependencyIndexes: file_cloud_v1_githooks_proto_depIdxs,
+		MessageInfos:      file_cloud_v1_githooks_proto_msgTypes,
 	}.Build()
-	File_cloud_v1_githook_proto = out.File
-	file_cloud_v1_githook_proto_goTypes = nil
-	file_cloud_v1_githook_proto_depIdxs = nil
+	File_cloud_v1_githooks_proto = out.File
+	file_cloud_v1_githooks_proto_goTypes = nil
+	file_cloud_v1_githooks_proto_depIdxs = nil
 }
