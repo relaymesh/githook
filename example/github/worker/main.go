@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -74,7 +75,7 @@ func main() {
 
 	wk := worker.New(
 		worker.WithSubscriber(sub),
-		worker.WithTopics("pr.opened.ready", "pr.merged"),
+		worker.WithTopics("pr.opened.ready", "pr.merged", "github.commit.created"),
 		worker.WithConcurrency(5),
 		worker.WithRetry(retryOnce{}),
 		worker.WithClientProvider(worker.NewSCMClientProvider(appCfg.Providers)),
@@ -133,6 +134,24 @@ func main() {
 		if action == "opened" && !draft {
 			log.Printf("ready PR: topic=%s", evt.Topic)
 		}
+		return nil
+	})
+
+	wk.HandleTopic("github.commit.created", func(ctx context.Context, evt *worker.Event) error {
+		if evt.Provider != "github" {
+			return nil
+		}
+
+		if driver := evt.Metadata["driver"]; driver != "" {
+			log.Printf("driver=%s topic=%s provider=%s", driver, evt.Topic, evt.Provider)
+		}
+
+		if evt.Client != nil {
+			gh := evt.Client.(*github.Client)
+			_ = gh
+		}
+
+		fmt.Println(evt.Normalized)
 		return nil
 	})
 
