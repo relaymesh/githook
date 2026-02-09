@@ -328,7 +328,6 @@ oauth:
 - The GitHub callback is only used when "Request user authorization (OAuth)" is enabled
 - Always set `server.public_base_url` when running behind ngrok or a reverse proxy
 - The callback receives authorization codes and exchanges them for access tokens
-- See [OAuth Onboarding](#oauth-onboarding) for detailed setup instructions
 
 
 ### Watermill Drivers (Publishing)
