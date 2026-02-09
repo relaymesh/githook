@@ -97,12 +97,6 @@ Now send a test webhook:
 - **Secrets Management**: Use environment variables for credentials, never commit secrets
 - **Network Security**: Deploy behind HTTPS with TLS certificates
 
-**Production Recommendations:**
-- Enable `auth.oauth2` for API endpoint protection
-- Use secret management services (Vault, AWS Secrets Manager)
-- Enable database encryption at rest
-- Implement rate limiting and DDoS protection
-- Regularly rotate OAuth tokens and webhook secrets
 
 ## Table of Contents
 
@@ -117,19 +111,13 @@ Now send a test webhook:
 - [OAuth Onboarding](#oauth-onboarding)
 - [Configuration](#configuration)
   - [Providers](#providers)
-  - [Server Settings](#server-limits)
   - [OAuth Callbacks](#oauth-callbacks)
-  - [Storage](#installation-storage)
+  - [Installation Storage](#installation-storage)
   - [Watermill Drivers](#watermill-drivers-publishing)
   - [Rules Engine](#rules)
 - [Worker SDK](#worker-sdk)
-- [CLI Commands](#api-endpoints-connectgrpc)
 - [Examples](#examples)
 - [Helm Charts](#helm-charts)
-- [Troubleshooting](#troubleshooting)
-- [Development](#development)
-- [Releases](#releases)
-- [License](#license)
 
 ## Getting Started (Local)
 
@@ -145,7 +133,7 @@ Now send a test webhook:
 
     ```bash
     export GITHUB_WEBHOOK_SECRET=devsecret
-    go run ./main.go serve --config app.docker.yaml
+    go run ./main.go serve --config config.yaml
     ```
 
 3.  **Run a worker:**
@@ -153,26 +141,9 @@ Now send a test webhook:
     In another terminal, run an example worker that listens for events.
 
     ```bash
-    go run ./example/github/worker/main.go --config app.docker.yaml
+    go run ./example/github/worker/main.go --config config.yaml
     ```
 
-4.  **Send a test webhook:**
-
-    Use the provided script to simulate a GitHub `pull_request` event.
-
-    ```bash
-    ./scripts/send_webhook.sh github pull_request example/github/pull_request.json
-    ```
-
-    You should see the server log the event and the worker log its "pr.opened.ready" message.
-
-**Single‑binary (in‑process)**
-
-Use GoChannel to run the server and multiple workers in one process:
-
-```bash
-go run ./example/inprocess/main.go --config app.docker.yaml
-```
 
 ## OAuth Onboarding
 
@@ -227,6 +198,7 @@ See provider-specific guides for detailed OAuth setup:
 ## Configuration
 
 Docs:
+- [API Reference](https://buf.build/githooks/cloud) - Connect RPC API documentation
 - [Driver configuration](docs/drivers.md)
 - [Event compatibility](docs/events.md)
 - [Getting started (GitHub)](docs/getting-started-github.md)
@@ -324,20 +296,6 @@ providers:
 GitHub Enterprise: set `providers.github.api.base_url` to your API base (for example,
 `https://ghe.example.com/api/v3`). The SDK derives the upload URL automatically.
 
-### Server Limits
-
-```yaml
-server:
-  port: 8080
-  public_base_url: https://app.example.com
-  read_timeout_ms: 5000
-  write_timeout_ms: 10000
-  idle_timeout_ms: 60000
-  read_header_timeout_ms: 5000
-  max_body_bytes: 1048576
-  debug_events: false
-```
-
 ### API Authentication
 
 ```yaml
@@ -382,87 +340,6 @@ oauth:
 - The callback receives authorization codes and exchanges them for access tokens
 - See [OAuth Onboarding](#oauth-onboarding) for detailed setup instructions
 
-### API Endpoints (Connect/GRPC)
-
-REST endpoints are replaced by Connect/GRPC handlers. Use the generated client from
-`pkg/gen/cloud/v1/cloudv1connect` or call the procedures directly.
-
-```text
-/cloud.v1.InstallationsService/ListInstallations
-/cloud.v1.InstallationsService/GetInstallationByID
-/cloud.v1.NamespacesService/ListNamespaces
-/cloud.v1.NamespacesService/SyncNamespaces
-/cloud.v1.NamespacesService/GetNamespaceWebhook
-/cloud.v1.NamespacesService/SetNamespaceWebhook
-/cloud.v1.RulesService/MatchRules
-/cloud.v1.DriversService/ListDrivers
-/cloud.v1.DriversService/GetDriver
-/cloud.v1.DriversService/UpsertDriver
-/cloud.v1.DriversService/DeleteDriver
-/cloud.v1.ProvidersService/ListProviders
-/cloud.v1.ProvidersService/GetProvider
-/cloud.v1.ProvidersService/UpsertProvider
-/cloud.v1.ProvidersService/DeleteProvider
-```
-
-Use the Connect RPC to get the provider URL and state.
-
-Notes:
-- GitHub webhooks are always enabled by the GitHub App and cannot be toggled.
-- GitLab/Bitbucket create/delete provider webhooks when toggled.
-
-CLI shortcuts (via Connect RPC):
-```bash
-githooks --endpoint http://localhost:8080 installations list --state-id <state-id>
-githooks --endpoint http://localhost:8080 installations get --provider github --installation-id <id>
-githooks --endpoint http://localhost:8080 namespaces list --state-id <state-id>
-githooks --endpoint http://localhost:8080 namespaces sync --state-id <state-id> --provider gitlab
-githooks --endpoint http://localhost:8080 namespaces webhook get --state-id <state-id> --provider gitlab --repo-id <repo-id>
-githooks --endpoint http://localhost:8080 namespaces webhook set --state-id <state-id> --provider gitlab --repo-id <repo-id> --enabled
-githooks --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml
-githooks --endpoint http://localhost:8080 providers list --provider github
-githooks --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>
-githooks --endpoint http://localhost:8080 providers set --provider github --config-file github.json
-githooks --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>
-githooks --endpoint http://localhost:8080 drivers list
-githooks --endpoint http://localhost:8080 drivers get --name amqp
-githooks --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.json
-githooks --endpoint http://localhost:8080 drivers delete --name amqp
-```
-
-### Install/Authorize Entry
-
-Start an install/authorize flow by redirecting users to:
-
-```
-http://localhost:8080/?provider=github
-http://localhost:8080/?provider=gitlab
-http://localhost:8080/?provider=bitbucket
-```
-
-**With Multiple Provider Instances:**
-
-When you have multiple provider instances configured (e.g., GitHub.com and GitHub Enterprise), you must specify which instance using the instance hash:
-
-```
-http://localhost:8080/?provider=github&instance=<instance-hash>
-```
-
-Get the instance hash using the CLI:
-```bash
-go run ./main.go --endpoint http://localhost:8080 providers list --provider github
-```
-
-**How It Works:**
-- **GitHub**: Redirects to GitHub App installation page (`https://github.com/apps/{app_slug}/installations/new`)
-- **GitLab**: Redirects to OAuth authorize URL (`https://gitlab.com/oauth/authorize`)
-- **Bitbucket**: Redirects to OAuth authorize URL (`https://bitbucket.org/site/oauth2/authorize`)
-
-**Optional Parameters:**
-- `tenant_id`: Multi-tenant identifier for scoping installations
-- `state`: Custom CSRF state value (auto-generated if not provided)
-
-See [OAuth Onboarding](#oauth-onboarding) for detailed setup instructions.
 
 ### Watermill Drivers (Publishing)
 
@@ -627,113 +504,6 @@ helm repo update
 helm install my-githooks githooks/githooks
 helm install my-worker githooks/githooks-worker
 ```
-
-## Troubleshooting
-
-### Common Issues
-
-#### OAuth Callback 404 Error
-**Error:** `404 page not found` when redirected after OAuth authorization
-
-**Solution:** Verify your OAuth application callback URL uses the correct path:
-- ✅ Correct: `/auth/github/callback`, `/auth/gitlab/callback`, `/auth/bitbucket/callback`
-- ❌ Incorrect: `/oauth/github/callback`
-
-#### Database Constraint Error
-**Error:** `ERROR: there is no unique or exclusion constraint matching the ON CONFLICT specification`
-
-**Solution:** The database schema needs to be recreated with the proper unique constraint:
-```bash
-# Drop the table
-docker exec -i githooks-postgres-1 psql -U githooks -d githooks -c "DROP TABLE IF EXISTS githooks_installations CASCADE;"
-
-# Restart the server to recreate the table with correct schema
-go run ./main.go serve --config config.yaml
-```
-
-#### Duplicate Installation Entries
-**Problem:** Multiple installation records for the same provider/installation
-
-**Solution:** This was a bug in versions prior to the fix. Clean up duplicates:
-```bash
-# Delete entries with empty account names (invalid entries)
-docker exec -i githooks-postgres-1 psql -U githooks -d githooks \
-  -c "DELETE FROM githooks_installations WHERE account_name = '' OR account_name IS NULL;"
-```
-
-#### Webhook Signature Mismatch
-**Error:** `missing X-Hub-Signature` or `signature mismatch`
-
-**Solution:** Ensure your webhook secret matches between the provider settings and your config:
-```yaml
-providers:
-  github:
-    webhook:
-      secret: ${GITHUB_WEBHOOK_SECRET}  # Must match GitHub App webhook secret
-```
-
-#### No Matching Rules
-**Problem:** Events received but not published to broker
-
-**Solution:** Check your rules match the payload:
-```bash
-# Test rules against a payload
-go run ./main.go --endpoint http://localhost:8080 rules match \
-  --payload-file payload.json --rules-file rules.yaml
-```
-
-Enable debug logging to see rule evaluation:
-```yaml
-server:
-  debug_events: true
-```
-
-#### Connection Refused to Broker
-**Error:** `connection refused` when publishing events
-
-**Solution:** Ensure Docker Compose services are running:
-```bash
-docker compose ps
-docker compose up -d
-```
-
-#### Missing Provider Instance
-**Problem:** Cannot find provider instance hash
-
-**Solution:** List all configured provider instances:
-```bash
-go run ./main.go --endpoint http://localhost:8080 providers list --provider github
-```
-
-Providers created from config are automatically stored with server-generated hashes on startup.
-
-### Getting Help
-
-- **Documentation**: Check the [docs/](docs/) directory for detailed guides
-- **Issues**: Report bugs at [GitHub Issues](https://github.com/yindia/githooks/issues)
-- **Examples**: See working examples in [example/](example/) directory
-
-## Releases
-
--   **Code Releases**: Tagging a commit with `vX.Y.Z` triggers a workflow that publishes a new Go module version and a container image to `ghcr.io/yindia/githooks`.
--   **Chart Releases**: Tagging a commit with `chart-X.Y.Z` publishes the Helm charts to the `gh-pages` branch. Ensure you update `version` and `appVersion` in `charts/*/Chart.yaml` first.
-
-## Development
-
-**Run Tests**
-```bash
-go test ./...
-```
-
-**Notes**
--   When using the SQL publisher, you must blank-import a database driver (e.g., `_ "github.com/lib/pq"`).
--   The default webhook secret for local testing is `devsecret`.
--   Rules are evaluated in the order they appear in the config file. Multiple rules can match a single event, causing multiple messages to be published.
-
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 

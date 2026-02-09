@@ -18,14 +18,6 @@ client-credentials token and attaches `Authorization: Bearer <token>` to request
 If auth is enabled on the server, the CLI must be run with a config file.
 The CLI reads `endpoint` from the config when `--endpoint` is not provided.
 
-## Auth
-
-```bash
-githooks auth
-```
-
-`auth` starts a local callback listener (loopback), prints the login URL, and attempts to open it in a browser.
-
 ## Init
 
 ```bash
