@@ -175,9 +175,6 @@ When configuring OAuth applications, use these callback paths:
 - **GitHub**: `https://your-domain.com/auth/github/callback`
 - **GitLab**: `https://your-domain.com/auth/gitlab/callback`
 - **Bitbucket**: `https://your-domain.com/auth/bitbucket/callback`
-
-**Important:** The path must be `/auth/{provider}/callback` (not `/oauth/{provider}/callback`).
-
 For local development with ngrok:
 ```yaml
 server:
