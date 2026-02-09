@@ -154,6 +154,56 @@ Use GoChannel to run the server and multiple workers in one process:
 go run ./example/inprocess/main.go --config app.docker.yaml
 ```
 
+## OAuth Onboarding
+
+Githooks supports OAuth-based onboarding for GitLab and Bitbucket, and GitHub Apps with user authorization.
+
+### Start Onboarding Flow
+
+Redirect users to initiate the OAuth flow:
+
+```
+http://localhost:8080/?provider=github&instance=<instance-hash>
+http://localhost:8080/?provider=gitlab&instance=<instance-hash>
+http://localhost:8080/?provider=bitbucket&instance=<instance-hash>
+```
+
+### Multiple Provider Instances
+
+If you have multiple provider instances configured (e.g., GitHub.com + GitHub Enterprise), specify which instance:
+
+```
+http://localhost:8080/?provider=github&instance=<instance-hash>
+```
+
+**Get instance hash using CLI:**
+```bash
+go run ./main.go --endpoint http://localhost:8080 providers list --provider github
+```
+
+This returns all configured provider instances with their server-generated instance hashes.
+
+### OAuth Callback URLs
+
+When configuring OAuth applications, use these callback paths:
+
+- **GitHub**: `https://your-domain.com/auth/github/callback`
+- **GitLab**: `https://your-domain.com/auth/gitlab/callback`
+- **Bitbucket**: `https://your-domain.com/auth/bitbucket/callback`
+
+**Important:** The path must be `/auth/{provider}/callback` (not `/oauth/{provider}/callback`).
+
+For local development with ngrok:
+```yaml
+server:
+  public_base_url: https://your-ngrok-url.ngrok-free.app
+```
+
+See provider-specific guides for detailed OAuth setup:
+- [GitHub OAuth Setup](docs/getting-started-github.md#step-5-create-a-github-app)
+- [GitLab OAuth Setup](docs/getting-started-gitlab.md#6-create-a-gitlab-oauth-application)
+- [Bitbucket OAuth Setup](docs/getting-started-bitbucket.md#6-configure-a-bitbucket-webhook)
+
 ## Configuration
 
 Docs:
@@ -293,17 +343,24 @@ storage:
 
 ### OAuth Callbacks
 
+Configure where users are redirected after completing OAuth authorization:
+
 ```yaml
 oauth:
   redirect_base_url: https://app.example.com/oauth/complete
 ```
 
-Callback endpoints:
-- `/auth/github/callback`
-- `/auth/gitlab/callback`
-- `/auth/bitbucket/callback`
+**OAuth Callback Endpoints** (configured in provider settings):
+- GitHub: `/auth/github/callback` ✅ (not `/oauth/github/callback` ❌)
+- GitLab: `/auth/gitlab/callback` ✅
+- Bitbucket: `/auth/bitbucket/callback` ✅
 
-GitHub App installs are initiated from the GitHub App installation page. The GitHub callback is only used when "Request user authorization" is enabled in the app settings.
+**Notes:**
+- GitHub App installs are initiated from the GitHub App installation page
+- The GitHub callback is only used when "Request user authorization (OAuth)" is enabled
+- Always set `server.public_base_url` when running behind ngrok or a reverse proxy
+- The callback receives authorization codes and exchanges them for access tokens
+- See [OAuth Onboarding](#oauth-onboarding) for detailed setup instructions
 
 ### API Endpoints (Connect/GRPC)
 
@@ -363,13 +420,29 @@ http://localhost:8080/?provider=gitlab
 http://localhost:8080/?provider=bitbucket
 ```
 
-To target a specific provider instance, pass `instance=<hash>` (required when multiple instances exist):
+**With Multiple Provider Instances:**
+
+When you have multiple provider instances configured (e.g., GitHub.com and GitHub Enterprise), you must specify which instance using the instance hash:
 
 ```
-http://localhost:8080/?provider=github&instance=acme-prod
+http://localhost:8080/?provider=github&instance=<instance-hash>
 ```
 
-GitHub uses the App installation URL. GitLab/Bitbucket use OAuth authorize URLs built from `providers.*` config.
+Get the instance hash using the CLI:
+```bash
+go run ./main.go --endpoint http://localhost:8080 providers list --provider github
+```
+
+**How It Works:**
+- **GitHub**: Redirects to GitHub App installation page (`https://github.com/apps/{app_slug}/installations/new`)
+- **GitLab**: Redirects to OAuth authorize URL (`https://gitlab.com/oauth/authorize`)
+- **Bitbucket**: Redirects to OAuth authorize URL (`https://bitbucket.org/site/oauth2/authorize`)
+
+**Optional Parameters:**
+- `tenant_id`: Multi-tenant identifier for scoping installations
+- `state`: Custom CSRF state value (auto-generated if not provided)
+
+See [OAuth Onboarding](#oauth-onboarding) for detailed setup instructions.
 
 ### Watermill Drivers (Publishing)
 
@@ -534,6 +607,91 @@ helm repo update
 helm install my-githooks githooks/githooks
 helm install my-worker githooks/githooks-worker
 ```
+
+## Troubleshooting
+
+### Common Issues
+
+#### OAuth Callback 404 Error
+**Error:** `404 page not found` when redirected after OAuth authorization
+
+**Solution:** Verify your OAuth application callback URL uses the correct path:
+- ✅ Correct: `/auth/github/callback`, `/auth/gitlab/callback`, `/auth/bitbucket/callback`
+- ❌ Incorrect: `/oauth/github/callback`
+
+#### Database Constraint Error
+**Error:** `ERROR: there is no unique or exclusion constraint matching the ON CONFLICT specification`
+
+**Solution:** The database schema needs to be recreated with the proper unique constraint:
+```bash
+# Drop the table
+docker exec -i githooks-postgres-1 psql -U githooks -d githooks -c "DROP TABLE IF EXISTS githooks_installations CASCADE;"
+
+# Restart the server to recreate the table with correct schema
+go run ./main.go serve --config config.yaml
+```
+
+#### Duplicate Installation Entries
+**Problem:** Multiple installation records for the same provider/installation
+
+**Solution:** This was a bug in versions prior to the fix. Clean up duplicates:
+```bash
+# Delete entries with empty account names (invalid entries)
+docker exec -i githooks-postgres-1 psql -U githooks -d githooks \
+  -c "DELETE FROM githooks_installations WHERE account_name = '' OR account_name IS NULL;"
+```
+
+#### Webhook Signature Mismatch
+**Error:** `missing X-Hub-Signature` or `signature mismatch`
+
+**Solution:** Ensure your webhook secret matches between the provider settings and your config:
+```yaml
+providers:
+  github:
+    webhook:
+      secret: ${GITHUB_WEBHOOK_SECRET}  # Must match GitHub App webhook secret
+```
+
+#### No Matching Rules
+**Problem:** Events received but not published to broker
+
+**Solution:** Check your rules match the payload:
+```bash
+# Test rules against a payload
+go run ./main.go --endpoint http://localhost:8080 rules match \
+  --payload-file payload.json --rules-file rules.yaml
+```
+
+Enable debug logging to see rule evaluation:
+```yaml
+server:
+  debug_events: true
+```
+
+#### Connection Refused to Broker
+**Error:** `connection refused` when publishing events
+
+**Solution:** Ensure Docker Compose services are running:
+```bash
+docker compose ps
+docker compose up -d
+```
+
+#### Missing Provider Instance
+**Problem:** Cannot find provider instance hash
+
+**Solution:** List all configured provider instances:
+```bash
+go run ./main.go --endpoint http://localhost:8080 providers list --provider github
+```
+
+Providers created from config are automatically stored with server-generated hashes on startup.
+
+### Getting Help
+
+- **Documentation**: Check the [docs/](docs/) directory for detailed guides
+- **Issues**: Report bugs at [GitHub Issues](https://github.com/yindia/githooks/issues)
+- **Examples**: See working examples in [example/](example/) directory
 
 ## Releases
 
