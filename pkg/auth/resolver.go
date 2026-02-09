@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"githooks/pkg/providers/github"
+	"githook/pkg/providers/github"
 )
 
 // AuthContext contains the resolved authentication data for a webhook event.

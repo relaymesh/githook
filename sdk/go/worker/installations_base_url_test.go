@@ -7,9 +7,9 @@ import (
 )
 
 func TestInstallationsBaseURLFromEnv(t *testing.T) {
-	t.Setenv("GITHOOKS_API_BASE_URL", "http://example.com")
-	t.Setenv("GITHOOKS_CONFIG_PATH", "")
-	t.Setenv("GITHOOKS_CONFIG", "")
+	t.Setenv("GITHOOK_API_BASE_URL", "http://example.com")
+	t.Setenv("GITHOOK_CONFIG_PATH", "")
+	t.Setenv("GITHOOK_CONFIG", "")
 
 	if got := installationsBaseURL(); got != "http://example.com" {
 		t.Fatalf("expected env base url, got %q", got)
@@ -17,8 +17,8 @@ func TestInstallationsBaseURLFromEnv(t *testing.T) {
 }
 
 func TestInstallationsBaseURLFromConfigPublicBaseURL(t *testing.T) {
-	t.Setenv("GITHOOKS_API_BASE_URL", "")
-	t.Setenv("GITHOOKS_CONFIG", "")
+	t.Setenv("GITHOOK_API_BASE_URL", "")
+	t.Setenv("GITHOOK_CONFIG", "")
 
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")
@@ -29,7 +29,7 @@ server:
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
-	t.Setenv("GITHOOKS_CONFIG_PATH", path)
+	t.Setenv("GITHOOK_CONFIG_PATH", path)
 
 	if got := installationsBaseURL(); got != "https://example.com/base" {
 		t.Fatalf("expected public base url, got %q", got)
@@ -37,8 +37,8 @@ server:
 }
 
 func TestInstallationsBaseURLFromConfigPort(t *testing.T) {
-	t.Setenv("GITHOOKS_API_BASE_URL", "")
-	t.Setenv("GITHOOKS_CONFIG", "")
+	t.Setenv("GITHOOK_API_BASE_URL", "")
+	t.Setenv("GITHOOK_CONFIG", "")
 
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")
@@ -49,7 +49,7 @@ server:
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
-	t.Setenv("GITHOOKS_CONFIG_PATH", path)
+	t.Setenv("GITHOOK_CONFIG_PATH", path)
 
 	if got := installationsBaseURL(); got != "http://localhost:9090" {
 		t.Fatalf("expected localhost base url, got %q", got)
@@ -57,9 +57,9 @@ server:
 }
 
 func TestInstallationsBaseURLDefault(t *testing.T) {
-	t.Setenv("GITHOOKS_API_BASE_URL", "")
-	t.Setenv("GITHOOKS_CONFIG_PATH", "")
-	t.Setenv("GITHOOKS_CONFIG", "")
+	t.Setenv("GITHOOK_API_BASE_URL", "")
+	t.Setenv("GITHOOK_CONFIG_PATH", "")
+	t.Setenv("GITHOOK_CONFIG", "")
 
 	if got := installationsBaseURL(); got != defaultInstallationsBaseURL {
 		t.Fatalf("expected default base url, got %q", got)

@@ -1,4 +1,4 @@
-package githooks
+package githook
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
 
-	cloudv1 "githooks/pkg/gen/cloud/v1"
-	cloudv1connect "githooks/pkg/gen/cloud/v1/cloudv1connect"
+	cloudv1 "githook/pkg/gen/cloud/v1"
+	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
 )
 
 func newInstallationsCmd() *cobra.Command {
@@ -18,8 +18,8 @@ func newInstallationsCmd() *cobra.Command {
 		Use:   "installations",
 		Short: "Inspect stored installations",
 		Long:  "Query installation records resolved from provider OAuth/App flows.",
-		Example: "  githooks --endpoint http://localhost:8080 installations list --state-id <state-id>\n" +
-			"  githooks --endpoint http://localhost:8080 installations get --provider github --installation-id <id>",
+		Example: "  githook --endpoint http://localhost:8080 installations list --state-id <state-id>\n" +
+			"  githook --endpoint http://localhost:8080 installations get --provider github --installation-id <id>",
 	}
 	cmd.AddCommand(newInstallationsListCmd())
 	cmd.AddCommand(newInstallationsGetCmd())
@@ -32,7 +32,7 @@ func newInstallationsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "List installations by state ID",
-		Example: "  githooks --endpoint http://localhost:8080 installations list --state-id <state-id>",
+		Example: "  githook --endpoint http://localhost:8080 installations list --state-id <state-id>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if stateID == "" {
 				return fmt.Errorf("state-id is required")
@@ -64,7 +64,7 @@ func newInstallationsGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get",
 		Short:   "Get installation by provider and installation ID",
-		Example: "  githooks --endpoint http://localhost:8080 installations get --provider github --installation-id <id>",
+		Example: "  githook --endpoint http://localhost:8080 installations get --provider github --installation-id <id>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if provider == "" || installationID == "" {
 				return fmt.Errorf("provider and installation-id are required")

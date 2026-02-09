@@ -1,4 +1,4 @@
-package githooks
+package githook
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/validate"
 
-	"githooks/pkg/auth/oidc"
-	"githooks/pkg/core"
+	"githook/pkg/auth/oidc"
+	"githook/pkg/core"
 )
 
 func connectClientOptions() ([]connect.ClientOption, error) {
@@ -69,7 +69,7 @@ func resolveEndpoint(cfg core.AppConfig) string {
 }
 
 func cliToken(ctx context.Context, cfg core.AppConfig) (string, error) {
-	if token := strings.TrimSpace(os.Getenv("GITHOOKS_AUTH_TOKEN")); token != "" {
+	if token := strings.TrimSpace(os.Getenv("GITHOOK_AUTH_TOKEN")); token != "" {
 		return token, nil
 	}
 	cachePath := tokenCachePath()
@@ -81,7 +81,7 @@ func cliToken(ctx context.Context, cfg core.AppConfig) (string, error) {
 		}
 	}
 	if strings.ToLower(strings.TrimSpace(cfg.Auth.OAuth2.Mode)) == "auth_code" && cfg.Auth.OAuth2.ClientSecret == "" {
-		return "", errors.New("auth_code mode requires login; set GITHOOKS_AUTH_TOKEN or store a token with githooks auth store")
+		return "", errors.New("auth_code mode requires login; set GITHOOK_AUTH_TOKEN or store a token with githook auth store")
 	}
 	resp, err := oidc.ClientCredentialsToken(ctx, cfg.Auth.OAuth2)
 	if err != nil {
@@ -98,7 +98,7 @@ func cliToken(ctx context.Context, cfg core.AppConfig) (string, error) {
 }
 
 func tokenCachePath() string {
-	if path := strings.TrimSpace(os.Getenv("GITHOOKS_TOKEN_CACHE")); path != "" {
+	if path := strings.TrimSpace(os.Getenv("GITHOOK_TOKEN_CACHE")); path != "" {
 		return path
 	}
 	path, err := oidc.DefaultCachePath()

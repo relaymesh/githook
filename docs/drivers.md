@@ -68,7 +68,7 @@ watermill:
   driver: kafka
   kafka:
     brokers: ["kafka-broker-1:9092", "kafka-broker-2:9092"]
-    consumer_group: "my-githooks-worker-group" # for workers
+    consumer_group: "my-githook-worker-group" # for workers
 ```
 
 ### NATS Streaming
@@ -85,7 +85,7 @@ watermill:
   driver: nats
   nats:
     cluster_id: test-cluster
-    client_id: githooks-publisher
+    client_id: githook-publisher
     client_id_suffix: "-worker-1" # for workers
     url: nats://localhost:4222
 ```
@@ -145,10 +145,10 @@ watermill:
     dsn: postgres://user:pass@localhost:5432/dbname?sslmode=disable
     table: river_job
     queue: high_priority
-    kind: githooks.event
+    kind: githook.event
     max_attempts: 25
     priority: 1
-    tags: ["githooks", "webhook"]
+    tags: ["githook", "webhook"]
 ```
 
 ### HTTP (Publish-only)

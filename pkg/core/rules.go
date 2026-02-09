@@ -13,7 +13,7 @@ import (
 	"github.com/PaesslerAG/jsonpath"
 	"gopkg.in/yaml.v3"
 
-	"githooks/pkg/cache"
+	"githook/pkg/cache"
 )
 
 // Rule defines a condition and an action to take when the condition is met.

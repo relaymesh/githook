@@ -16,7 +16,7 @@ watermill:
   driver: riverqueue
   riverqueue:
     driver: postgres
-    dsn: postgres://githooks:githooks@localhost:5433/githooks?sslmode=disable
+    dsn: postgres://githook:githook@localhost:5433/githook?sslmode=disable
     table: river_job
     queue: my_custom_queue
     kind: my_job

@@ -43,9 +43,9 @@ watermill:
     mode: durable_queue
 storage:
   driver: postgres
-  dsn: postgres://githooks:githooks@localhost:5432/githooks?sslmode=disable
+  dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
   dialect: postgres
-  table: githooks_installations
+  table: githook_installations
   auto_migrate: true
 rules:
   - when: action == "opened" && pull_request.draft == false && pull_request.base.ref == "dummy-preview-branch" 

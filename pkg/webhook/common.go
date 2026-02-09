@@ -7,7 +7,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 
-	"githooks/pkg/core"
+	"githook/pkg/core"
 )
 
 // rawObjectAndFlatten unmarshals a raw JSON byte slice into both an interface{}

@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	"githooks/pkg/auth"
+	"githook/pkg/auth"
 )
 
 // StartHandler redirects users into provider install/authorize flows.

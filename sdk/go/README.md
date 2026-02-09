@@ -3,7 +3,7 @@
 This SDK exposes the worker runtime under a stable path:
 
 ```go
-import "githooks/sdk/go/worker"
+import "githook/sdk/go/worker"
 ```
 
 This is the core Go worker SDK. Use it when you want a stable SDK boundary that can mirror future language SDKs.

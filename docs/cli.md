@@ -1,11 +1,11 @@
 # CLI Usage
 
-The `githooks` binary doubles as a server and a CLI for Connect RPC endpoints.
+The `githook` binary doubles as a server and a CLI for Connect RPC endpoints.
 
 ## Server
 
 ```bash
-githooks serve --config config.yaml
+githook serve --config config.yaml
 ```
 
 ## Global Flags
@@ -21,48 +21,48 @@ The CLI reads `endpoint` from the config when `--endpoint` is not provided.
 ## Init
 
 ```bash
-githooks init --config config.yaml
+githook init --config config.yaml
 ```
 
 ## Environment variables
 
-- `GITHOOKS_AUTH_TOKEN`: override the cached auth token
-- `GITHOOKS_TOKEN_CACHE`: override the token cache path
+- `GITHOOK_AUTH_TOKEN`: override the cached auth token
+- `GITHOOK_TOKEN_CACHE`: override the token cache path
 
 ## Installations
 
 ```bash
-githooks --endpoint http://localhost:8080 installations list --state-id <state-id>
-githooks --endpoint http://localhost:8080 installations get --provider github --installation-id <id>
+githook --endpoint http://localhost:8080 installations list --state-id <state-id>
+githook --endpoint http://localhost:8080 installations get --provider github --installation-id <id>
 ```
 
 ## Namespaces
 
 ```bash
-githooks --endpoint http://localhost:8080 namespaces list --state-id <state-id>
-githooks --endpoint http://localhost:8080 namespaces sync --state-id <state-id> --provider gitlab
-githooks --endpoint http://localhost:8080 namespaces webhook get --state-id <state-id> --provider gitlab --repo-id <repo-id>
-githooks --endpoint http://localhost:8080 namespaces webhook set --state-id <state-id> --provider gitlab --repo-id <repo-id> --enabled
+githook --endpoint http://localhost:8080 namespaces list --state-id <state-id>
+githook --endpoint http://localhost:8080 namespaces sync --state-id <state-id> --provider gitlab
+githook --endpoint http://localhost:8080 namespaces webhook get --state-id <state-id> --provider gitlab --repo-id <repo-id>
+githook --endpoint http://localhost:8080 namespaces webhook set --state-id <state-id> --provider gitlab --repo-id <repo-id> --enabled
 ```
 
 ## Rules
 
 ```bash
-githooks --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml
-githooks --endpoint http://localhost:8080 rules list
-githooks --endpoint http://localhost:8080 rules get --id <rule-id>
-githooks --endpoint http://localhost:8080 rules create --when 'action == "opened"' --emit pr.opened.ready
-githooks --endpoint http://localhost:8080 rules update --id <rule-id> --when 'action == "closed"' --emit pr.merged
-githooks --endpoint http://localhost:8080 rules delete --id <rule-id>
+githook --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml
+githook --endpoint http://localhost:8080 rules list
+githook --endpoint http://localhost:8080 rules get --id <rule-id>
+githook --endpoint http://localhost:8080 rules create --when 'action == "opened"' --emit pr.opened.ready
+githook --endpoint http://localhost:8080 rules update --id <rule-id> --when 'action == "closed"' --emit pr.merged
+githook --endpoint http://localhost:8080 rules delete --id <rule-id>
 ```
 
 ## Providers
 
 ```bash
-githooks --endpoint http://localhost:8080 providers list
-githooks --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>
-githooks --endpoint http://localhost:8080 providers set --provider github --config-file github.json
-githooks --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>
+githook --endpoint http://localhost:8080 providers list
+githook --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>
+githook --endpoint http://localhost:8080 providers set --provider github --config-file github.json
+githook --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>
 ```
 
 When creating a provider instance with `providers set`, the server always generates the instance hash. The response includes the generated hash, which you must pass to `providers get`/`providers delete` and `instance=` query parameters.
@@ -70,10 +70,10 @@ When creating a provider instance with `providers set`, the server always genera
 ## Drivers
 
 ```bash
-githooks --endpoint http://localhost:8080 drivers list
-githooks --endpoint http://localhost:8080 drivers get --name amqp
-githooks --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.json
-githooks --endpoint http://localhost:8080 drivers delete --name amqp
+githook --endpoint http://localhost:8080 drivers list
+githook --endpoint http://localhost:8080 drivers get --name amqp
+githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.json
+githook --endpoint http://localhost:8080 drivers delete --name amqp
 ```
 
 ## Rules (curl)

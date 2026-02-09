@@ -9,8 +9,8 @@ import (
 	"strings"
 	"syscall"
 
-	"githooks/pkg/core"
-	"githooks/sdk/go/worker"
+	"githook/pkg/core"
+	"githook/sdk/go/worker"
 
 	gh "github.com/google/go-github/v57/github"
 	bb "github.com/ktrysmt/go-bitbucket"
@@ -21,7 +21,7 @@ func main() {
 	configPath := flag.String("config", "config.yaml", "Path to app config")
 	flag.Parse()
 
-	log.SetPrefix("githooks/vercel-worker ")
+	log.SetPrefix("githook/vercel-worker ")
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

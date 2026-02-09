@@ -7,15 +7,15 @@ import (
 	"strconv"
 	"strings"
 
-	"githooks/pkg/auth"
-	"githooks/pkg/providers/bitbucket"
-	"githooks/pkg/providers/gitlab"
+	"githook/pkg/auth"
+	"githook/pkg/providers/bitbucket"
+	"githook/pkg/providers/gitlab"
 )
 
 const defaultInstallationsBaseURL = "http://localhost:8080"
 
 // ResolveProviderClient returns an authenticated provider client for the event.
-// It uses the API base URL from GITHOOKS_API_BASE_URL or defaults to localhost.
+// It uses the API base URL from GITHOOK_API_BASE_URL or defaults to localhost.
 func ResolveProviderClient(ctx context.Context, evt *Event) (interface{}, error) {
 	return ResolveProviderClientWithClient(ctx, evt, &InstallationsClient{BaseURL: installationsBaseURL()})
 }

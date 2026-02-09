@@ -1,4 +1,4 @@
-package githooks
+package githook
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
 
-	cloudv1 "githooks/pkg/gen/cloud/v1"
-	cloudv1connect "githooks/pkg/gen/cloud/v1/cloudv1connect"
+	cloudv1 "githook/pkg/gen/cloud/v1"
+	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
 )
 
 func newProvidersCmd() *cobra.Command {
@@ -19,9 +19,9 @@ func newProvidersCmd() *cobra.Command {
 		Use:   "providers",
 		Short: "Manage providers",
 		Long:  "Manage per-tenant provider instances stored on the server.",
-		Example: "  githooks --endpoint http://localhost:8080 providers list\n" +
-			"  githooks --endpoint http://localhost:8080 providers list --provider github\n" +
-			"  githooks --endpoint http://localhost:8080 providers set --provider github --config-file github.json",
+		Example: "  githook --endpoint http://localhost:8080 providers list\n" +
+			"  githook --endpoint http://localhost:8080 providers list --provider github\n" +
+			"  githook --endpoint http://localhost:8080 providers set --provider github --config-file github.json",
 	}
 	cmd.AddCommand(newProviderInstancesListCmd())
 	cmd.AddCommand(newProviderInstancesGetCmd())
@@ -35,8 +35,8 @@ func newProviderInstancesListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List provider instances",
-		Example: "  githooks --endpoint http://localhost:8080 providers list\n" +
-			"  githooks --endpoint http://localhost:8080 providers list --provider github",
+		Example: "  githook --endpoint http://localhost:8080 providers list\n" +
+			"  githook --endpoint http://localhost:8080 providers list --provider github",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -59,9 +59,9 @@ func newProviderInstancesGetCmd() *cobra.Command {
 	var provider string
 	var hash string
 	cmd := &cobra.Command{
-		Use:   "get",
-		Short: "Get a provider instance",
-		Example: "  githooks --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>",
+		Use:     "get",
+		Short:   "Get a provider instance",
+		Example: "  githook --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(provider) == "" {
 				return fmt.Errorf("provider is required")
@@ -96,9 +96,9 @@ func newProviderInstancesSetCmd() *cobra.Command {
 	var configJSON string
 	var enabled bool
 	cmd := &cobra.Command{
-		Use:   "set",
-		Short: "Create a provider instance",
-		Example: "  githooks --endpoint http://localhost:8080 providers set --provider github --config-file github.json",
+		Use:     "set",
+		Short:   "Create a provider instance",
+		Example: "  githook --endpoint http://localhost:8080 providers set --provider github --config-file github.json",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(provider) == "" {
 				return fmt.Errorf("provider is required")
@@ -141,9 +141,9 @@ func newProviderInstancesDeleteCmd() *cobra.Command {
 	var provider string
 	var hash string
 	cmd := &cobra.Command{
-		Use:   "delete",
-		Short: "Delete a provider instance",
-		Example: "  githooks --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>",
+		Use:     "delete",
+		Short:   "Delete a provider instance",
+		Example: "  githook --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(provider) == "" {
 				return fmt.Errorf("provider is required")

@@ -12,16 +12,16 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 
-	"githooks/pkg/core"
-	"githooks/pkg/server"
-	"githooks/sdk/go/worker"
+	"githook/pkg/core"
+	"githook/pkg/server"
+	"githook/sdk/go/worker"
 )
 
 func main() {
 	configPath := flag.String("config", "config.yaml", "Path to app config")
 	flag.Parse()
 
-	log.SetPrefix("githooks/inprocess ")
+	log.SetPrefix("githook/inprocess ")
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
 	cfg, err := core.LoadConfig(*configPath)

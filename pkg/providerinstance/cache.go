@@ -5,9 +5,9 @@ import (
 	"errors"
 	"log"
 
-	"githooks/pkg/auth"
-	"githooks/pkg/cache"
-	"githooks/pkg/storage"
+	"githook/pkg/auth"
+	"githook/pkg/cache"
+	"githook/pkg/storage"
 )
 
 // Cache maintains per-tenant provider instance configs keyed by provider+key.

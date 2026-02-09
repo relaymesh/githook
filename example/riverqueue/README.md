@@ -28,14 +28,14 @@ go run ./main.go serve --config example/riverqueue/app.yaml
 
 ## 5) Verify job inserted
 ```sh
-psql "postgres://githooks:githooks@localhost:5433/githooks?sslmode=disable" -c "select id, kind, queue, priority, max_attempts, created_at from river_job order by id desc limit 5;"
+psql "postgres://githook:githook@localhost:5433/githook?sslmode=disable" -c "select id, kind, queue, priority, max_attempts, created_at from river_job order by id desc limit 5;"
 ```
 
 ## Worker
 This example worker uses the River client to consume jobs for a specific queue and kind.
 
 ```sh
-go run ./example/riverqueue/worker -dsn "postgres://githooks:githooks@localhost:5433/githooks?sslmode=disable" \
+go run ./example/riverqueue/worker -dsn "postgres://githook:githook@localhost:5433/githook?sslmode=disable" \
   -queue my_custom_queue \
   -kind my_job \
   -max-workers 5

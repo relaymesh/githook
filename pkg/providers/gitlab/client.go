@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"githooks/pkg/auth"
+	"githook/pkg/auth"
 
 	gl "github.com/xanzy/go-gitlab"
 )

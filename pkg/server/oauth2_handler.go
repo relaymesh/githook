@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"githooks/pkg/auth"
-	oidchelper "githooks/pkg/auth/oidc"
+	"githook/pkg/auth"
+	oidchelper "githook/pkg/auth/oidc"
 
 	"golang.org/x/oauth2"
 )
@@ -135,9 +135,9 @@ func (h *oauth2Handler) Callback(w http.ResponseWriter, r *http.Request) {
 	}
 	h.storeToken(token.AccessToken, token.Expiry)
 	payload := map[string]interface{}{
-		"token_type":   token.TokenType,
-		"expiry":       token.Expiry,
-		"status":       "ok",
+		"token_type": token.TokenType,
+		"expiry":     token.Expiry,
+		"status":     "ok",
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(payload)
@@ -215,12 +215,12 @@ func codeChallenge(verifier string) string {
 }
 
 func tokenCachePath() string {
-	if path := strings.TrimSpace(os.Getenv("GITHOOKS_TOKEN_CACHE")); path != "" {
+	if path := strings.TrimSpace(os.Getenv("GITHOOK_TOKEN_CACHE")); path != "" {
 		return path
 	}
 	base, err := os.UserCacheDir()
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(base, "githooks", "token.json")
+	return filepath.Join(base, "githook", "token.json")
 }

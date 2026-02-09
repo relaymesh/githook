@@ -55,7 +55,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push githooks image
+      - name: Build and push githook image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -63,5 +63,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/yindia/githooks:${{ github.ref_name }}
-            ghcr.io/yindia/githooks:latest
+            ghcr.io/yindia/githook:${{ github.ref_name }}
+            ghcr.io/yindia/githook:latest

@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"githooks/pkg/auth"
-	"githooks/pkg/scm"
+	"githook/pkg/auth"
+	"githook/pkg/scm"
 )
 
 // SCMClientProvider resolves SCM clients from webhook events.

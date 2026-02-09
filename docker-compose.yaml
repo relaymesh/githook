@@ -39,9 +39,9 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_USER: githooks
-      POSTGRES_PASSWORD: githooks
-      POSTGRES_DB: githooks
+      POSTGRES_USER: githook
+      POSTGRES_PASSWORD: githook
+      POSTGRES_DB: githook
     ports:
       - "5432:5432"
 
@@ -50,9 +50,9 @@ services:
     image: mysql:8.4
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: githooks
-      MYSQL_USER: githooks
-      MYSQL_PASSWORD: githooks
+      MYSQL_DATABASE: githook
+      MYSQL_USER: githook
+      MYSQL_PASSWORD: githook
     ports:
       - "3306:3306"
 

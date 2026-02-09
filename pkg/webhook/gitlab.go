@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"githooks/pkg/core"
-	"githooks/pkg/storage"
+	"githook/pkg/core"
+	"githook/pkg/storage"
 
 	"github.com/go-playground/webhooks/v6/gitlab"
 )

@@ -1,9 +1,9 @@
 # Bitbucket Webhook Example
 
-This example sends a Bitbucket pull request webhook to the local githooks server.
+This example sends a Bitbucket pull request webhook to the local githook server.
 
 ## Prerequisites
-- githooks running on `http://localhost:8080`
+- githook running on `http://localhost:8080`
 - `BITBUCKET_WEBHOOK_SECRET` set to the same UUID in your config (optional)
 
 ## Run

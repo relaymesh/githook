@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"githooks/pkg/auth"
+	"githook/pkg/auth"
 )
 
 // TokenResult contains refreshed token data.

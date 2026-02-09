@@ -58,7 +58,7 @@ At this point, the full local loop works. Now let us wire real GitHub traffic in
 ## Step 5: create a GitHub App
 
 1. GitHub: **Settings** -> **Developer settings** -> **GitHub Apps** -> **New GitHub App**.
-2. App name: `githooks-local` (any name is fine).
+2. App name: `githook-local` (any name is fine).
 3. Homepage URL: `http://localhost:8080`.
 4. Webhook URL: `http://localhost:8080/webhooks/github`.
 5. Webhook secret: pick a random string and save it.
@@ -141,4 +141,4 @@ server:
 - `no matching rules`: ensure rules in `example/github/app.yaml` match your payload.
 - `connection refused`: make sure Docker Compose is running for broker drivers.
 - `404 page not found` on callback: verify the GitHub App callback URL is `/auth/github/callback` (not `/oauth/github/callback`).
-- `database constraint error`: drop and recreate the `githooks_installations` table if you upgraded from an older version.
+- `database constraint error`: drop and recreate the `githook_installations` table if you upgraded from an older version.

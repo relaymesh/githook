@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"githooks/pkg/auth"
-	"githooks/pkg/storage"
+	"githook/pkg/auth"
+	"githook/pkg/storage"
 )
 
 // SyncGitLabNamespaces fetches repositories and upserts them into the namespace store.

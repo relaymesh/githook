@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"githooks/pkg/storage"
+	"githook/pkg/storage"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"

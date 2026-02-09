@@ -11,8 +11,8 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/validate"
 
-	cloudv1 "githooks/pkg/gen/cloud/v1"
-	cloudv1connect "githooks/pkg/gen/cloud/v1/cloudv1connect"
+	cloudv1 "githook/pkg/gen/cloud/v1"
+	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
 )
 
 // InstallationRecord mirrors the server installation response.

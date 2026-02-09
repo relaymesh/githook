@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"githooks/pkg/auth"
+	"githook/pkg/auth"
 
 	"gopkg.in/yaml.v3"
 )
@@ -255,7 +255,7 @@ func applyDefaults(cfg *AppConfig) {
 		cfg.Watermill.RiverQueue.Queue = "default"
 	}
 	if cfg.Watermill.RiverQueue.Kind == "" {
-		cfg.Watermill.RiverQueue.Kind = "githooks.event"
+		cfg.Watermill.RiverQueue.Kind = "githook.event"
 	}
 	if cfg.Watermill.RiverQueue.MaxAttempts == 0 {
 		cfg.Watermill.RiverQueue.MaxAttempts = 25

@@ -1,9 +1,9 @@
-package githooks
+package githook
 
 import (
 	"github.com/spf13/cobra"
 
-	"githooks/pkg/server"
+	"githook/pkg/server"
 )
 
 func newServeCmd() *cobra.Command {
@@ -12,7 +12,7 @@ func newServeCmd() *cobra.Command {
 		Short: "Start the webhook server",
 		Long: "Run the webhook server that ingests provider webhooks, evaluates rules, and " +
 			"publishes matching events to Watermill.",
-		Example: "  githooks serve --config config.yaml",
+		Example: "  githook serve --config config.yaml",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return server.RunConfig(configPath)
 		},

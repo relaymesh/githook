@@ -3,7 +3,7 @@
 This example triggers Vercel deploy hooks for preview and production based on GitHub pull request events.
 
 ## Prerequisites
-- githooks running on `http://localhost:8080`
+- githook running on `http://localhost:8080`
 - `GITHUB_WEBHOOK_SECRET` set to the same value in your config
 - `VERCEL_PREVIEW_HOOK_URL` and `VERCEL_PRODUCTION_HOOK_URL` from your Vercel project
 - Optional SCM auth: `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY_PATH`

@@ -1,9 +1,9 @@
 # GitLab Webhook Example
 
-This example sends a GitLab merge request webhook to the local githooks server.
+This example sends a GitLab merge request webhook to the local githook server.
 
 ## Prerequisites
-- githooks running on `http://localhost:8080`
+- githook running on `http://localhost:8080`
 - `GITLAB_WEBHOOK_SECRET` set to the same value in your config (optional)
 
 ## Run

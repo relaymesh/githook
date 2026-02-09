@@ -1,4 +1,4 @@
-package githooks
+package githook
 
 import "github.com/spf13/cobra"
 
@@ -7,13 +7,13 @@ func NewRootCmd() *cobra.Command {
 	apiBaseURL = ""
 	configPath = "config.yaml"
 	root := &cobra.Command{
-		Use:   "githooks",
+		Use:   "githook",
 		Short: "Webhook router + worker SDK for Git providers",
 		Long: "Githooks routes GitHub/GitLab/Bitbucket webhooks to Watermill topics and provides a worker SDK " +
 			"for processing events with provider-aware clients.",
-		Example: "  githooks serve --config config.yaml\n" +
-			"  githooks --endpoint http://localhost:8080 installations list --state-id <state-id>\n" +
-			"  githooks --endpoint http://localhost:8080 namespaces sync --state-id <state-id> --provider gitlab",
+		Example: "  githook serve --config config.yaml\n" +
+			"  githook --endpoint http://localhost:8080 installations list --state-id <state-id>\n" +
+			"  githook --endpoint http://localhost:8080 namespaces sync --state-id <state-id> --provider gitlab",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return cmd.Help()
 		},

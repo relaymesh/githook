@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"githooks/pkg/auth"
+	"githook/pkg/auth"
 
 	oidclib "github.com/coreos/go-oidc/v3/oidc"
 )

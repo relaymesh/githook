@@ -8,7 +8,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"google.golang.org/protobuf/proto"
 
-	cloudv1 "githooks/pkg/gen/cloud/v1"
+	cloudv1 "githook/pkg/gen/cloud/v1"
 )
 
 // stubPublisher is a mock publisher for testing.

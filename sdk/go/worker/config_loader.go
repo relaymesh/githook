@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"githooks/pkg/auth"
+	"githook/pkg/auth"
 
 	"gopkg.in/yaml.v3"
 )

@@ -6,7 +6,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"google.golang.org/protobuf/proto"
 
-	cloudv1 "githooks/pkg/gen/cloud/v1"
+	cloudv1 "githook/pkg/gen/cloud/v1"
 )
 
 // Codec is an interface for decoding messages from a message broker into an Event.

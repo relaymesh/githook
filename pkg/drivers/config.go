@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"githooks/pkg/core"
-	"githooks/pkg/storage"
+	"githook/pkg/core"
+	"githook/pkg/storage"
 )
 
 // RecordsFromConfig converts a Watermill config into driver records.

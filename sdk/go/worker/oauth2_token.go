@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"githooks/pkg/auth"
-	"githooks/pkg/auth/oidc"
-	"githooks/pkg/core"
+	"githook/pkg/auth"
+	"githook/pkg/auth/oidc"
+	"githook/pkg/core"
 )
 
 type tokenCache struct {
@@ -76,7 +76,7 @@ func loadOAuth2Config() (auth.OAuth2Config, bool, error) {
 }
 
 func tokenCachePath() string {
-	if path := strings.TrimSpace(os.Getenv("GITHOOKS_TOKEN_CACHE")); path != "" {
+	if path := strings.TrimSpace(os.Getenv("GITHOOK_TOKEN_CACHE")); path != "" {
 		return path
 	}
 	path, err := oidc.DefaultCachePath()

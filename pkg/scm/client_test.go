@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"githooks/pkg/auth"
+	"githook/pkg/auth"
 )
 
 func TestFactoryNewClientUnsupported(t *testing.T) {

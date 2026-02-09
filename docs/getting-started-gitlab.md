@@ -39,7 +39,7 @@ go run ./example/gitlab/worker/main.go
 To enable GitLab integration with OAuth (for onboarding and repository access):
 
 1. Go to **GitLab User Settings** -> **Applications**: https://gitlab.com/-/user_settings/applications
-2. **Name**: `githooks-local` (any name is fine)
+2. **Name**: `githook-local` (any name is fine)
 3. **Redirect URI**: `http://localhost:8080/auth/gitlab/callback`
    - **Important**: The path must be `/auth/gitlab/callback` (not `/oauth/gitlab/callback`)
 4. **Scopes**: Check the following:

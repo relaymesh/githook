@@ -15,10 +15,10 @@ import (
 	"strings"
 	"time"
 
-	"githooks/pkg/auth"
-	"githooks/pkg/providerinstance"
-	ghprovider "githooks/pkg/providers/github"
-	"githooks/pkg/storage"
+	"githook/pkg/auth"
+	"githook/pkg/providerinstance"
+	ghprovider "githook/pkg/providers/github"
+	"githook/pkg/storage"
 )
 
 // Handler handles OAuth callbacks and persists installation data.

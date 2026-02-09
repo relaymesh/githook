@@ -2,7 +2,7 @@
 
 Githooks can persist SCM installation data in a SQL database via GORM.
 Two tables are used:
-- `githooks_installations` for install/token metadata
+- `githook_installations` for install/token metadata
 - `git_namespaces` for repositories (owner/name metadata per provider)
 This is intended for multi‑org setups where you need to track tokens and install
 metadata per account.
@@ -20,9 +20,9 @@ If no tenant ID is present, storage behaves as single-tenant.
 ```yaml
 storage:
   driver: postgres
-  dsn: postgres://githooks:githooks@localhost:5432/githooks?sslmode=disable
+  dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
   dialect: postgres
-  table: githooks_installations
+  table: githook_installations
   auto_migrate: true
 ```
 

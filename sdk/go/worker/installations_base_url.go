@@ -6,7 +6,7 @@ import (
 )
 
 func installationsBaseURL() string {
-	baseURL := strings.TrimSpace(os.Getenv("GITHOOKS_API_BASE_URL"))
+	baseURL := strings.TrimSpace(os.Getenv("GITHOOK_API_BASE_URL"))
 	if baseURL != "" {
 		return baseURL
 	}
@@ -22,9 +22,9 @@ func installationsBaseURL() string {
 }
 
 func configPathFromEnv() string {
-	configPath := strings.TrimSpace(os.Getenv("GITHOOKS_CONFIG_PATH"))
+	configPath := strings.TrimSpace(os.Getenv("GITHOOK_CONFIG_PATH"))
 	if configPath == "" {
-		configPath = strings.TrimSpace(os.Getenv("GITHOOKS_CONFIG"))
+		configPath = strings.TrimSpace(os.Getenv("GITHOOK_CONFIG"))
 	}
 	return configPath
 }

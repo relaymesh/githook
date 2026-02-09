@@ -2,9 +2,9 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_USER: githooks
-      POSTGRES_PASSWORD: githooks
-      POSTGRES_DB: githooks
+      POSTGRES_USER: githook
+      POSTGRES_PASSWORD: githook
+      POSTGRES_DB: githook
     ports:
       - "5433:5432"
     volumes:

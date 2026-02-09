@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"githooks/pkg/auth"
+	"githook/pkg/auth"
 
 	bb "github.com/ktrysmt/go-bitbucket"
 )

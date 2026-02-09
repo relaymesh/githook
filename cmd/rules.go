@@ -1,4 +1,4 @@
-package githooks
+package githook
 
 import (
 	"context"
@@ -10,18 +10,18 @@ import (
 	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
 
-	"githooks/pkg/core"
-	cloudv1 "githooks/pkg/gen/cloud/v1"
-	cloudv1connect "githooks/pkg/gen/cloud/v1/cloudv1connect"
+	"githook/pkg/core"
+	cloudv1 "githook/pkg/gen/cloud/v1"
+	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
 )
 
 func newRulesCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "rules",
-		Short:   "Rule engine helpers",
-		Long:    "Manage rules stored in the server and test rule expressions against webhook payloads.",
-		Example: "  githooks --endpoint http://localhost:8080 rules list\n" +
-			"  githooks --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml",
+		Use:   "rules",
+		Short: "Rule engine helpers",
+		Long:  "Manage rules stored in the server and test rule expressions against webhook payloads.",
+		Example: "  githook --endpoint http://localhost:8080 rules list\n" +
+			"  githook --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml",
 	}
 	cmd.AddCommand(newRulesMatchCmd())
 	cmd.AddCommand(newRulesListCmd())
@@ -41,7 +41,7 @@ func newRulesMatchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "match",
 		Short:   "Match rules against an event payload",
-		Example: "  githooks --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml",
+		Example: "  githook --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if payloadFile == "" || rulesFile == "" {
 				return fmt.Errorf("payload-file and rules-file are required")
@@ -95,7 +95,7 @@ func newRulesListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "List stored rules",
-		Example: "  githooks --endpoint http://localhost:8080 rules list",
+		Example: "  githook --endpoint http://localhost:8080 rules list",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -118,7 +118,7 @@ func newRulesGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get",
 		Short:   "Get a rule by ID",
-		Example: "  githooks --endpoint http://localhost:8080 rules get --id <rule-id>",
+		Example: "  githook --endpoint http://localhost:8080 rules get --id <rule-id>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if id == "" {
 				return fmt.Errorf("id is required")
@@ -147,7 +147,7 @@ func newRulesCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "create",
 		Short:   "Create a new rule",
-		Example: "  githooks --endpoint http://localhost:8080 rules create --when 'action == \"opened\"' --emit pr.opened.ready",
+		Example: "  githook --endpoint http://localhost:8080 rules create --when 'action == \"opened\"' --emit pr.opened.ready",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if when == "" || len(emits) == 0 {
 				return fmt.Errorf("when and at least one emit are required")
@@ -185,7 +185,7 @@ func newRulesUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "update",
 		Short:   "Update an existing rule",
-		Example: "  githooks --endpoint http://localhost:8080 rules update --id <rule-id> --when 'action == \"closed\"' --emit pr.merged",
+		Example: "  githook --endpoint http://localhost:8080 rules update --id <rule-id> --when 'action == \"closed\"' --emit pr.merged",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if id == "" || when == "" || len(emits) == 0 {
 				return fmt.Errorf("id, when, and at least one emit are required")
@@ -222,7 +222,7 @@ func newRulesDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete",
 		Short:   "Delete a rule",
-		Example: "  githooks --endpoint http://localhost:8080 rules delete --id <rule-id>",
+		Example: "  githook --endpoint http://localhost:8080 rules delete --id <rule-id>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if id == "" {
 				return fmt.Errorf("id is required")

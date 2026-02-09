@@ -1,4 +1,4 @@
-package githooks
+package githook
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
 
-	cloudv1 "githooks/pkg/gen/cloud/v1"
-	cloudv1connect "githooks/pkg/gen/cloud/v1/cloudv1connect"
+	cloudv1 "githook/pkg/gen/cloud/v1"
+	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
 )
 
 func newDriversCmd() *cobra.Command {
@@ -19,8 +19,8 @@ func newDriversCmd() *cobra.Command {
 		Use:   "drivers",
 		Short: "Manage driver configs",
 		Long:  "Manage per-tenant Watermill driver configs stored on the server.",
-		Example: "  githooks --endpoint http://localhost:8080 drivers list\n" +
-			"  githooks --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.json",
+		Example: "  githook --endpoint http://localhost:8080 drivers list\n" +
+			"  githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.json",
 	}
 	cmd.AddCommand(newDriversListCmd())
 	cmd.AddCommand(newDriversGetCmd())
@@ -33,7 +33,7 @@ func newDriversListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Short:   "List driver configs",
-		Example: "  githooks --endpoint http://localhost:8080 drivers list",
+		Example: "  githook --endpoint http://localhost:8080 drivers list",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -55,7 +55,7 @@ func newDriversGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get",
 		Short:   "Get a driver config",
-		Example: "  githooks --endpoint http://localhost:8080 drivers get --name amqp",
+		Example: "  githook --endpoint http://localhost:8080 drivers get --name amqp",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(name) == "" {
 				return fmt.Errorf("name is required")
@@ -85,7 +85,7 @@ func newDriversSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "set",
 		Short:   "Create or update a driver config",
-		Example: "  githooks --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.json",
+		Example: "  githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.json",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(name) == "" {
 				return fmt.Errorf("name is required")
@@ -129,7 +129,7 @@ func newDriversDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete",
 		Short:   "Delete a driver config",
-		Example: "  githooks --endpoint http://localhost:8080 drivers delete --name amqp",
+		Example: "  githook --endpoint http://localhost:8080 drivers delete --name amqp",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(name) == "" {
 				return fmt.Errorf("name is required")

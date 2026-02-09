@@ -11,7 +11,7 @@ This document proposes a language-agnostic DSL that future SDKs can consume to b
 
 ## Canonical Event Envelope
 
-The canonical schema is `idl/cloud/v1/githooks.proto`. Broker messages are encoded
+The canonical schema is `idl/cloud/v1/githook.proto`. Broker messages are encoded
 as `cloud.v1.EventPayload` (protobuf), and the raw webhook JSON is preserved in
 `payload`.
 

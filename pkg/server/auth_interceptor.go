@@ -9,7 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 
-	oidchelper "githooks/pkg/auth/oidc"
+	oidchelper "githook/pkg/auth/oidc"
 )
 
 type authContextKey struct{}

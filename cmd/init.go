@@ -1,4 +1,4 @@
-package githooks
+package githook
 
 import (
 	"fmt"
@@ -29,7 +29,7 @@ func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "init",
 		Short:   "Create a starter config file",
-		Example: "  githooks init --config config.yaml",
+		Example: "  githook init --config config.yaml",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			path := strings.TrimSpace(configPath)
 			if path == "" {

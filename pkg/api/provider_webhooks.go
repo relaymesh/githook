@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"strings"
 
-	"githooks/pkg/auth"
-	"githooks/pkg/storage"
+	"githook/pkg/auth"
+	"githook/pkg/storage"
 )
 
 func enableProviderWebhook(ctx context.Context, provider string, cfg auth.Config, token string, record storage.NamespaceRecord, hookURL string) error {
@@ -159,7 +159,7 @@ func ensureBitbucketWebhook(ctx context.Context, cfg auth.ProviderConfig, token,
 			return nil
 		}
 		body := map[string]interface{}{
-			"description": "githooks",
+			"description": "githook",
 			"url":         hookURL,
 			"active":      true,
 			"events": []string{

@@ -19,21 +19,21 @@ import (
 	"connectrpc.com/validate"
 	"github.com/rs/cors"
 
-	"githooks/pkg/api"
-	"githooks/pkg/auth"
-	oidchelper "githooks/pkg/auth/oidc"
-	"githooks/pkg/core"
-	driverspkg "githooks/pkg/drivers"
-	cloudv1connect "githooks/pkg/gen/cloud/v1/cloudv1connect"
-	"githooks/pkg/oauth"
-	"githooks/pkg/providerinstance"
-	"githooks/pkg/storage"
-	driversstore "githooks/pkg/storage/drivers"
-	"githooks/pkg/storage/installations"
-	"githooks/pkg/storage/namespaces"
-	providerinstancestore "githooks/pkg/storage/provider_instances"
-	"githooks/pkg/storage/rules"
-	"githooks/pkg/webhook"
+	"githook/pkg/api"
+	"githook/pkg/auth"
+	oidchelper "githook/pkg/auth/oidc"
+	"githook/pkg/core"
+	driverspkg "githook/pkg/drivers"
+	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
+	"githook/pkg/oauth"
+	"githook/pkg/providerinstance"
+	"githook/pkg/storage"
+	driversstore "githook/pkg/storage/drivers"
+	"githook/pkg/storage/installations"
+	"githook/pkg/storage/namespaces"
+	providerinstancestore "githook/pkg/storage/provider_instances"
+	"githook/pkg/storage/rules"
+	"githook/pkg/webhook"
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -382,7 +382,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		}
 		installStore = store
 		defer installStore.Close()
-		logger.Printf("storage enabled driver=%s dialect=%s table=githooks_installations", config.Storage.Driver, config.Storage.Dialect)
+		logger.Printf("storage enabled driver=%s dialect=%s table=githook_installations", config.Storage.Driver, config.Storage.Dialect)
 
 		nsStore, err := namespaces.Open(namespaces.Config{
 			Driver:      config.Storage.Driver,
@@ -408,7 +408,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		}
 		ruleStore = rsStore
 		defer ruleStore.Close()
-		logger.Printf("rules enabled driver=%s dialect=%s table=githooks_rules", config.Storage.Driver, config.Storage.Dialect)
+		logger.Printf("rules enabled driver=%s dialect=%s table=githook_rules", config.Storage.Driver, config.Storage.Dialect)
 
 		dsStore, err := driversstore.Open(driversstore.Config{
 			Driver:      config.Storage.Driver,
@@ -421,7 +421,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		}
 		driverStore = dsStore
 		defer driverStore.Close()
-		logger.Printf("drivers enabled driver=%s dialect=%s table=githooks_drivers", config.Storage.Driver, config.Storage.Dialect)
+		logger.Printf("drivers enabled driver=%s dialect=%s table=githook_drivers", config.Storage.Driver, config.Storage.Dialect)
 
 		piStore, err := providerinstancestore.Open(providerinstancestore.Config{
 			Driver:      config.Storage.Driver,
@@ -434,7 +434,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		}
 		instanceStore = piStore
 		defer instanceStore.Close()
-		logger.Printf("provider instances enabled driver=%s dialect=%s table=githooks_provider_instances", config.Storage.Driver, config.Storage.Dialect)
+		logger.Printf("provider instances enabled driver=%s dialect=%s table=githook_provider_instances", config.Storage.Driver, config.Storage.Dialect)
 	} else {
 		logger.Printf("storage disabled (missing storage.driver or storage.dsn)")
 	}

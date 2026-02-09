@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"strings"
 
-	"githooks/pkg/core"
-	"githooks/pkg/storage"
+	"githook/pkg/core"
+	"githook/pkg/storage"
 
 	"github.com/go-playground/webhooks/v6/bitbucket"
 )

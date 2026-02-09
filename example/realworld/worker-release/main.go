@@ -8,14 +8,14 @@ import (
 	"os/signal"
 	"syscall"
 
-	"githooks/sdk/go/worker"
+	"githook/sdk/go/worker"
 )
 
 func main() {
 	configPath := flag.String("config", "example/realworld/app.yaml", "Path to app config")
 	flag.Parse()
 
-	log.SetPrefix("githooks/worker-release ")
+	log.SetPrefix("githook/worker-release ")
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

@@ -1,9 +1,9 @@
 package worker
 
 import (
-	"githooks/pkg/providers/bitbucket"
-	"githooks/pkg/providers/github"
-	"githooks/pkg/providers/gitlab"
+	"githook/pkg/providers/bitbucket"
+	"githook/pkg/providers/github"
+	"githook/pkg/providers/gitlab"
 )
 
 // GitHubClient returns the GitHub client from an event if available.

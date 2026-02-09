@@ -10,9 +10,9 @@ import (
 	"strings"
 	"syscall"
 
-	"githooks/pkg/core"
-	"githooks/pkg/providers/github"
-	worker "githooks/sdk/go/worker"
+	"githook/pkg/core"
+	"githook/pkg/providers/github"
+	worker "githook/sdk/go/worker"
 
 	_ "github.com/lib/pq"
 )
@@ -50,7 +50,7 @@ func main() {
 	driver := flag.String("driver", "", "Override subscriber driver (amqp|nats|kafka|sql|gochannel)")
 	flag.Parse()
 
-	log.SetPrefix("githooks/worker-example ")
+	log.SetPrefix("githook/worker-example ")
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"githooks/pkg/storage"
+	"githook/pkg/storage"
 
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
@@ -63,7 +63,7 @@ func Open(cfg Config) (*Store, error) {
 	}
 	table := cfg.Table
 	if table == "" {
-		table = "githooks_rules"
+		table = "githook_rules"
 	}
 	store := &Store{db: gormDB, table: table}
 	if cfg.AutoMigrate {

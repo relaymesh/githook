@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"githooks/pkg/auth"
-	"githooks/pkg/storage"
+	"githook/pkg/auth"
+	"githook/pkg/storage"
 )
 
 // RecordsFromConfig converts provider config into instance records.

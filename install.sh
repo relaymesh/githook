@@ -1,19 +1,19 @@
 #!/bin/sh
 set -e
-# Based on godownloader output; refactored to match yindia/githooks release asset names:
-#   githooks_<version>_<os>_<arch>.tar.gz (mac/linux) and .zip (windows)
+# Based on godownloader output; refactored to match yindia/githook release asset names:
+#   githook_<version>_<os>_<arch>.tar.gz (mac/linux) and .zip (windows)
 # and checksums.txt present in the release.
 
 usage() {
   this=$1
   cat <<EOF
-$this: download binaries for yindia/githooks
+$this: download binaries for yindia/githook
 
 Usage: $this [-b] bindir [-d] [tag]
   -b sets bindir or installation directory, Defaults to ./bin
   -d turns on debug logging
    [tag] is a tag from
-   https://github.com/yindia/githooks/releases
+   https://github.com/yindia/githook/releases
    If tag is missing, then the latest will be used.
 EOF
   exit 2
@@ -23,7 +23,7 @@ parse_args() {
   BINDIR=${BINDIR:-./bin}
   while getopts "b:dh?x" arg; do
     case "$arg" in
-      b) BINDIR="$githooksRG" ;;
+      b) BINDIR="$githookRG" ;;
       d) log_set_priority 7 ;; # debug
       h | \?) usage "$0" ;;
       x) set -x ;;
@@ -68,7 +68,7 @@ execute() {
 get_binaries() {
   case "$PLATFORM" in
     darwin/amd64|darwin/arm64|linux/amd64|linux/arm64|windows/amd64|windows/arm64)
-      BINARIES="githooks"
+      BINARIES="githook"
       ;;
     *)
       log_crit "platform $PLATFORM is not supported. File an issue at https://github.com/${PREFIX}/issues/new"
@@ -296,10 +296,10 @@ End of functions from https://github.com/client9/shlib
 ------------------------------------------------------------------------
 EOF
 
-PROJECT_NAME="githooks"
+PROJECT_NAME="githook"
 OWNER="yindia"
-REPO="githooks"
-BINARY="githooks"
+REPO="githook"
+BINARY="githook"
 FORMAT="tar.gz"
 
 OS=$(uname_os)
@@ -323,7 +323,7 @@ adjust_format
 log_info "found version: ${VERSION} for ${TAG}/${OS}/${ARCH}"
 
 # ✅ matches your GitHub release assets:
-# githooks_0.0.1-beta_darwin_arm64.tar.gz etc.
+# githook_0.0.1-beta_darwin_arm64.tar.gz etc.
 NAME="${PROJECT_NAME}_${VERSION}_${OS}_${ARCH}"
 TARBALL="${NAME}.${FORMAT}"
 TARBALL_URL="${GITHUB_DOWNLOAD}/${TAG}/${TARBALL}"

@@ -19,7 +19,7 @@ watermill:
     mode: durable_queue
   nats:
     cluster_id: test-cluster
-    client_id: githooks-realworld
+    client_id: githook-realworld
     url: nats://localhost:4222
   kafka:
     brokers: ["localhost:29092"]
@@ -28,7 +28,7 @@ watermill:
     base_url: http://localhost:8081
   sql:
     driver: postgres
-    dsn: postgres://githooks:githooks@localhost:5432/githooks?sslmode=disable
+    dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
     dialect: postgres
     auto_initialize_schema: true
 

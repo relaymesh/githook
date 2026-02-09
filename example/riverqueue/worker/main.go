@@ -32,13 +32,13 @@ func (w *WebhookWorker) Work(ctx context.Context, job *river.Job[WebhookArgs]) e
 }
 
 func main() {
-	dsn := flag.String("dsn", "postgres://githooks:githooks@localhost:5433/githooks?sslmode=disable", "Postgres DSN")
+	dsn := flag.String("dsn", "postgres://githook:githook@localhost:5433/githook?sslmode=disable", "Postgres DSN")
 	queue := flag.String("queue", "my_custom_queue", "River queue")
 	kind := flag.String("kind", "my_job", "River job kind")
 	maxWorkers := flag.Int("max-workers", 5, "Max workers for the queue")
 	flag.Parse()
 
-	log.SetPrefix("githooks/riverqueue-worker ")
+	log.SetPrefix("githook/riverqueue-worker ")
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	jobKind = *kind
 

@@ -12,13 +12,13 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"githooks/pkg/auth"
-	"githooks/pkg/core"
-	driverspkg "githooks/pkg/drivers"
-	cloudv1 "githooks/pkg/gen/cloud/v1"
-	"githooks/pkg/oauth"
-	"githooks/pkg/providerinstance"
-	"githooks/pkg/storage"
+	"githook/pkg/auth"
+	"githook/pkg/core"
+	driverspkg "githook/pkg/drivers"
+	cloudv1 "githook/pkg/gen/cloud/v1"
+	"githook/pkg/oauth"
+	"githook/pkg/providerinstance"
+	"githook/pkg/storage"
 )
 
 // InstallationsService implements the Connect/GRPC InstallationsService.

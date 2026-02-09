@@ -1,4 +1,4 @@
-package githooks
+package githook
 
 import (
 	"encoding/json"

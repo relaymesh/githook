@@ -5,9 +5,9 @@ import (
 	"errors"
 	"log"
 
-	"githooks/pkg/cache"
-	"githooks/pkg/core"
-	"githooks/pkg/storage"
+	"githook/pkg/cache"
+	"githook/pkg/core"
+	"githook/pkg/storage"
 )
 
 // Cache maintains per-tenant driver configs and publishers.

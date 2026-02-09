@@ -15,10 +15,11 @@ import (
 	"strconv"
 	"strings"
 
-	"githooks/pkg/core"
-	"githooks/pkg/storage"
+	"githook/pkg/core"
+	"githook/pkg/storage"
 
-	ghprovider "githooks/pkg/providers/github"
+	ghprovider "githook/pkg/providers/github"
+
 	"github.com/go-playground/webhooks/v6/github"
 )
 

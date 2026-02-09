@@ -10,7 +10,7 @@ auth:
   oauth2:
     enabled: true
     issuer: https://<your-okta-domain>/oauth2/default
-    audience: api://githooks
+    audience: api://githook
 ```
 
 The server discovers JWKS/authorize/token endpoints from the issuer.
@@ -22,7 +22,7 @@ auth:
   oauth2:
     enabled: true
     issuer: https://<your-okta-domain>/oauth2/default
-    audience: api://githooks
+    audience: api://githook
     mode: client_credentials
     client_id: ${OAUTH_CLIENT_ID}
     client_secret: ${OAUTH_CLIENT_SECRET}
@@ -40,7 +40,7 @@ auth:
   oauth2:
     enabled: true
     issuer: https://<your-okta-domain>/oauth2/default
-    audience: api://githooks
+    audience: api://githook
     mode: auth_code
     client_id: ${OAUTH_CLIENT_ID}
     client_secret: ${OAUTH_CLIENT_SECRET}
@@ -52,7 +52,7 @@ Endpoints:
 - `GET /auth/callback` (server-hosted callback for auth_code)
 
 CLI helper:
-- `githooks auth` (single command for login, token fetch, and cache)
+- `githook auth` (single command for login, token fetch, and cache)
   - uses a loopback callback (`http://127.0.0.1:<port>/auth/callback`) and prints a browser URL for auth_code
   - ensure your IdP allows the loopback redirect URI (register a localhost callback)
   - opens the browser automatically when possible
@@ -70,7 +70,7 @@ CLI helper:
 - Note the issuer, e.g. `https://<your-okta-domain>/oauth2/default`
 
 2) Create scopes (optional):
-- Authorization Server → Scopes → Add `githooks.rpc`
+- Authorization Server → Scopes → Add `githook.rpc`
 
 3) Create apps:
 - API Service app for machine use (client credentials)
@@ -85,10 +85,10 @@ auth:
   oauth2:
     enabled: true
     issuer: https://<your-okta-domain>/oauth2/default
-    audience: api://githooks
+    audience: api://githook
     required_roles: ["admin"] # optional
     required_groups: ["platform"] # optional
-    required_scopes: ["githooks.rpc"]
+    required_scopes: ["githook.rpc"]
 
     mode: auto
     client_id: ${OKTA_CLIENT_ID}
@@ -106,7 +106,7 @@ auth:
 - Certificates & secrets → New client secret
 
 3) Expose an API (audience):
-- Expose an API → Set Application ID URI (e.g. `api://githooks`)
+- Expose an API → Set Application ID URI (e.g. `api://githook`)
 
 4) Add permissions/scopes if needed.
 
@@ -121,7 +121,7 @@ auth:
   oauth2:
     enabled: true
     issuer: https://login.microsoftonline.com/<tenant-id>/v2.0
-    audience: api://githooks
+    audience: api://githook
     mode: auto
     client_id: ${AZURE_CLIENT_ID}
     client_secret: ${AZURE_CLIENT_SECRET}
@@ -151,7 +151,7 @@ auth:
     audience: <your-google-client-id>
 ```
 
-For machine token retrieval, use a service account exchange in your client code (outside githooks).
+For machine token retrieval, use a service account exchange in your client code (outside githook).
 
 ## Multi-instance deployments
 

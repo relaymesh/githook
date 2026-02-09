@@ -58,8 +58,8 @@ case "bitbucket":
 }
 ```
 
-By default it uses `GITHOOKS_API_BASE_URL`. If not set, it will read
-`GITHOOKS_CONFIG_PATH` (or `GITHOOKS_CONFIG`) and use `server.public_base_url`
+By default it uses `GITHOOK_API_BASE_URL`. If not set, it will read
+`GITHOOK_CONFIG_PATH` (or `GITHOOK_CONFIG`) and use `server.public_base_url`
 or `server.port` to build the URL. Otherwise it falls back to
 `http://localhost:8080`.
 

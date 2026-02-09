@@ -38,7 +38,7 @@ go run ./example/bitbucket/worker/main.go
 
 1. Open your Bitbucket repo.
 2. Go to **Repository settings** -> **Webhooks** -> **Add webhook**.
-3. Title: `githooks-local`.
+3. Title: `githook-local`.
 4. URL: `http://localhost:8080/webhooks/bitbucket`.
 5. Events:
    - Pull request created
