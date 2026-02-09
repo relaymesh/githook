@@ -28,7 +28,7 @@ Now send a test webhook:
 ```
 ## Prerequisites
 
-- **Go 1.21+**
+- **Go 1.24+**
 - **Docker + Docker Compose** (for local development)
 - **PostgreSQL** (for installation storage)
 - **Message Broker**: RabbitMQ, NATS, Kafka, or any [Watermill-supported broker](https://watermill.io/docs/pub-subs/)
