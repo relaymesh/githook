@@ -26,12 +26,6 @@ Now send a test webhook:
 ```bash
 ./scripts/send_webhook.sh github pull_request example/github/pull_request.json
 ```
-
-**Next steps:** See [Getting Started (Local)](#getting-started-local) for detailed setup, or jump to provider-specific guides:
-- [GitHub Setup](docs/getting-started-github.md)
-- [GitLab Setup](docs/getting-started-gitlab.md)
-- [Bitbucket Setup](docs/getting-started-bitbucket.md)
-
 ## Prerequisites
 
 - **Go 1.21+**
