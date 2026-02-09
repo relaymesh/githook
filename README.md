@@ -4,6 +4,26 @@ githook is an event automation layer for GitHub, GitLab, and Bitbucket. It recei
 
 > **⚠️ Warning:** This project is for research and development only and is **not production-ready**. Do not deploy it in production environments.
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [How It Works](#how-it-works)
+- [Why githook](#why-githook-)
+- [Features](#features-)
+- [Common Use Cases](#common-use-cases-)
+- [Security Considerations](#security-considerations-)
+- [OAuth Onboarding](#oauth-onboarding)
+- [Configuration](#configuration)
+  - [Providers](#providers)
+  - [OAuth Callbacks](#oauth-callbacks)
+  - [Installation Storage](#installation-storage)
+  - [Watermill Drivers](#watermill-drivers-publishing)
+  - [Rules Engine](#rules)
+- [Worker SDK](#worker-sdk)
+- [Examples](#examples)
+
 ## Quick Start
 
 Get githook running locally in 4 steps:
@@ -113,27 +133,6 @@ go build -o githook ./main.go
 - **Secrets Management**: Use environment variables for credentials, never commit secrets
 - **Network Security**: Deploy behind HTTPS with TLS certificates
 
-
-## Table of Contents
-
-- [Quick Start](#quick-start)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [How It Works](#how-it-works)
-- [Why githook](#why-githook-)
-- [Features](#features-)
-- [Common Use Cases](#common-use-cases-)
-- [Security Considerations](#security-considerations-)
-- [Getting Started (Local)](#getting-started-local)
-- [OAuth Onboarding](#oauth-onboarding)
-- [Configuration](#configuration)
-  - [Providers](#providers)
-  - [OAuth Callbacks](#oauth-callbacks)
-  - [Installation Storage](#installation-storage)
-  - [Watermill Drivers](#watermill-drivers-publishing)
-  - [Rules Engine](#rules)
-- [Worker SDK](#worker-sdk)
-- [Examples](#examples)
 
 ## Getting Started (Local)
 
