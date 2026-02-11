@@ -18,8 +18,8 @@ func newNamespacesCmd() *cobra.Command {
 		Use:   "namespaces",
 		Short: "Manage git namespaces",
 		Long:  "List, sync, and toggle webhooks for provider namespaces (repos/projects).",
-		Example: "  githook --endpoint http://localhost:8080 namespaces list --state-id <state-id>\n" +
-			"  githook --endpoint http://localhost:8080 namespaces sync --state-id <state-id> --provider gitlab",
+		Example: "  githook --endpoint http://localhost:8080 namespaces list --provider github\n" +
+			"  githook --endpoint http://localhost:8080 namespaces sync --provider gitlab",
 	}
 	cmd.AddCommand(newNamespacesListCmd())
 	cmd.AddCommand(newNamespacesSyncCmd())
@@ -35,12 +35,9 @@ func newNamespacesListCmd() *cobra.Command {
 	var fullName string
 	cmd := &cobra.Command{
 		Use:     "list",
-		Short:   "List namespaces by state ID",
-		Example: "  githook --endpoint http://localhost:8080 namespaces list --state-id <state-id>",
+		Short:   "List namespaces",
+		Example: "  githook --endpoint http://localhost:8080 namespaces list --provider github",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if stateID == "" {
-				return fmt.Errorf("state-id is required")
-			}
 			opts, err := connectClientOptions()
 			if err != nil {
 				return err
@@ -60,7 +57,7 @@ func newNamespacesListCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&stateID, "state-id", "", "State ID to query")
+	cmd.Flags().StringVar(&stateID, "state-id", "", "State ID filter (optional)")
 	cmd.Flags().StringVar(&provider, "provider", "", "Provider (github|gitlab|bitbucket)")
 	cmd.Flags().StringVar(&owner, "owner", "", "Owner filter")
 	cmd.Flags().StringVar(&repo, "repo", "", "Repo filter")
@@ -74,10 +71,10 @@ func newNamespacesSyncCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "sync",
 		Short:   "Sync namespaces from the provider",
-		Example: "  githook --endpoint http://localhost:8080 namespaces sync --state-id <state-id> --provider gitlab",
+		Example: "  githook --endpoint http://localhost:8080 namespaces sync --provider gitlab",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if stateID == "" || provider == "" {
-				return fmt.Errorf("state-id and provider are required")
+			if provider == "" {
+				return fmt.Errorf("provider is required")
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -95,7 +92,7 @@ func newNamespacesSyncCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&stateID, "state-id", "", "State ID to query")
+	cmd.Flags().StringVar(&stateID, "state-id", "", "State ID filter (optional)")
 	cmd.Flags().StringVar(&provider, "provider", "", "Provider (github|gitlab|bitbucket)")
 	return cmd
 }
@@ -104,7 +101,7 @@ func newNamespacesWebhookCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "webhook",
 		Short:   "Manage namespace webhook state",
-		Example: "  githook --endpoint http://localhost:8080 namespaces webhook get --state-id <state-id> --provider gitlab --repo-id <repo-id>",
+		Example: "  githook --endpoint http://localhost:8080 namespaces webhook get --provider gitlab --repo-id <repo-id>",
 	}
 	cmd.AddCommand(newNamespacesWebhookGetCmd())
 	cmd.AddCommand(newNamespacesWebhookSetCmd())
@@ -118,10 +115,10 @@ func newNamespacesWebhookGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get",
 		Short:   "Get namespace webhook state",
-		Example: "  githook --endpoint http://localhost:8080 namespaces webhook get --state-id <state-id> --provider gitlab --repo-id <repo-id>",
+		Example: "  githook --endpoint http://localhost:8080 namespaces webhook get --provider gitlab --repo-id <repo-id>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if stateID == "" || provider == "" || repoID == "" {
-				return fmt.Errorf("state-id, provider, and repo-id are required")
+			if provider == "" || repoID == "" {
+				return fmt.Errorf("provider and repo-id are required")
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -140,7 +137,7 @@ func newNamespacesWebhookGetCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&stateID, "state-id", "", "State ID to query")
+	cmd.Flags().StringVar(&stateID, "state-id", "", "State ID filter (optional)")
 	cmd.Flags().StringVar(&provider, "provider", "", "Provider (github|gitlab|bitbucket)")
 	cmd.Flags().StringVar(&repoID, "repo-id", "", "Repo ID")
 	return cmd
@@ -154,10 +151,10 @@ func newNamespacesWebhookSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "set",
 		Short:   "Enable or disable a namespace webhook",
-		Example: "  githook --endpoint http://localhost:8080 namespaces webhook set --state-id <state-id> --provider gitlab --repo-id <repo-id> --enabled",
+		Example: "  githook --endpoint http://localhost:8080 namespaces webhook set --provider gitlab --repo-id <repo-id> --enabled",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if stateID == "" || provider == "" || repoID == "" {
-				return fmt.Errorf("state-id, provider, and repo-id are required")
+			if provider == "" || repoID == "" {
+				return fmt.Errorf("provider and repo-id are required")
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -177,7 +174,7 @@ func newNamespacesWebhookSetCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&stateID, "state-id", "", "State ID to query")
+	cmd.Flags().StringVar(&stateID, "state-id", "", "State ID filter (optional)")
 	cmd.Flags().StringVar(&provider, "provider", "", "Provider (github|gitlab|bitbucket)")
 	cmd.Flags().StringVar(&repoID, "repo-id", "", "Repo ID")
 	cmd.Flags().BoolVar(&enabled, "enabled", false, "Enable or disable webhook")

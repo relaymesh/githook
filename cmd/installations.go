@@ -18,7 +18,8 @@ func newInstallationsCmd() *cobra.Command {
 		Use:   "installations",
 		Short: "Inspect stored installations",
 		Long:  "Query installation records resolved from provider OAuth/App flows.",
-		Example: "  githook --endpoint http://localhost:8080 installations list --state-id <state-id>\n" +
+		Example: "  githook --endpoint http://localhost:8080 installations list --provider github\n" +
+			"  githook --endpoint http://localhost:8080 installations list --provider github --state-id <state-id>\n" +
 			"  githook --endpoint http://localhost:8080 installations get --provider github --installation-id <id>",
 	}
 	cmd.AddCommand(newInstallationsListCmd())
@@ -31,12 +32,9 @@ func newInstallationsListCmd() *cobra.Command {
 	var provider string
 	cmd := &cobra.Command{
 		Use:     "list",
-		Short:   "List installations by state ID",
-		Example: "  githook --endpoint http://localhost:8080 installations list --state-id <state-id>",
+		Short:   "List installations",
+		Example: "  githook --endpoint http://localhost:8080 installations list --provider github",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if stateID == "" {
-				return fmt.Errorf("state-id is required")
-			}
 			opts, err := connectClientOptions()
 			if err != nil {
 				return err
@@ -53,7 +51,7 @@ func newInstallationsListCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&stateID, "state-id", "", "State ID to query")
+	cmd.Flags().StringVar(&stateID, "state-id", "", "State ID filter (optional)")
 	cmd.Flags().StringVar(&provider, "provider", "", "Provider (github|gitlab|bitbucket)")
 	return cmd
 }

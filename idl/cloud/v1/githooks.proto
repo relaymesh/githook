@@ -73,8 +73,14 @@ message NamespaceRecord {
 }
 
 message ListInstallationsRequest {
+  // Optional account filter. When omitted, all accounts for the provider are returned.
   string state_id = 1;
-  string provider = 2 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+  string provider = 2 [
+    (buf.validate.field).string.in = "",
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
 }
 
 message ListInstallationsResponse {
@@ -82,8 +88,13 @@ message ListInstallationsResponse {
 }
 
 message GetInstallationByIDRequest {
-  string provider = 1 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
-  string installation_id = 2;
+  string provider = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
+  string installation_id = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetInstallationByIDResponse {
@@ -91,8 +102,14 @@ message GetInstallationByIDResponse {
 }
 
 message ListNamespacesRequest {
+  // Optional account filter. When omitted, all accounts for the provider are returned.
   string state_id = 1;
-  string provider = 2 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+  string provider = 2 [
+    (buf.validate.field).string.in = "",
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
   string owner = 3;
   string repo = 4;
   string full_name = 5;
@@ -103,8 +120,14 @@ message ListNamespacesResponse {
 }
 
 message SyncNamespacesRequest {
+  // Optional account filter. When omitted, all accounts for the provider are synced.
   string state_id = 1;
-  string provider = 2 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+  string provider = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
 }
 
 message SyncNamespacesResponse {
@@ -112,15 +135,27 @@ message SyncNamespacesResponse {
 }
 
 message GetNamespaceWebhookRequest {
+  // Optional account filter. When omitted, the namespace is resolved by provider + repo_id.
   string state_id = 1;
-  string provider = 2 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
-  string repo_id = 3;
+  string provider = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
+  string repo_id = 3 [(buf.validate.field).string.min_len = 1];
 }
 
 message SetNamespaceWebhookRequest {
+  // Optional account filter. When omitted, the namespace is resolved by provider + repo_id.
   string state_id = 1;
-  string provider = 2 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
-  string repo_id = 3;
+  string provider = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
+  string repo_id = 3 [(buf.validate.field).string.min_len = 1];
   bool enabled = 4;
 }
 
@@ -269,7 +304,12 @@ message DeleteDriverRequest {
 message DeleteDriverResponse {}
 
 message ListProvidersRequest {
-  string provider = 1 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+  string provider = 1 [
+    (buf.validate.field).string.in = "",
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
 }
 
 message ListProvidersResponse {

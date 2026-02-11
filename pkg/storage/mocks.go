@@ -76,12 +76,16 @@ func (m *MockStore) ListInstallations(ctx context.Context, provider, accountID s
 	results := make([]InstallRecord, 0)
 	tenantID := TenantFromContext(ctx)
 	for _, record := range m.values {
-		if record.Provider == provider && record.AccountID == accountID {
-			if tenantID != "" && record.TenantID != tenantID {
-				continue
-			}
-			results = append(results, record)
+		if record.Provider != provider {
+			continue
 		}
+		if accountID != "" && record.AccountID != accountID {
+			continue
+		}
+		if tenantID != "" && record.TenantID != tenantID {
+			continue
+		}
+		results = append(results, record)
 	}
 	return results, nil
 }

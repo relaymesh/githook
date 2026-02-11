@@ -90,6 +90,7 @@ type Store interface {
 	UpsertInstallation(ctx context.Context, record InstallRecord) error
 	GetInstallation(ctx context.Context, provider, accountID, installationID string) (*InstallRecord, error)
 	GetInstallationByInstallationID(ctx context.Context, provider, installationID string) (*InstallRecord, error)
+	// ListInstallations lists installations for a provider, optionally filtered by accountID.
 	ListInstallations(ctx context.Context, provider, accountID string) ([]InstallRecord, error)
 	Close() error
 }

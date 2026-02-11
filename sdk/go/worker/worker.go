@@ -3,6 +3,8 @@ package worker
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -43,6 +45,80 @@ func New(opts ...Option) *Worker {
 	return w
 }
 
+// NewFromConfigPath creates a worker from a config file and applies options.
+func NewFromConfigPath(path string, opts ...Option) (*Worker, error) {
+	return newFromConfigPath(path, "", opts...)
+}
+
+// NewFromConfigPathWithDriver creates a worker from a config file and overrides the subscriber driver.
+func NewFromConfigPathWithDriver(path, driver string, opts ...Option) (*Worker, error) {
+	return newFromConfigPath(path, driver, opts...)
+}
+
+// NewFromConfigPathWithDriverFromAPI creates a worker using driver config from the server API.
+func NewFromConfigPathWithDriverFromAPI(path, driver string, opts ...Option) (*Worker, error) {
+	driver = strings.TrimSpace(driver)
+	if driver == "" {
+		return nil, errors.New("driver is required")
+	}
+	providers, err := LoadProvidersConfig(path)
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := subscriberConfigFromAPI(context.Background(), driver)
+	if err != nil {
+		return nil, err
+	}
+	sub, err := BuildSubscriber(cfg)
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts,
+		WithSubscriber(sub),
+		WithClientProvider(NewSCMClientProvider(providers)),
+	)
+	return New(opts...), nil
+}
+
+func newFromConfigPath(path, driver string, opts ...Option) (*Worker, error) {
+	cfg, err := LoadSubscriberConfig(path)
+	if err != nil {
+		return nil, err
+	}
+	if trimmed := strings.TrimSpace(driver); trimmed != "" {
+		cfg.Driver = trimmed
+		cfg.Drivers = nil
+	}
+	sub, err := BuildSubscriber(cfg)
+	if err != nil {
+		return nil, err
+	}
+	providers, err := LoadProvidersConfig(path)
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts,
+		WithSubscriber(sub),
+		WithClientProvider(NewSCMClientProvider(providers)),
+	)
+	return New(opts...), nil
+}
+
+func subscriberConfigFromAPI(ctx context.Context, driver string) (SubscriberConfig, error) {
+	client := &DriversClient{BaseURL: installationsBaseURL()}
+	record, err := client.GetDriver(ctx, driver)
+	if err != nil {
+		return SubscriberConfig{}, err
+	}
+	if record == nil {
+		return SubscriberConfig{}, fmt.Errorf("driver not found: %s", driver)
+	}
+	if !record.Enabled {
+		return SubscriberConfig{}, fmt.Errorf("driver is disabled: %s", driver)
+	}
+	return subscriberConfigFromDriver(record.Name, record.ConfigJSON)
+}
+
 // HandleTopic registers a handler for a specific topic.
 func (w *Worker) HandleTopic(topic string, h Handler) {
 	if h == nil || topic == "" {
@@ -74,6 +150,9 @@ func (w *Worker) Run(ctx context.Context) error {
 	}
 	if len(w.topics) == 0 {
 		return errors.New("at least one topic is required")
+	}
+	if err := w.validateTopics(ctx); err != nil {
+		return err
 	}
 
 	topics := unique(w.topics)
@@ -209,6 +288,27 @@ func unique(values []string) []string {
 		out = append(out, value)
 	}
 	return out
+}
+
+func (w *Worker) validateTopics(ctx context.Context) error {
+	client := &RulesClient{BaseURL: installationsBaseURL()}
+	topics, err := client.ListRuleTopics(ctx)
+	if err != nil {
+		return err
+	}
+	if len(topics) == 0 {
+		return errors.New("no topics available from rules")
+	}
+	allowed := make(map[string]struct{}, len(topics))
+	for _, topic := range topics {
+		allowed[topic] = struct{}{}
+	}
+	for _, topic := range unique(w.topics) {
+		if _, ok := allowed[topic]; !ok {
+			return fmt.Errorf("unknown topic: %s", topic)
+		}
+	}
+	return nil
 }
 
 func (w *Worker) notifyStart(ctx context.Context) {

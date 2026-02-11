@@ -12,8 +12,8 @@ func NewRootCmd() *cobra.Command {
 		Long: "Githooks routes GitHub/GitLab/Bitbucket webhooks to Watermill topics and provides a worker SDK " +
 			"for processing events with provider-aware clients.",
 		Example: "  githook serve --config config.yaml\n" +
-			"  githook --endpoint http://localhost:8080 installations list --state-id <state-id>\n" +
-			"  githook --endpoint http://localhost:8080 namespaces sync --state-id <state-id> --provider gitlab",
+			"  githook --endpoint http://localhost:8080 installations list --provider github\n" +
+			"  githook --endpoint http://localhost:8080 namespaces sync --provider gitlab",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return cmd.Help()
 		},

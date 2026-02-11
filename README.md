@@ -923,6 +923,15 @@ go run ./example/github/worker/main.go --config config.yaml --driver amqp
 
 ## Documentation
 
+## Architecture: Control Plane vs Data Plane
+
+Githooks is split into a **control plane** and a **data plane**:
+
+- **Control Plane (Server)**: Hosts the Connect RPC API, stores configuration and installation data, manages rules, and publishes events to the message bus. This is the source of truth for providers, drivers, and rules.
+- **Data Plane (Worker)**: Subscribes to topics and processes events. It resolves provider clients via the server API and focuses on business logic. Workers should not access platform storage directly.
+
+This separation lets you scale event processing independently while keeping configuration centralized.
+
 ### Configuration Guides
 - [API Reference](https://buf.build/githook/cloud) - Connect RPC API documentation
 - [Driver Configuration](docs/drivers.md) - Message broker setup

@@ -16,6 +16,7 @@ type AppConfig struct {
 	Watermill SubscriberConfig `yaml:"watermill"`
 	Providers auth.Config      `yaml:"providers"`
 	Auth      auth.AuthConfig  `yaml:"auth"`
+	Endpoint  string           `yaml:"endpoint"`
 }
 
 // ServerConfig is a partial representation of the server config for client resolution.
@@ -97,6 +98,20 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		return cfg.Server, err
 	}
 	return cfg.Server, nil
+}
+
+// LoadEndpoint loads the API endpoint from a YAML file.
+func LoadEndpoint(path string) (string, error) {
+	var cfg AppConfig
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	expanded := os.ExpandEnv(string(data))
+	if err := yaml.Unmarshal([]byte(expanded), &cfg); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(cfg.Endpoint), nil
 }
 
 // LoadProvidersConfig loads provider configuration from a YAML file.

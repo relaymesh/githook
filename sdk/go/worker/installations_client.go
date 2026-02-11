@@ -63,6 +63,9 @@ func (c *InstallationsClient) GetByInstallationID(ctx context.Context, provider,
 	if token, err := oauth2Token(ctx); err == nil && token != "" {
 		req.Header().Set("Authorization", "Bearer "+token)
 	}
+	if tenantID := TenantIDFromContext(ctx); tenantID != "" {
+		req.Header().Set("X-Tenant-ID", tenantID)
+	}
 	resp, err := connectClient.GetInstallationByID(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("installations api failed: %w", err)

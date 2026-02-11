@@ -167,7 +167,7 @@ func (s *Store) GetInstallationByInstallationID(ctx context.Context, provider, i
 	return &record, nil
 }
 
-// ListInstallations lists installations for a provider/account.
+// ListInstallations lists installations for a provider, optionally filtered by account.
 func (s *Store) ListInstallations(ctx context.Context, provider, accountID string) ([]storage.InstallRecord, error) {
 	if s == nil || s.db == nil {
 		return nil, errors.New("store is not initialized")
@@ -175,7 +175,10 @@ func (s *Store) ListInstallations(ctx context.Context, provider, accountID strin
 	var data []row
 	query := s.tableDB().
 		WithContext(ctx).
-		Where("provider = ? AND account_id = ?", provider, accountID)
+		Where("provider = ?", provider)
+	if accountID != "" {
+		query = query.Where("account_id = ?", accountID)
+	}
 	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
 	}

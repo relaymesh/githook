@@ -288,9 +288,10 @@ func (x *NamespaceRecord) GetUpdatedAt() *timestamppb.Timestamp {
 }
 
 type ListInstallationsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StateId       string                 `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	Provider      string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional account filter. When omitted, all accounts for the provider are returned.
+	StateId       string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	Provider      string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -480,12 +481,13 @@ func (x *GetInstallationByIDResponse) GetInstallation() *InstallRecord {
 }
 
 type ListNamespacesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StateId       string                 `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	Provider      string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	Owner         string                 `protobuf:"bytes,3,opt,name=owner,proto3" json:"owner,omitempty"`
-	Repo          string                 `protobuf:"bytes,4,opt,name=repo,proto3" json:"repo,omitempty"`
-	FullName      string                 `protobuf:"bytes,5,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional account filter. When omitted, all accounts for the provider are returned.
+	StateId       string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	Provider      string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	Owner         string `protobuf:"bytes,3,opt,name=owner,proto3" json:"owner,omitempty"`
+	Repo          string `protobuf:"bytes,4,opt,name=repo,proto3" json:"repo,omitempty"`
+	FullName      string `protobuf:"bytes,5,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -600,9 +602,10 @@ func (x *ListNamespacesResponse) GetNamespaces() []*NamespaceRecord {
 }
 
 type SyncNamespacesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StateId       string                 `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	Provider      string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional account filter. When omitted, all accounts for the provider are synced.
+	StateId       string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	Provider      string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -696,10 +699,11 @@ func (x *SyncNamespacesResponse) GetNamespaces() []*NamespaceRecord {
 }
 
 type GetNamespaceWebhookRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StateId       string                 `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	Provider      string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	RepoId        string                 `protobuf:"bytes,3,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional account filter. When omitted, the namespace is resolved by provider + repo_id.
+	StateId       string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	Provider      string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	RepoId        string `protobuf:"bytes,3,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -756,11 +760,12 @@ func (x *GetNamespaceWebhookRequest) GetRepoId() string {
 }
 
 type SetNamespaceWebhookRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StateId       string                 `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	Provider      string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	RepoId        string                 `protobuf:"bytes,3,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
-	Enabled       bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional account filter. When omitted, the namespace is resolved by provider + repo_id.
+	StateId       string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	Provider      string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	RepoId        string `protobuf:"bytes,3,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
+	Enabled       bool   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2609,42 +2614,42 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"s\n" +
+	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"u\n" +
 	"\x18ListInstallationsRequest\x12\x19\n" +
-	"\bstate_id\x18\x01 \x01(\tR\astateId\x12<\n" +
-	"\bprovider\x18\x02 \x01(\tB \xbaH\x1dr\x1bR\x06githubR\x06gitlabR\tbitbucketR\bprovider\"Z\n" +
+	"\bstate_id\x18\x01 \x01(\tR\astateId\x12>\n" +
+	"\bprovider\x18\x02 \x01(\tB\"\xbaH\x1fr\x1dR\x00R\x06githubR\x06gitlabR\tbitbucketR\bprovider\"Z\n" +
 	"\x19ListInstallationsResponse\x12=\n" +
-	"\rinstallations\x18\x01 \x03(\v2\x17.cloud.v1.InstallRecordR\rinstallations\"\x83\x01\n" +
-	"\x1aGetInstallationByIDRequest\x12<\n" +
-	"\bprovider\x18\x01 \x01(\tB \xbaH\x1dr\x1bR\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12'\n" +
-	"\x0finstallation_id\x18\x02 \x01(\tR\x0einstallationId\"Z\n" +
+	"\rinstallations\x18\x01 \x03(\v2\x17.cloud.v1.InstallRecordR\rinstallations\"\x8e\x01\n" +
+	"\x1aGetInstallationByIDRequest\x12>\n" +
+	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x120\n" +
+	"\x0finstallation_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0einstallationId\"Z\n" +
 	"\x1bGetInstallationByIDResponse\x12;\n" +
-	"\finstallation\x18\x01 \x01(\v2\x17.cloud.v1.InstallRecordR\finstallation\"\xb7\x01\n" +
+	"\finstallation\x18\x01 \x01(\v2\x17.cloud.v1.InstallRecordR\finstallation\"\xb9\x01\n" +
 	"\x15ListNamespacesRequest\x12\x19\n" +
-	"\bstate_id\x18\x01 \x01(\tR\astateId\x12<\n" +
-	"\bprovider\x18\x02 \x01(\tB \xbaH\x1dr\x1bR\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x14\n" +
+	"\bstate_id\x18\x01 \x01(\tR\astateId\x12>\n" +
+	"\bprovider\x18\x02 \x01(\tB\"\xbaH\x1fr\x1dR\x00R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x14\n" +
 	"\x05owner\x18\x03 \x01(\tR\x05owner\x12\x12\n" +
 	"\x04repo\x18\x04 \x01(\tR\x04repo\x12\x1b\n" +
 	"\tfull_name\x18\x05 \x01(\tR\bfullName\"S\n" +
 	"\x16ListNamespacesResponse\x129\n" +
 	"\n" +
 	"namespaces\x18\x01 \x03(\v2\x19.cloud.v1.NamespaceRecordR\n" +
-	"namespaces\"p\n" +
+	"namespaces\"r\n" +
 	"\x15SyncNamespacesRequest\x12\x19\n" +
-	"\bstate_id\x18\x01 \x01(\tR\astateId\x12<\n" +
-	"\bprovider\x18\x02 \x01(\tB \xbaH\x1dr\x1bR\x06githubR\x06gitlabR\tbitbucketR\bprovider\"S\n" +
+	"\bstate_id\x18\x01 \x01(\tR\astateId\x12>\n" +
+	"\bprovider\x18\x02 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\"S\n" +
 	"\x16SyncNamespacesResponse\x129\n" +
 	"\n" +
 	"namespaces\x18\x01 \x03(\v2\x19.cloud.v1.NamespaceRecordR\n" +
-	"namespaces\"\x8e\x01\n" +
+	"namespaces\"\x99\x01\n" +
 	"\x1aGetNamespaceWebhookRequest\x12\x19\n" +
-	"\bstate_id\x18\x01 \x01(\tR\astateId\x12<\n" +
-	"\bprovider\x18\x02 \x01(\tB \xbaH\x1dr\x1bR\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x17\n" +
-	"\arepo_id\x18\x03 \x01(\tR\x06repoId\"\xa8\x01\n" +
+	"\bstate_id\x18\x01 \x01(\tR\astateId\x12>\n" +
+	"\bprovider\x18\x02 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12 \n" +
+	"\arepo_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06repoId\"\xb3\x01\n" +
 	"\x1aSetNamespaceWebhookRequest\x12\x19\n" +
-	"\bstate_id\x18\x01 \x01(\tR\astateId\x12<\n" +
-	"\bprovider\x18\x02 \x01(\tB \xbaH\x1dr\x1bR\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x17\n" +
-	"\arepo_id\x18\x03 \x01(\tR\x06repoId\x12\x18\n" +
+	"\bstate_id\x18\x01 \x01(\tR\astateId\x12>\n" +
+	"\bprovider\x18\x02 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12 \n" +
+	"\arepo_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06repoId\x12\x18\n" +
 	"\aenabled\x18\x04 \x01(\bR\aenabled\"7\n" +
 	"\x1bGetNamespaceWebhookResponse\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\"7\n" +
@@ -2729,9 +2734,9 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\x06driver\x18\x01 \x01(\v2\x16.cloud.v1.DriverRecordR\x06driver\"2\n" +
 	"\x13DeleteDriverRequest\x12\x1b\n" +
 	"\x04name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\"\x16\n" +
-	"\x14DeleteDriverResponse\"T\n" +
-	"\x14ListProvidersRequest\x12<\n" +
-	"\bprovider\x18\x01 \x01(\tB \xbaH\x1dr\x1bR\x06githubR\x06gitlabR\tbitbucketR\bprovider\"O\n" +
+	"\x14DeleteDriverResponse\"V\n" +
+	"\x14ListProvidersRequest\x12>\n" +
+	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1dR\x00R\x06githubR\x06gitlabR\tbitbucketR\bprovider\"O\n" +
 	"\x15ListProvidersResponse\x126\n" +
 	"\tproviders\x18\x01 \x03(\v2\x18.cloud.v1.ProviderRecordR\tproviders\"V\n" +
 	"\x12GetProviderRequest\x12#\n" +
