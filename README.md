@@ -424,19 +424,12 @@ See [docs/storage.md](docs/storage.md) for advanced storage configuration.
 
 Webhook URL schema: `<base-url>/webhooks/<provider>`
 
-**Default webhook paths:**
+**Default webhook endpoints:**
 - **GitHub:** `/webhooks/github`
 - **GitLab:** `/webhooks/gitlab`
 - **Bitbucket:** `/webhooks/bitbucket`
 
-**Custom webhook paths:**
-```yaml
-providers:
-  github:
-    webhook:
-      path: /custom/github/webhook
-      secret: ${GITHUB_WEBHOOK_SECRET}
-```
+Configure these URLs in your provider's webhook settings. The `<base-url>` should be your public domain (production) or ngrok URL (local development).
 
 ---
 
