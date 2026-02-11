@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	githook "githook/cmd"
 	"os"
+
+	"githooks/cmd"
 )
 
 func main() {
-	if err := githook.NewRootCmd().Execute(); err != nil {
+	if err := cmd.NewRootCmd().Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}

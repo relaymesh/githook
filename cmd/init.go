@@ -1,4 +1,4 @@
-package githook
+package cmd
 
 import (
 	"fmt"
