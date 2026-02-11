@@ -103,14 +103,40 @@ http://localhost:8080/?provider=bitbucket&instance=<instance-hash>
 
 Authorize access to your Bitbucket workspace.
 
-## Step 8: Configure Webhook
+## Step 8: Configure Webhooks
+
+Bitbucket allows webhooks at both repository and workspace levels.
+
+### Repository-Level Webhook
 
 1. Open your Bitbucket repository
 2. Go to **Repository settings** → **Webhooks** → **Add webhook**
 3. **Title**: `githook-local`
 4. **URL**: `https://<your-ngrok-url>/webhooks/bitbucket`
-5. **Triggers**: Pull request (created, updated), Repository push
-6. Save webhook
+5. **Status**: Active (checked)
+6. **Triggers**:
+   - Pull request (created, updated, approved, merged)
+   - Repository push
+   - Tag push (optional)
+7. Click **Save**
+
+### Workspace-Level Webhook (For All Repositories in Workspace)
+
+1. Go to **Workspace settings** → **Webhooks** → **Add webhook**
+2. **Title**: `githook-workspace`
+3. **URL**: `https://<your-ngrok-url>/webhooks/bitbucket`
+4. **Status**: Active (checked)
+5. **Triggers**:
+   - Pull request (created, updated, approved, merged)
+   - Repository push
+   - Tag push (optional)
+6. Click **Save**
+
+**Note:** Workspace webhooks send events for all repositories in the workspace. Use repository webhooks for granular control.
+
+### Multiple Workspaces/Repositories
+
+To enable webhooks across multiple workspaces or repositories, configure the webhook for each repository or workspace individually using the Bitbucket UI. Use the same webhook URL for all repositories.
 
 ## Step 9: Trigger Events
 

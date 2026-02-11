@@ -403,6 +403,14 @@ Unique identifier for the organization or user:
 - **GitLab**: Group/user ID
 - **Bitbucket**: Workspace slug
 
+### Namespaces
+Organizational units within a provider:
+- **GitHub**: Organizations and user accounts
+- **GitLab**: Groups and subgroups (hierarchical)
+- **Bitbucket**: Workspaces
+
+Webhooks can be configured at namespace level (affects all repos) or individual repository level.
+
 ### Drivers
 Message brokers: `amqp`, `nats`, `kafka`, `sql`, `http`, `gochannel`, `riverqueue`.
 

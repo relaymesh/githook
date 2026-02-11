@@ -103,14 +103,39 @@ http://localhost:8080/?provider=gitlab&instance=<instance-hash>
 
 Authorize access to your GitLab account.
 
-## Step 8: Configure Webhook
+## Step 8: Configure Webhooks
+
+GitLab requires webhooks to be configured per project or group.
+
+### Project-Level Webhook
 
 1. Open your GitLab project
 2. Go to **Settings** → **Webhooks**
 3. **URL**: `https://<your-ngrok-url>/webhooks/gitlab`
 4. **Secret token**: `devsecret`
-5. **Trigger**: Merge request events, Push events
-6. Add webhook
+5. **Trigger events**:
+   - Merge request events
+   - Push events
+   - Tag push events (optional)
+6. Click **Add webhook**
+
+### Group-Level Webhook (For All Projects in Group)
+
+1. Open your GitLab group
+2. Go to **Settings** → **Webhooks**
+3. **URL**: `https://<your-ngrok-url>/webhooks/gitlab`
+4. **Secret token**: `devsecret`
+5. **Trigger events**:
+   - Merge request events
+   - Push events
+   - Tag push events (optional)
+6. Click **Add webhook**
+
+**Note:** Group webhooks require GitLab Premium/Ultimate. For free tier, configure webhooks on each project individually.
+
+### Multiple Namespaces/Projects
+
+To enable webhooks across multiple namespaces or projects, configure the webhook for each project or group individually using the GitLab UI. Use the same webhook URL and secret for all projects.
 
 ## Step 9: Trigger Events
 
