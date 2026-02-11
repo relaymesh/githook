@@ -6,20 +6,19 @@
 
 1. [About](#about)
 2. [How It Works](#how-it-works)
-3. [Features](#features)
-4. [Why githook](#why-githook)
-5. [Installing the CLI](#installing-the-cli)
-6. [Quick Start Guide (GitHub Apps)](#quick-start-guide-github-apps)
-7. [OAuth Onboarding Flow](#oauth-onboarding-flow)
-8. [SCM-Specific Documentation](#scm-specific-documentation)
-9. [Terminology](#terminology)
-10. [Storage](#storage)
-11. [Webhook URLs](#webhook-urls)
-12. [Drivers](#drivers)
-13. [Rules](#rules)
-14. [SDK](#sdk)
-15. [Examples](#examples)
-16. [Documentation](#documentation)
+3. [Why githook](#why-githook)
+4. [Installing the CLI](#installing-the-cli)
+5. [Quick Start Guide (GitHub Apps)](#quick-start-guide-github-apps)
+6. [OAuth Onboarding Flow](#oauth-onboarding-flow)
+7. [SCM-Specific Documentation](#scm-specific-documentation)
+8. [Terminology](#terminology)
+9. [Storage](#storage)
+10. [Webhook URLs](#webhook-urls)
+11. [Drivers](#drivers)
+12. [Rules](#rules)
+13. [SDK](#sdk)
+14. [Examples](#examples)
+15. [Documentation](#documentation)
 
 ---
 
@@ -88,50 +87,20 @@ githook consists of two main components:
 
 ---
 
-## Features
-
-- **Multi-Provider Webhooks**: Unified webhook handling for GitHub, GitLab, and Bitbucket
-- **Rule Engine**: JSONPath-based boolean expressions with multi-match support
-- **Flexible Publishing**: Publish to AMQP, NATS, Kafka, HTTP, SQL, GoChannel, RiverQueue
-- **Multi-Driver Fan-Out**: Publish the same event to multiple brokers simultaneously
-- **Event Normalization**: Common payload structure across all providers
-- **Protobuf Event Envelope**: Events use `cloud.v1.EventPayload` with raw JSON preserved
-- **Worker SDK**: Built-in concurrency, middleware, graceful shutdown
-- **SCM Client Injection**: GitHub, GitLab, Bitbucket API clients automatically configured
-- **Multi-Tenant Support**: Provider instance management with OAuth onboarding
-- **GitHub App Authentication**: JWT generation → installation token exchange
-- **OAuth Token Storage**: Secure token persistence in PostgreSQL
-- **Request Tracing**: `X-Request-ID` header for end-to-end request tracking
-- **Observability**: Structured logging with provider, event type, and installation context
-
----
-
 ## Why githook
 
-**Unified Event Handling**
-- Write once, handle webhooks from GitHub, GitLab, and Bitbucket without provider-specific code
-- No need to maintain separate webhook endpoints and handlers for each platform
+**Stop reinventing the wheel.** Every company builds the same webhook infrastructure over and over. We built it once, so you can reuse it.
 
-**Declarative Event Routing**
-- Define rules using JSONPath and boolean expressions instead of hardcoding routing logic
-- Change event routing by editing YAML config instead of deploying new code
+### Features
 
-**Broker Flexibility**
-- Use any message broker supported by Watermill (AMQP, NATS, Kafka, SQL, HTTP)
-- Fan-out events to multiple brokers for redundancy or different consumers
-
-**Provider-Aware Clients**
-- Workers receive pre-authenticated API clients for the event's provider
-- No manual token management, JWT signing, or client initialization
-
-**Multi-Tenant Architecture**
-- Support multiple organizations or teams with instance-based provider configuration
-- OAuth onboarding flow for easy installation setup
-
-**Event-Driven Workflows**
-- Decouple webhook handling from business logic execution
-- Scale workers independently from the webhook receiver
-- Retry failed events using broker capabilities
+- **Multi-Provider Support**: GitHub, GitLab, Bitbucket webhooks unified
+- **Declarative Routing**: JSONPath rules instead of hardcoded logic
+- **API-First Architecture**: Connect RPC (gRPC) API for all operations
+- **Multi-Tenant Ready**: Provider instance management with OAuth onboarding
+- **Broker Agnostic**: AMQP, NATS, Kafka, SQL, HTTP - use any broker
+- **Worker SDK**: Go SDK with auto-injected provider API clients
+- **Event Normalization**: Common payload structure across providers
+- **Event-Driven**: Decouple webhook processing from business logic
 
 ---
 
@@ -231,7 +200,6 @@ providers:
     oauth:
       client_id: ${GITHUB_OAUTH_CLIENT_ID}
       client_secret: ${GITHUB_OAUTH_CLIENT_SECRET}
-      scopes: ["read:user"]
 
 watermill:
   driver: amqp
@@ -245,6 +213,9 @@ storage:
   dialect: postgres
   auto_migrate: true
 
+oauth:
+  redirect_base_url: https://app.example.com/success  # Optional: Where to redirect users after OAuth completion
+
 rules:
   - when: action == "opened" && pull_request.draft == false
     emit: pr.opened.ready
@@ -257,6 +228,9 @@ rules:
   - when: action == "requested" && check_suite.head_commit.id != ""
     emit: github.commit.created
 ```
+
+**OAuth Configuration:**
+- `oauth.redirect_base_url`: (Optional) URL where users are redirected after completing OAuth authorization. If not configured, users will see a simple success message. For production, point this to your application's OAuth success page.
 
 ### Step 5: Start the Server
 
@@ -275,30 +249,20 @@ In another terminal:
 go run ./example/github/worker/main.go --config config.yaml --driver amqp
 ```
 
-### Step 7: Install the GitHub App via OAuth
+### Step 7: Install the GitHub App
 
-**Get the instance hash:**
+Get the provider instance hash:
 ```bash
 githook --endpoint http://localhost:8080 providers list --provider github
+# Copy the instance hash (e.g., a1b2c3d4)
 ```
 
-Copy the instance hash from the output (e.g., `a1b2c3d4`).
-
-**Installation URL:**
+Visit the OAuth installation URL:
 ```
 http://localhost:8080/?provider=github&instance=<instance-hash>
 ```
 
-For example: `http://localhost:8080/?provider=github&instance=a1b2c3d4`
-
-**Steps:**
-1. Visit the installation URL in your browser
-2. You'll be redirected to GitHub to authorize the app
-3. Select the organization or account to install on
-4. Choose which repositories to grant access (All or Select)
-5. Click "Install & Authorize"
-6. You'll be redirected back to githook
-7. Installation is complete!
+Follow the GitHub authorization flow to complete installation. See [OAuth Onboarding Flow](#oauth-onboarding-flow) for detailed steps.
 
 ### Step 8: Trigger Events
 
@@ -345,7 +309,6 @@ providers:
     oauth:
       client_id: ${GITHUB_OAUTH_CLIENT_ID}
       client_secret: ${GITHUB_OAUTH_CLIENT_SECRET}
-      scopes: ["read:user"]
 
 oauth:
   redirect_base_url: https://app.example.com/success  # Where to send users after OAuth
@@ -378,7 +341,7 @@ https://your-domain.com/?provider=github&instance=a1b2c3d4
 3. Provider redirects back to githook with authorization code
 4. githook exchanges code for access token
 5. Token stored in PostgreSQL
-6. User redirected to `oauth.redirect_url`
+6. User redirected to `oauth.redirect_base_url`
 
 **Step 4: Done!**
 
@@ -415,86 +378,29 @@ Each guide includes:
 
 ## Terminology
 
-Understanding these key concepts will help you configure and use githook effectively.
-
 ### Providers
-
-A **provider** is a Git platform integration: `github`, `gitlab`, or `bitbucket`. Each provider has its own webhook format, authentication method, and API client.
+Git platforms: `github`, `gitlab`, or `bitbucket`.
 
 ### Provider Instances
-
-A **provider instance** represents a specific configuration of a provider. For example:
-- `github.com` (public GitHub)
-- GitHub Enterprise Server at `ghe.company.com`
-- GitLab SaaS vs self-hosted GitLab
-
-Each instance has:
-- A unique **instance hash** (server-generated, e.g., `a1b2c3d4`)
-- Separate API base URLs
-- Separate OAuth credentials
-- Separate webhook secrets
-
-**Why instances?** Multi-tenant setups or organizations using both public and self-hosted platforms need to configure multiple instances of the same provider.
+Specific configurations of a provider (e.g., GitHub.com vs GitHub Enterprise). Each instance has a unique hash (e.g., `a1b2c3d4`) and separate credentials.
 
 ### Installation
-
-An **installation** represents the relationship between:
-- A provider instance (e.g., GitHub)
-- An account (organization or user, e.g., `octocat`)
-- Authentication credentials (OAuth token or GitHub App installation ID)
-
-Installations are created when:
-1. A GitHub App is installed on an organization/user
-2. A user completes the OAuth flow for GitLab or Bitbucket
+The relationship between a provider instance, an account (org/user), and authentication credentials.
 
 ### Account ID
-
-The **account ID** is the unique identifier for the organization or user on the provider platform:
-- GitHub: organization login or username (e.g., `octocat`)
-- GitLab: group ID or user ID
-- Bitbucket: workspace slug
-
-### Installation ID
-
-The **installation ID** is provider-specific:
-- **GitHub**: Numeric installation ID assigned when a GitHub App is installed (e.g., `12345678`)
-- **GitLab**: Not applicable (uses account ID)
-- **Bitbucket**: Not applicable (uses account ID)
-
-### State ID
-
-A **state ID** is a cryptographically random string used for CSRF protection during OAuth flows. It's generated when initiating OAuth and validated when the callback is received.
-
-### Namespaces
-
-**Namespaces** are organizational units within a provider:
-- **GitHub**: Organizations and users
-- **GitLab**: Groups and subgroups
-- **Bitbucket**: Workspaces
-
-During OAuth onboarding, githook fetches available namespaces and allows users to select which ones to grant access to.
+Unique identifier for the organization or user:
+- **GitHub**: Login/username (e.g., `octocat`)
+- **GitLab**: Group/user ID
+- **Bitbucket**: Workspace slug
 
 ### Drivers
-
-**Drivers** are message broker implementations supported by Watermill:
-- `amqp`: RabbitMQ, ActiveMQ
-- `nats`: NATS Streaming
-- `kafka`: Apache Kafka
-- `sql`: PostgreSQL, MySQL (as a queue)
-- `http`: HTTP POST to an endpoint
-- `gochannel`: In-memory Go channels (for testing or single-binary deployments)
-- `riverqueue`: River job queue (Postgres-based)
+Message brokers: `amqp`, `nats`, `kafka`, `sql`, `http`, `gochannel`, `riverqueue`.
 
 ### Rules
-
-**Rules** are JSONPath-based conditions that determine which events to publish and where. Each rule has:
-- `when`: Boolean expression evaluated against webhook payload
-- `emit`: Topic name(s) to publish to if condition matches
-- `drivers`: (Optional) Override which brokers to publish to
+JSONPath conditions that route events to topics. Has `when` (condition), `emit` (topic), and optional `drivers`.
 
 ### Topics
-
-**Topics** are message broker subjects/queues that events are published to. Workers subscribe to topics to receive events. Topic names are defined in rules (the `emit` field).
+Message broker queues/subjects that events are published to. Workers subscribe to topics.
 
 ---
 
@@ -989,78 +895,20 @@ See [docs/sdk_clients.md](docs/sdk_clients.md) for advanced SDK usage.
 
 ## Examples
 
-The `example/` directory contains working examples for different use cases:
+Working examples in the `example/` directory:
 
-### GitHub Example
+- **`example/github`** - GitHub webhooks, PR/commit events, GitHub API client
+- **`example/gitlab`** - GitLab merge requests, push events, GitLab API client
+- **`example/bitbucket`** - Bitbucket pull requests, Bitbucket API client
+- **`example/riverqueue`** - River job queue integration (Postgres-based)
+- **`example/realworld`** - Production patterns: multiple workers, error handling, retries
+- **`example/vercel`** - Vercel deployment hooks integration
+- **`example/inprocess`** - Single-binary deployment with GoChannel driver
 
-**Path:** `example/github/`
-
-Demonstrates:
-- Handling GitHub webhooks
-- Pull request events
-- Commit/push events
-- Using GitHub API client in workers
-
-**Run:**
+**Run GitHub example:**
 ```bash
-# Start worker
 go run ./example/github/worker/main.go --config config.yaml --driver amqp
-
-# Send test webhook
-./scripts/send_webhook.sh github pull_request example/github/pull_request.json
 ```
-
-### GitLab Example
-
-**Path:** `example/gitlab/`
-
-Demonstrates:
-- GitLab merge request events
-- Push events
-- Using GitLab API client
-
-### Bitbucket Example
-
-**Path:** `example/bitbucket/`
-
-Demonstrates:
-- Bitbucket pull request events
-- Using Bitbucket API client
-
-### RiverQueue Example
-
-**Path:** `example/riverqueue/`
-
-Demonstrates:
-- Publishing events to River job queue (Postgres-based)
-- Processing jobs with River workers
-
-### Real-World Example
-
-**Path:** `example/realworld/`
-
-Demonstrates:
-- Multiple workers consuming from the same topic
-- Production-style error handling
-- Retry logic and circuit breakers
-
-### Vercel Example
-
-**Path:** `example/vercel/`
-
-Demonstrates:
-- Preview deployment hooks
-- Production deployment hooks
-- Integration with Vercel API
-
-### In-Process Example
-
-**Path:** `example/inprocess/`
-
-Demonstrates:
-- Single-binary deployment with GoChannel driver
-- Server and workers in the same process
-- Useful for edge deployments or testing
 
 ---
 
