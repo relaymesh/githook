@@ -1,4 +1,4 @@
-# Githooks ⚡
+# githook ⚡
 
 > **⚠️ Warning:** This project is for research and development only and is **not production-ready**. Do not deploy it in production environments.
 
@@ -7,14 +7,14 @@
 1. [About](#about)
 2. [How It Works](#how-it-works)
 3. [Features](#features)
-4. [Why Githooks](#why-githooks)
+4. [Why githook](#why-githook)
 5. [Installing the CLI](#installing-the-cli)
 6. [Quick Start Guide (GitHub Apps)](#quick-start-guide-github-apps)
-7. [SCM-Specific Documentation](#scm-specific-documentation)
-8. [Authentication](#authentication)
+7. [OAuth Onboarding Flow](#oauth-onboarding-flow)
+8. [SCM-Specific Documentation](#scm-specific-documentation)
 9. [Terminology](#terminology)
 10. [Storage](#storage)
-11. [OAuth Callbacks and Webhook URLs](#oauth-callbacks-and-webhook-urls)
+11. [Webhook URLs](#webhook-urls)
 12. [Drivers](#drivers)
 13. [Rules](#rules)
 14. [SDK](#sdk)
@@ -25,7 +25,7 @@
 
 ## About
 
-Githooks is an event automation layer for GitHub, GitLab, and Bitbucket. It receives webhooks from these providers, evaluates configurable rules against the payload, and publishes matching events to your message broker using [Watermill](https://watermill.io/).
+githook is an event automation layer for GitHub, GitLab, and Bitbucket. It receives webhooks from these providers, evaluates configurable rules against the payload, and publishes matching events to your message broker using [Watermill](https://watermill.io/).
 
 **What problem does it solve?**
 
@@ -35,7 +35,7 @@ Managing webhooks across multiple Git providers (GitHub, GitLab, Bitbucket) typi
 - Hardcoding event routing logic in your application
 - Managing authentication for each provider's API separately
 
-Githooks solves this by providing:
+githook solves this by providing:
 - A unified webhook receiver for all three providers
 - A rule-based event routing system using JSONPath expressions
 - Automatic payload normalization
@@ -44,7 +44,7 @@ Githooks solves this by providing:
 
 **Architecture Overview:**
 
-Githooks consists of two main components:
+githook consists of two main components:
 1. **Server**: Receives webhooks, validates signatures, evaluates rules, and publishes events to message brokers
 2. **Worker SDK**: Consumes events from brokers with provider-aware API clients pre-configured and ready to use
 
@@ -55,7 +55,7 @@ Githooks consists of two main components:
 ```
 ┌─────────────┐      ┌──────────────┐      ┌─────────────┐      ┌─────────────┐
 │   GitHub    │      │              │      │   Message   │      │   Workers   │
-│   GitLab    │─────▶│  Githooks    │─────▶│   Broker    │─────▶│  (Your App) │
+│   GitLab    │─────▶│  githook    │─────▶│   Broker    │─────▶│  (Your App) │
 │  Bitbucket  │      │   Server     │      │   (AMQP)    │      │             │
 └─────────────┘      └──────────────┘      └─────────────┘      └─────────────┘
    Webhooks           Rules Engine          Watermill           Business Logic
@@ -106,7 +106,7 @@ Githooks consists of two main components:
 
 ---
 
-## Why Githooks
+## Why githook
 
 **Unified Event Handling**
 - Write once, handle webhooks from GitHub, GitLab, and Bitbucket without provider-specific code
@@ -140,34 +140,34 @@ Githooks consists of two main components:
 ### Homebrew (macOS/Linux)
 
 ```bash
-brew install yindia/homebrew-yindia/githooks
+brew install yindia/homebrew-yindia/githook
 ```
 
 ### Install Script (Linux/macOS)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yindia/githooks/refs/heads/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/yindia/githook/refs/heads/main/install.sh | sh
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/yindia/githooks.git
-cd githooks
-go build -o githooks ./main.go
+git clone https://github.com/yindia/githook.git
+cd githook
+go build -o githook ./main.go
 ```
 
 ### Verify Installation
 
 ```bash
-githooks --version
+githook --version
 ```
 
 ---
 
 ## Quick Start Guide (GitHub Apps)
 
-Get Githooks running locally with GitHub Apps in 4 steps:
+Get githook running locally with GitHub Apps in 4 steps:
 
 ### Prerequisites
 
@@ -208,7 +208,7 @@ Create a GitHub App with these settings:
 
 Download the private key and note your App ID.
 
-### Step 4: Configure Githooks
+### Step 4: Configure githook
 
 Edit `config.yaml` and replace `<your-ngrok-url>` with your actual ngrok URL:
 
@@ -241,7 +241,7 @@ watermill:
 
 storage:
   driver: postgres
-  dsn: postgres://githooks:githooks@localhost:5432/githooks?sslmode=disable
+  dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
   dialect: postgres
   auto_migrate: true
 
@@ -275,30 +275,125 @@ In another terminal:
 go run ./example/github/worker/main.go --config config.yaml --driver amqp
 ```
 
-### Step 7: Test with Webhooks
+### Step 7: Install the GitHub App via OAuth
 
-Test different event types that match the configured rules:
-
-**Pull request opened:**
+**Get the instance hash:**
 ```bash
-./scripts/send_webhook.sh github pull_request example/github/pull_request.json
+githook --endpoint http://localhost:8080 providers list --provider github
 ```
 
-**Commit/push event:**
-```bash
-./scripts/send_webhook.sh github push example/github/push.json
+Copy the instance hash from the output (e.g., `a1b2c3d4`).
+
+**Installation URL:**
+```
+http://localhost:8080/?provider=github&instance=<instance-hash>
 ```
 
-You should see the worker receive and process these events in the terminal.
+For example: `http://localhost:8080/?provider=github&instance=a1b2c3d4`
 
-### Step 8: Install the GitHub App
+**Steps:**
+1. Visit the installation URL in your browser
+2. You'll be redirected to GitHub to authorize the app
+3. Select the organization or account to install on
+4. Choose which repositories to grant access (All or Select)
+5. Click "Install & Authorize"
+6. You'll be redirected back to githook
+7. Installation is complete!
 
-Install your GitHub App on a repository and open a pull request. The worker will receive the event automatically.
+### Step 8: Trigger Events
+
+Now test the integration by performing actions on an installed repository:
+
+**Create a Pull Request:**
+1. Open a repository where the GitHub App is installed
+2. Create a new branch and make some changes
+3. Open a pull request
+4. The worker should log: `PR opened: github/pull_request`
+
+**Push a Commit:**
+1. Make a commit and push to the repository
+2. The worker should log: `github.commit.created: repo=owner/repo commit=abc123...`
 
 **Troubleshooting:**
 - If webhooks aren't being received, check that ngrok is still running
 - Verify your `public_base_url` in `config.yaml` matches your ngrok URL
-- Check GitHub App webhook delivery logs in GitHub settings
+- Check GitHub App webhook delivery logs in GitHub App settings → Advanced → Recent Deliveries
+- Ensure OAuth credentials (`client_id` and `client_secret`) are configured in `config.yaml`
+
+---
+
+## OAuth Onboarding Flow
+
+OAuth onboarding allows users to connect their GitLab or Bitbucket accounts (or GitHub with user authorization) to githook.
+
+### When to Use
+
+- **GitLab**: Required for all GitLab integrations
+- **Bitbucket**: Required for all Bitbucket integrations
+- **GitHub**: Optional (only if "Request user authorization" is enabled in GitHub App)
+
+### Configuration
+
+Configure OAuth credentials and redirect URL:
+
+```yaml
+server:
+  public_base_url: https://your-domain.com  # Your public URL
+
+providers:
+  github:
+    oauth:
+      client_id: ${GITHUB_OAUTH_CLIENT_ID}
+      client_secret: ${GITHUB_OAUTH_CLIENT_SECRET}
+      scopes: ["read:user"]
+
+oauth:
+  redirect_base_url: https://app.example.com/success  # Where to send users after OAuth
+```
+
+**Callback URLs** (configure in provider settings):
+- **GitHub**: `https://your-domain.com/auth/github/callback`
+- **GitLab**: `https://your-domain.com/auth/gitlab/callback`
+- **Bitbucket**: `https://your-domain.com/auth/bitbucket/callback`
+
+### How It Works
+
+**Step 1: Get Instance Hash**
+
+```bash
+githook --endpoint https://your-domain.com providers list --provider github
+# Output: Instance: a1b2c3d4
+```
+
+**Step 2: Redirect User to OAuth URL**
+
+```
+https://your-domain.com/?provider=github&instance=a1b2c3d4
+```
+
+**Step 3: User Authorizes**
+
+1. User is redirected to provider (GitHub/GitLab/Bitbucket)
+2. User authorizes the application
+3. Provider redirects back to githook with authorization code
+4. githook exchanges code for access token
+5. Token stored in PostgreSQL
+6. User redirected to `oauth.redirect_url`
+
+**Step 4: Done!**
+
+- ✅ Installation created in database
+- ✅ Webhooks will be processed
+- ✅ Workers get authenticated API clients
+- ✅ User redirected to `oauth.redirect_base_url` (if configured)
+
+### Flow Diagram
+
+```
+User → githook → Provider OAuth → Callback → Store Token → Redirect to App
+```
+
+See [docs/oauth-callbacks.md](docs/oauth-callbacks.md) for detailed OAuth documentation.
 
 ---
 
@@ -318,60 +413,9 @@ Each guide includes:
 
 ---
 
-## Authentication
-
-Githooks supports different authentication methods for each provider.
-
-### GitHub Authentication
-
-**GitHub App (Recommended)**
-- Create a GitHub App with webhook and API permissions
-- Githooks generates JWT tokens signed with your private key
-- Exchanges JWT for installation tokens scoped to specific repositories
-- Installation tokens are cached and automatically refreshed
-
-**OAuth (Optional)**
-- Used for user-initiated onboarding flows
-- Requires OAuth client ID and secret
-- Tokens stored in PostgreSQL after authorization
-
-### GitLab Authentication
-
-**OAuth Application**
-- Create a GitLab OAuth application
-- Configure callback URL: `https://your-domain.com/auth/gitlab/callback`
-- Tokens obtained during OAuth flow are stored in PostgreSQL
-- Tokens used for API calls to fetch repositories and namespaces
-
-### Bitbucket Authentication
-
-**OAuth Consumer**
-- Create a Bitbucket OAuth consumer
-- Configure callback URL: `https://your-domain.com/auth/bitbucket/callback`
-- OAuth 2.0 tokens stored after user authorization
-- Tokens used for Bitbucket API interactions
-
-### API Authentication (Optional)
-
-Secure Connect RPC endpoints with OAuth2/OIDC:
-
-```yaml
-auth:
-  oauth2:
-    enabled: true
-    issuer: https://your-okta-domain/oauth2/default
-    audience: api://githooks
-```
-
-When enabled, all CLI and API calls require a bearer token. Webhooks and `/auth/*` endpoints remain public.
-
-See [docs/auth.md](docs/auth.md) for detailed authentication setup.
-
----
-
 ## Terminology
 
-Understanding these key concepts will help you configure and use Githooks effectively.
+Understanding these key concepts will help you configure and use githook effectively.
 
 ### Providers
 
@@ -428,7 +472,7 @@ A **state ID** is a cryptographically random string used for CSRF protection dur
 - **GitLab**: Groups and subgroups
 - **Bitbucket**: Workspaces
 
-During OAuth onboarding, Githooks fetches available namespaces and allows users to select which ones to grant access to.
+During OAuth onboarding, githook fetches available namespaces and allows users to select which ones to grant access to.
 
 ### Drivers
 
@@ -456,127 +500,30 @@ During OAuth onboarding, Githooks fetches available namespaces and allows users 
 
 ## Storage
 
-Githooks uses PostgreSQL to persist OAuth tokens, GitHub App installation metadata, and provider instance configurations.
-
-### Database Schema
-
-The storage layer manages these entities:
-
-**Installations Table:**
-- Stores provider installations with OAuth tokens
-- Indexed by: `tenant_id`, `provider`, `account_id`, `installation_id`, `instance_key`
-- Columns: tokens, account name, created/updated timestamps
-
-**Provider Instances:**
-- Stored on server startup from config file
-- Each instance gets a server-generated hash (e.g., `a1b2c3d4`)
-- Used to differentiate between multiple configs of the same provider
-
-### Configuration
+githook uses PostgreSQL to persist OAuth tokens, GitHub App installation metadata, and provider instance configurations.
 
 ```yaml
 storage:
   driver: postgres
-  dsn: postgres://githooks:githooks@localhost:5432/githooks?sslmode=disable
+  dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
   dialect: postgres
   auto_migrate: true
 ```
-
-**Options:**
-- `driver`: Database driver (`postgres`, `mysql`, `sqlite`)
-- `dsn`: Data source name (connection string)
-- `dialect`: SQL dialect for GORM
-- `auto_migrate`: Automatically create/update schema on startup
-
-### Token Security
-
-- OAuth access tokens and refresh tokens are stored in plaintext
-- **Production recommendation**: Encrypt sensitive columns using database-level encryption or application-level encryption
-- Consider using HashiCorp Vault or AWS Secrets Manager for token storage in production
-- Rotate tokens periodically using OAuth refresh token flow
-
-### State Management
-
-- OAuth state parameters are ephemeral and not persisted
-- Installation tokens (GitHub) are cached in memory and refreshed as needed
-- Provider instance hashes are deterministic and regenerated on server restart
 
 See [docs/storage.md](docs/storage.md) for advanced storage configuration.
 
 ---
 
-## OAuth Callbacks and Webhook URLs
+## Webhook URLs
 
-### OAuth Callback URLs
+Webhook URL schema: `<base-url>/webhooks/<provider>`
 
-When configuring OAuth applications on each provider, use these callback paths.
+**Default webhook paths:**
+- **GitHub:** `/webhooks/github`
+- **GitLab:** `/webhooks/gitlab`
+- **Bitbucket:** `/webhooks/bitbucket`
 
-**For Local Development (with ngrok):**
-
-First, start ngrok to get your public URL:
-```bash
-ngrok http 8080
-# Copy the HTTPS forwarding URL (e.g., https://abc123.ngrok-free.app)
-```
-
-Then configure these callback URLs in your provider settings:
-
-- **GitHub:** `https://<your-ngrok-url>/auth/github/callback`
-- **GitLab:** `https://<your-ngrok-url>/auth/gitlab/callback`
-- **Bitbucket:** `https://<your-ngrok-url>/auth/bitbucket/callback`
-
-**For Production:**
-
-- **GitHub:** `https://your-domain.com/auth/github/callback`
-- **GitLab:** `https://your-domain.com/auth/gitlab/callback`
-- **Bitbucket:** `https://your-domain.com/auth/bitbucket/callback`
-
-**Important:**
-- The path must be `/auth/{provider}/callback` (not `/oauth/{provider}/callback`)
-- Set `server.public_base_url` in your config to match your domain
-- For local development with ngrok, run `ngrok http 8080` and use the generated URL
-
-**Local Development Setup:**
-```bash
-# Start ngrok to expose your local server
-ngrok http 8080
-
-# Use the ngrok URL in your config
-```
-
-**Example config:**
-```yaml
-server:
-  public_base_url: https://<your-ngrok-url>  # Replace with actual ngrok URL
-
-oauth:
-  redirect_base_url: https://app.example.com/oauth/complete
-```
-
-### Webhook URLs
-
-Configure these webhook URLs in your provider settings.
-
-**For Local Development (with ngrok):**
-
-First, start ngrok:
-```bash
-ngrok http 8080
-```
-
-Then use the ngrok URL in your webhook configuration:
-
-- **GitHub:** `https://<your-ngrok-url>/webhooks/github`
-- **GitLab:** `https://<your-ngrok-url>/webhooks/gitlab`
-- **Bitbucket:** `https://<your-ngrok-url>/webhooks/bitbucket`
-
-**For Production:**
-
-- **GitHub:** `https://your-domain.com/webhooks/github`
-- **GitLab:** `https://your-domain.com/webhooks/gitlab`
-- **Bitbucket:** `https://your-domain.com/webhooks/bitbucket`
-
-**Custom webhook paths (optional):**
+**Custom webhook paths:**
 ```yaml
 providers:
   github:
@@ -585,53 +532,11 @@ providers:
       secret: ${GITHUB_WEBHOOK_SECRET}
 ```
 
-### OAuth Onboarding Flow
-
-**Initiating OAuth:**
-
-For local development, redirect users to your ngrok URL:
-```
-https://<your-ngrok-url>/?provider=github&instance=<instance-hash>
-```
-
-For production:
-```
-https://your-domain.com/?provider=github&instance=<instance-hash>
-```
-
-**Getting the instance hash:**
-
-```bash
-# Local development
-githooks --endpoint http://localhost:8080 providers list --provider github
-
-# Production
-githooks --endpoint https://your-domain.com providers list --provider github
-```
-
-This returns all configured provider instances with their hashes.
-
-**Multiple Provider Instances:**
-
-If you have multiple instances (e.g., GitHub.com + GHE), specify which instance:
-```
-https://<your-domain>/?provider=github&instance=a1b2c3d4
-```
-
-**Notes:**
-- GitHub App installs are initiated from the GitHub App installation page
-- The GitHub OAuth callback is only used when "Request user authorization (OAuth)" is enabled in the GitHub App settings
-- The callback receives authorization codes and exchanges them for access tokens
-- Tokens are stored in PostgreSQL and used for API authentication
-- For local development, ensure ngrok is running before initiating OAuth flows
-
-See [docs/oauth-callbacks.md](docs/oauth-callbacks.md) for detailed callback flow documentation.
-
 ---
 
 ## Drivers
 
-Drivers are message broker implementations that Githooks uses to publish events. Powered by [Watermill](https://watermill.io/), Githooks supports multiple brokers simultaneously.
+Drivers are message broker implementations that githook uses to publish events. Powered by [Watermill](https://watermill.io/), githook supports multiple brokers simultaneously.
 
 ### Available Drivers
 
@@ -657,7 +562,7 @@ watermill:
   nats:
     url: nats://localhost:4222
     cluster_id: test-cluster
-    client_id: githooks-publisher
+    client_id: githook-publisher
 ```
 
 **Kafka**
@@ -666,7 +571,7 @@ watermill:
   driver: kafka
   kafka:
     brokers: ["localhost:9092"]
-    consumer_group: githooks
+    consumer_group: githook
 ```
 
 **SQL (PostgreSQL/MySQL)**
@@ -705,7 +610,7 @@ watermill:
     dsn: postgres://user:pass@localhost:5432/db?sslmode=disable
     table: river_job
     queue: default
-    kind: githooks.event
+    kind: githook.event
 ```
 
 ### Multi-Driver Fan-Out
@@ -747,7 +652,7 @@ See [docs/drivers.md](docs/drivers.md) for advanced driver configuration.
 
 ## Rules
 
-Rules are the heart of Githooks' event routing system. They define which webhook events to publish and where to send them.
+Rules are the heart of githook' event routing system. They define which webhook events to publish and where to send them.
 
 ### Rule Structure
 
@@ -875,12 +780,12 @@ See [docs/rules.md](docs/rules.md) for advanced rule patterns.
 
 ## SDK
 
-The Githooks Worker SDK provides a Go library for consuming events from message brokers with provider-aware API clients injected.
+The githook Worker SDK provides a Go library for consuming events from message brokers with provider-aware API clients injected.
 
 ### Installation
 
 ```bash
-go get githooks/sdk/go/worker
+go get githook/sdk/go/worker
 ```
 
 ### Basic Usage
@@ -892,7 +797,7 @@ import (
     "context"
     "log"
 
-    "githooks/sdk/go/worker"
+    "githook/sdk/go/worker"
 )
 
 func main() {
@@ -1162,7 +1067,7 @@ Demonstrates:
 ## Documentation
 
 ### Configuration Guides
-- [API Reference](https://buf.build/githooks/cloud) - Connect RPC API documentation
+- [API Reference](https://buf.build/githook/cloud) - Connect RPC API documentation
 - [Driver Configuration](docs/drivers.md) - Message broker setup
 - [Rules Engine](docs/rules.md) - Event routing patterns
 - [Storage](docs/storage.md) - Database configuration
@@ -1189,4 +1094,4 @@ Demonstrates:
 
 **Made with ❤️ for developers who automate Git workflows**
 
-Questions? Issues? Check the [documentation](docs/) or [open an issue](https://github.com/yindia/githooks/issues).
+Questions? Issues? Check the [documentation](docs/) or [open an issue](https://github.com/yindia/githook/issues).
