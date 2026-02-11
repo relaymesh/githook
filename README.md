@@ -210,8 +210,8 @@ providers:
     api:
       base_url: https://api.github.com
     oauth:
-      client_id: ${GITHUB_OAUTH_CLIENT_ID}
-      client_secret: ${GITHUB_OAUTH_CLIENT_SECRET}
+      client_id: your-oauth-client-id
+      client_secret: your-oauth-client-secret
 
 watermill:
   driver: amqp
@@ -246,7 +246,6 @@ rules:
 ### Step 5: Start the Server
 
 ```bash
-export GITHUB_WEBHOOK_SECRET=devsecret
 go run ./main.go serve --config config.yaml
 ```
 
@@ -318,8 +317,8 @@ server:
 providers:
   github:
     oauth:
-      client_id: ${GITHUB_OAUTH_CLIENT_ID}
-      client_secret: ${GITHUB_OAUTH_CLIENT_SECRET}
+      client_id: your-oauth-client-id
+      client_secret: your-oauth-client-secret
 
 oauth:
   redirect_base_url: https://app.example.com/success  # Where to send users after OAuth
@@ -345,7 +344,7 @@ githook --endpoint https://your-domain.com providers list --provider github
 https://your-domain.com/?provider=github&instance=a1b2c3d4
 ```
 
-**Step 3: User Authorizes**
+**Step 3: Complete Authorization**
 
 1. User is redirected to provider (GitHub/GitLab/Bitbucket)
 2. User authorizes the application

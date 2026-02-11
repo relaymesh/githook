@@ -1,69 +1,141 @@
 # OAuth Callbacks
 
-Githooks can accept OAuth callbacks on dedicated endpoints and store installation
-data in the configured SQL store. After a successful callback, Githooks redirects
-to a frontend URL and appends query parameters for the provider and state.
+githook handles OAuth callbacks to authorize and connect Git provider accounts. After successful authorization, users are redirected to your application with installation metadata.
 
-## GitHub App install entry
-
-GitHub App installs start from the GitHub App installation page, not from a
-Githooks route. You can send users to the install URL:
+## OAuth Flow Overview
 
 ```
-https://github.com/apps/<app-slug>/installations/new
+User → githook OAuth URL → Provider (GitHub/GitLab/Bitbucket) → Callback → Store Token → Redirect
 ```
 
-If you enable **Request user authorization (OAuth) during installation** in the
-GitHub App settings, set the App **Callback URL** to:
+## Callback Endpoints
 
-```
-https://<your-domain>/auth/github/callback
-```
+Configure these callback URLs in your provider OAuth applications:
 
-This callback is separate from the webhook URL (`/webhooks/github`).
+- **GitHub**: `https://your-domain.com/auth/github/callback`
+- **GitLab**: `https://your-domain.com/auth/gitlab/callback`
+- **Bitbucket**: `https://your-domain.com/auth/bitbucket/callback`
+
+**Important**: The path must be `/auth/{provider}/callback` (not `/oauth/{provider}/callback`)
 
 ## Configuration
 
 ```yaml
 server:
-  public_base_url: https://app.example.com
+  public_base_url: https://your-domain.com  # Your public URL
+
 oauth:
-  redirect_base_url: https://app.example.com/oauth/complete
+  redirect_base_url: https://app.example.com/oauth/complete  # Where to send users after OAuth
 ```
 
-The redirect URL receives query params such as:
-- `provider`
-- `state`
-- `installation_id` (GitHub App installs)
+## Initiating OAuth
 
-## Endpoints
-
-- `/auth/github/callback`
-- `/auth/gitlab/callback`
-- `/auth/bitbucket/callback`
-
-## Install/Authorize entry
-
-To start the flow, redirect users to:
+Redirect users to:
 
 ```
-http://localhost:8080/?provider=github
-http://localhost:8080/?provider=gitlab
-http://localhost:8080/?provider=bitbucket
+https://your-domain.com/?provider=<provider>&instance=<instance-hash>
 ```
 
-To target a specific provider instance, pass `instance=<hash>` (required when multiple instances exist):
+**Get instance hash:**
+```bash
+githook --endpoint https://your-domain.com providers list --provider github
+```
+
+**Examples:**
+- GitHub: `https://your-domain.com/?provider=github&instance=a1b2c3d4`
+- GitLab: `https://your-domain.com/?provider=gitlab&instance=a1b2c3d4`
+- Bitbucket: `https://your-domain.com/?provider=bitbucket&instance=a1b2c3d4`
+
+## What Happens
+
+1. User clicks the OAuth URL
+2. Redirected to provider's authorization page
+3. User authorizes the application
+4. Provider redirects to githook callback (`/auth/{provider}/callback`)
+5. githook exchanges authorization code for access token
+6. Token stored in PostgreSQL
+7. User redirected to `oauth.redirect_base_url` with query parameters:
+   - `provider` - The provider name
+   - `state` - CSRF token
+   - `installation_id` - GitHub installation ID (GitHub only)
+
+## Provider-Specific Notes
+
+### GitHub
+
+**GitHub App Installation:**
+- Installations start from GitHub App settings, not githook
+- Direct URL: `https://github.com/apps/<app-slug>/installations/new`
+- Webhook URL: `https://your-domain.com/webhooks/github` (separate from callback)
+
+**OAuth (Optional):**
+- Only required if "Request user authorization (OAuth)" is enabled in GitHub App settings
+- Callback URL: `https://your-domain.com/auth/github/callback`
+
+### GitLab
+
+- OAuth required for all GitLab integrations
+- Uses `providers.gitlab.oauth.client_id` and `client_secret`
+- Callback URL: `https://your-domain.com/auth/gitlab/callback`
+
+### Bitbucket
+
+- OAuth required for all Bitbucket integrations
+- Uses `providers.bitbucket.oauth.client_id` and `client_secret`
+- Callback URL: `https://your-domain.com/auth/bitbucket/callback`
+
+## Multiple Provider Instances
+
+For organizations using both public and self-hosted platforms:
+
+```yaml
+providers:
+  github:
+    enabled: true
+    api:
+      base_url: https://api.github.com
+    oauth:
+      client_id: your-oauth-client-id
+      client_secret: your-oauth-client-secret
+
+  github_enterprise:
+    enabled: true
+    api:
+      base_url: https://ghe.company.com/api/v3
+    oauth:
+      client_id: your-ghe-oauth-client-id
+      client_secret: your-ghe-oauth-client-secret
+```
+
+Each instance gets a unique hash. Specify which instance during OAuth:
 
 ```
-http://localhost:8080/?provider=github&instance=acme-prod
+https://your-domain.com/?provider=github&instance=<github-com-hash>
+https://your-domain.com/?provider=github&instance=<ghe-hash>
 ```
 
-GitHub uses the App installation URL. GitLab and Bitbucket use OAuth authorize URLs built from `providers.*` config.
+## Security
 
-## Notes
+- **CSRF Protection**: OAuth state parameter is cryptographically random (32 bytes)
+- **Token Storage**: Access tokens stored in PostgreSQL (consider encryption for production)
+- **Callback Validation**: State parameter validated on callback
+- **Installation Records**: Uniquely indexed to prevent duplicates
 
-- These routes are separate from webhook endpoints to keep webhook parsing unchanged.
-- GitHub App installs are initiated from GitHub, not from Githooks. The callback is only used when "Request user authorization" is enabled.
-- `server.public_base_url` forces callback URLs to use your public domain instead of `localhost`.
-- GitLab/Bitbucket OAuth uses the configured `providers.*.oauth.client_id` and `providers.*.oauth.client_secret`.
-- GitHub App installs store the `installation_id` for later lookup.
+## Troubleshooting
+
+**"Invalid state parameter":**
+- State used for CSRF protection
+- Ensure cookies are enabled in the browser
+
+**"Provider instance not found":**
+- Instance hash doesn't match any configured provider
+- Run `githook providers list` to get correct hash
+
+**"Failed to exchange authorization code":**
+- OAuth credentials incorrect
+- Verify `client_id` and `client_secret` in config
+- Check callback URL matches provider settings
+
+**404 on callback:**
+- Callback path must be `/auth/{provider}/callback`
+- Verify `server.public_base_url` is set correctly

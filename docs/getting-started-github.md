@@ -1,144 +1,158 @@
 # Getting Started: GitHub
 
-Let us build a working GitHub webhook pipeline end to end: start the broker stack, run the server, run a worker, and then plug in a real GitHub App so events flow from GitHub to your code.
+Build a working GitHub webhook pipeline: start the broker stack, run the server, run a worker, and connect a real GitHub App so events flow from GitHub to your code.
 
-## Before you begin
+## Prerequisites
 
-You will need:
-
-- Go 1.21+
+- Go 1.24+
 - Docker + Docker Compose
+- ngrok (for local development - [download here](https://ngrok.com/download))
 - A GitHub account
 
-## Step 1: start the local broker stack
-
-From the repo root:
+## Step 1: Start Dependencies
 
 ```bash
 docker compose up -d
 ```
 
-This boots RabbitMQ, NATS Streaming, Kafka/Zookeeper, and Postgres. The server will publish to them based on your configuration.
+This starts PostgreSQL and RabbitMQ.
 
-## Step 2: run the webhook server
-
-Use the GitHub example config:
-
-```bash
-go run ./main.go serve --config example/github/app.yaml
-```
-
-You should see logs showing the server is listening on `:8080`.
-
-## Step 3: run the worker
-
-In another terminal:
-
-```bash
-go run ./example/github/worker/main.go
-```
-
-The worker subscribes to topics emitted by the GitHub rules and logs each match.
-
-## Step 4: send a local test event
-
-Try a simulated pull request event:
-
-```bash
-./scripts/send_webhook.sh github pull_request example/github/pull_request.json
-```
-
-Expected result:
-
-- The server logs a rule match and publishes a topic.
-- The worker logs that it handled the topic.
-
-At this point, the full local loop works. Now let us wire real GitHub traffic into it.
-
-## Step 5: create a GitHub App
-
-1. GitHub: **Settings** -> **Developer settings** -> **GitHub Apps** -> **New GitHub App**.
-2. App name: `githook-local` (any name is fine).
-3. Homepage URL: `http://localhost:8080`.
-4. Webhook URL: `http://localhost:8080/webhooks/github`.
-5. Webhook secret: pick a random string and save it.
-6. **Callback URL** (if using OAuth): `http://localhost:8080/auth/github/callback`
-   - This is required if you enable "Request user authorization (OAuth) during installation"
-   - **Important**: The path must be `/auth/github/callback` (not `/oauth/github/callback`)
-7. Permissions:
-   - Repository permissions: set **Pull requests** to **Read-only**.
-8. Subscribe to events:
-   - `Pull request`
-   - `Push` (optional)
-9. Create the app.
-
-### Install the app on a repo
-
-1. In the app settings, click **Install App**.
-2. Choose a test repository and install.
-
-Optional: you can also start the install flow by visiting `http://localhost:8080/?provider=github`, which redirects to the GitHub App install page when `providers.github.app.app_slug` is set.
-
-### Using Multiple Provider Instances
-
-If you have multiple GitHub provider instances configured (e.g., GitHub.com and GitHub Enterprise), you need to specify which instance to use with the `instance` parameter:
-
-```
-http://localhost:8080/?provider=github&instance=<instance-key>
-```
-
-To get the instance key, run:
-
-```bash
-go run ./main.go --endpoint http://localhost:8080 providers list --provider github
-```
-
-This will show all configured GitHub provider instances and their corresponding instance keys (hashes).
-
-### Update your config
-
-Set the webhook secret in `example/github/app.yaml` or export it as an env var:
-
-```yaml
-providers:
-  github:
-    enabled: true
-    webhook:
-      secret: ${GITHUB_WEBHOOK_SECRET}
-```
-
-Then:
-
-```bash
-export GITHUB_WEBHOOK_SECRET="your-secret"
-go run ./main.go serve --config example/github/app.yaml
-```
-
-GitHub will now deliver real webhook events to your local server.
-
-## Step 6: expose localhost with ngrok (optional)
-
-If GitHub cannot reach your machine:
+## Step 2: Expose with ngrok
 
 ```bash
 ngrok http 8080
 ```
 
-Update the GitHub App configuration with your ngrok URL:
-- **Webhook URL**: `https://your-ngrok-url.ngrok-free.app/webhooks/github`
-- **Callback URL**: `https://your-ngrok-url.ngrok-free.app/auth/github/callback`
+Copy the HTTPS forwarding URL (e.g., `https://abc123.ngrok-free.app`). Keep ngrok running.
 
-Also update your config file with the public base URL:
+## Step 3: Create a GitHub App
+
+1. Go to: **Settings** → **Developer settings** → **GitHub Apps** → **New GitHub App**
+2. **App name**: `githook-local`
+3. **Homepage URL**: `https://<your-ngrok-url>`
+4. **Webhook URL**: `https://<your-ngrok-url>/webhooks/github`
+5. **Webhook secret**: `devsecret` (for testing)
+6. **Callback URL**: `https://<your-ngrok-url>/auth/github/callback`
+   - Required if enabling "Request user authorization (OAuth)"
+   - Path must be `/auth/github/callback`
+7. **Permissions**: Repository metadata (read), Pull requests (read & write)
+8. **Subscribe to events**: Pull request, Push, Check suite
+9. Create the app and download the private key
+
+## Step 4: Configure githook
+
+Edit `config.yaml`:
 
 ```yaml
 server:
-  public_base_url: https://your-ngrok-url.ngrok-free.app
+  port: 8080
+  public_base_url: https://<your-ngrok-url>
+
+providers:
+  github:
+    enabled: true
+    webhook:
+      secret: devsecret
+    app:
+      app_id: YOUR_APP_ID
+      private_key_path: /path/to/github.pem
+      app_slug: your-app-slug
+    api:
+      base_url: https://api.github.com
+    oauth:
+      client_id: your-oauth-client-id
+      client_secret: your-oauth-client-secret
+
+watermill:
+  driver: amqp
+  amqp:
+    url: amqp://guest:guest@localhost:5672/
+    mode: durable_queue
+
+storage:
+  driver: postgres
+  dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
+  dialect: postgres
+  auto_migrate: true
+
+oauth:
+  redirect_base_url: https://app.example.com/success
+
+rules:
+  - when: action == "opened" && pull_request.draft == false
+    emit: pr.opened.ready
+  - when: action == "closed" && pull_request.merged == true
+    emit: pr.merged
+  - when: head_commit.id != "" && commits[0].id != "" && commits[1] == null
+    emit: github.commit.created
+  - when: action == "requested" && check_suite.head_commit.id != ""
+    emit: github.commit.created
 ```
+
+## Step 5: Start the Server
+
+```bash
+go run ./main.go serve --config config.yaml
+```
+
+## Step 6: Start a Worker
+
+```bash
+go run ./example/github/worker/main.go --config config.yaml --driver amqp
+```
+
+## Step 7: Install the GitHub App
+
+Get the provider instance hash:
+```bash
+githook --endpoint http://localhost:8080 providers list --provider github
+```
+
+Visit the OAuth installation URL:
+```
+http://localhost:8080/?provider=github&instance=<instance-hash>
+```
+
+Follow the GitHub authorization flow to complete installation.
+
+## Step 8: Trigger Events
+
+Create a pull request or push a commit to an installed repository. The worker will receive and process the events.
 
 ## Troubleshooting
 
-- `missing X-Hub-Signature`: your webhook secret does not match.
-- `no matching rules`: ensure rules in `example/github/app.yaml` match your payload.
-- `connection refused`: make sure Docker Compose is running for broker drivers.
-- `404 page not found` on callback: verify the GitHub App callback URL is `/auth/github/callback` (not `/oauth/github/callback`).
-- `database constraint error`: drop and recreate the `githook_installations` table if you upgraded from an older version.
+- **Webhooks not received**: Check ngrok is still running, verify `public_base_url` matches ngrok URL
+- **404 on callback**: Callback URL must be `/auth/github/callback`
+- **Missing signature**: Webhook secret doesn't match configuration
+- **No matching rules**: Rules in config don't match the webhook payload
+- **Connection refused**: Ensure Docker Compose is running
+- **Database errors**: Check PostgreSQL is running and connection string is correct
+
+## Multiple Provider Instances
+
+For GitHub.com + GitHub Enterprise setups, configure multiple instances:
+
+```yaml
+providers:
+  github:
+    enabled: true
+    api:
+      base_url: https://api.github.com
+    # ... other config
+
+  github_enterprise:
+    enabled: true
+    api:
+      base_url: https://ghe.company.com/api/v3
+    # ... other config
+```
+
+Get instance hash:
+```bash
+githook --endpoint http://localhost:8080 providers list --provider github
+```
+
+Use with OAuth:
+```
+http://localhost:8080/?provider=github&instance=<instance-hash>
+```
