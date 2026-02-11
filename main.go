@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"githooks/cmd"
+	"githook/cmd"
 )
 
 func main() {
