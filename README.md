@@ -6,19 +6,20 @@
 
 1. [About](#about)
 2. [How It Works](#how-it-works)
-3. [Why githook](#why-githook)
-4. [Installing the CLI](#installing-the-cli)
-5. [Quick Start Guide (GitHub Apps)](#quick-start-guide-github-apps)
-6. [OAuth Onboarding Flow](#oauth-onboarding-flow)
-7. [SCM-Specific Documentation](#scm-specific-documentation)
-8. [Terminology](#terminology)
-9. [Storage](#storage)
-10. [Webhook URLs](#webhook-urls)
-11. [Drivers](#drivers)
-12. [Rules](#rules)
-13. [SDK](#sdk)
-14. [Examples](#examples)
-15. [Documentation](#documentation)
+3. [Features](#features)
+4. [Why githook](#why-githook)
+5. [Installing the CLI](#installing-the-cli)
+6. [Quick Start Guide (GitHub Apps)](#quick-start-guide-github-apps)
+7. [OAuth Onboarding Flow](#oauth-onboarding-flow)
+8. [SCM-Specific Documentation](#scm-specific-documentation)
+9. [Terminology](#terminology)
+10. [Storage](#storage)
+11. [Webhook URLs](#webhook-urls)
+12. [Drivers](#drivers)
+13. [Rules](#rules)
+14. [SDK](#sdk)
+15. [Examples](#examples)
+16. [Documentation](#documentation)
 
 ---
 
@@ -87,19 +88,30 @@ githook consists of two main components:
 
 ---
 
+## Features
+
+- **Multi-Provider Support**: GitHub, GitLab, Bitbucket webhooks unified
+- **Rule Engine**: JSONPath + boolean expressions for event routing
+- **Multi-Broker Publishing**: AMQP, NATS, Kafka, HTTP, SQL, GoChannel, RiverQueue
+- **API-First Architecture**: Connect RPC (gRPC) API for all operations
+- **Multi-Tenant Ready**: Provider instance management with OAuth onboarding
+- **Worker SDK**: Go SDK with auto-injected provider API clients
+- **SCM Client Injection**: Pre-authenticated GitHub, GitLab, Bitbucket clients
+- **Event Normalization**: Common payload structure across providers
+- **Request Tracing**: End-to-end tracing with `X-Request-ID`
+
+---
+
 ## Why githook
 
 **Stop reinventing the wheel.** Every company builds the same webhook infrastructure over and over. We built it once, so you can reuse it.
 
-### Features
-
-- **Multi-Provider Support**: GitHub, GitLab, Bitbucket webhooks unified
+- **Unified Webhooks**: One platform for GitHub, GitLab, and Bitbucket
 - **Declarative Routing**: JSONPath rules instead of hardcoded logic
-- **API-First Architecture**: Connect RPC (gRPC) API for all operations
-- **Multi-Tenant Ready**: Provider instance management with OAuth onboarding
+- **API-First Design**: Connect RPC (gRPC) API for programmatic control
+- **Multi-Tenant**: Support multiple organizations with isolated configurations
 - **Broker Agnostic**: AMQP, NATS, Kafka, SQL, HTTP - use any broker
-- **Worker SDK**: Go SDK with auto-injected provider API clients
-- **Event Normalization**: Common payload structure across providers
+- **Auto-Authenticated**: Workers get pre-configured API clients
 - **Event-Driven**: Decouple webhook processing from business logic
 
 ---
@@ -212,7 +224,6 @@ storage:
   dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
   dialect: postgres
   auto_migrate: true
-
 oauth:
   redirect_base_url: https://app.example.com/success  # Optional: Where to redirect users after OAuth completion
 
@@ -228,9 +239,9 @@ rules:
   - when: action == "requested" && check_suite.head_commit.id != ""
     emit: github.commit.created
 ```
-
 **OAuth Configuration:**
 - `oauth.redirect_base_url`: (Optional) URL where users are redirected after completing OAuth authorization. If not configured, users will see a simple success message. For production, point this to your application's OAuth success page.
+
 
 ### Step 5: Start the Server
 
@@ -424,12 +435,10 @@ See [docs/storage.md](docs/storage.md) for advanced storage configuration.
 
 Webhook URL schema: `<base-url>/webhooks/<provider>`
 
-**Default webhook endpoints:**
+**Default webhook paths:**
 - **GitHub:** `/webhooks/github`
 - **GitLab:** `/webhooks/gitlab`
 - **Bitbucket:** `/webhooks/bitbucket`
-
-Configure these URLs in your provider's webhook settings. The `<base-url>` should be your public domain (production) or ngrok URL (local development).
 
 ---
 
