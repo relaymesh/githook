@@ -18,6 +18,7 @@ const (
 	eventLogStatusDelivered = "delivered"
 	eventLogStatusSuccess   = "success"
 	eventLogStatusFailed    = "failed"
+	eventLogStatusUnmatched = "unmatched"
 )
 
 // rawObjectAndFlatten unmarshals a raw JSON byte slice into both an interface{}
@@ -143,7 +144,19 @@ func logEventMatches(ctx context.Context, store storage.EventLogStore, logger *l
 
 func buildEventLogRecords(event core.Event, rules []core.MatchedRule) ([]storage.EventLogRecord, []storage.EventLogRecord) {
 	if len(rules) == 0 {
-		return nil, nil
+		record := storage.EventLogRecord{
+			ID:             watermill.NewUUID(),
+			Provider:       event.Provider,
+			Name:           event.Name,
+			RequestID:      event.RequestID,
+			StateID:        event.StateID,
+			InstallationID: event.InstallationID,
+			NamespaceID:    event.NamespaceID,
+			NamespaceName:  event.NamespaceName,
+			Status:         eventLogStatusUnmatched,
+			Matched:        false,
+		}
+		return []storage.EventLogRecord{record}, nil
 	}
 
 	records := make([]storage.EventLogRecord, 0, len(rules))

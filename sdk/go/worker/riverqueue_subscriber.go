@@ -12,6 +12,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
@@ -25,11 +26,11 @@ const (
 )
 
 type riverQueueJobArgs struct {
-	Kind string          `json:"-"`
-	Raw  json.RawMessage `json:"-"`
+	JobKind string          `json:"-"`
+	Raw     json.RawMessage `json:"-"`
 }
 
-func (a riverQueueJobArgs) Kind() string { return a.Kind }
+func (a riverQueueJobArgs) Kind() string { return a.JobKind }
 
 func (a *riverQueueJobArgs) UnmarshalJSON(data []byte) error {
 	if a == nil {
@@ -54,7 +55,7 @@ type riverQueueSubscriber struct {
 	startOnce   sync.Once
 	startErr    error
 	startCancel context.CancelFunc
-	client      *river.Client
+	client      *river.Client[pgx.Tx]
 	pool        *pgxpool.Pool
 	closeOnce   sync.Once
 	closed      bool
@@ -178,7 +179,7 @@ func (s *riverQueueSubscriber) ensureStarted(ctx context.Context) error {
 		s.pool = pool
 
 		workers := river.NewWorkers()
-		river.AddWorkerArgs(workers, riverQueueJobArgs{Kind: s.cfg.Kind}, &riverQueueWorker{subscriber: s})
+		river.AddWorkerArgs(workers, riverQueueJobArgs{JobKind: s.cfg.Kind}, &riverQueueWorker{subscriber: s})
 
 		client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
 			Queues: map[string]river.QueueConfig{
@@ -225,7 +226,7 @@ func (s *riverQueueSubscriber) handleJob(ctx context.Context, job *river.Job[riv
 		payload = job.EncodedArgs
 	}
 
-	msg := message.NewMessageWithContext(ctx, watermill.NewUUID(), payload)
+	msg := message.NewMessageWithContext(ctx, watermill.NewUUID(), message.Payload(payload))
 	if provider != "" {
 		msg.Metadata.Set("provider", provider)
 	}
