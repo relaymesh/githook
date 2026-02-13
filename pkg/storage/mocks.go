@@ -2,7 +2,10 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -503,6 +506,9 @@ func (m *MockEventLogStore) CreateEventLogs(ctx context.Context, records []Event
 		if record.UpdatedAt.IsZero() {
 			record.UpdatedAt = record.CreatedAt
 		}
+		if record.LatencyMS < 0 {
+			record.LatencyMS = 0
+		}
 		m.values = append(m.values, record)
 	}
 	return nil
@@ -657,9 +663,191 @@ func (m *MockEventLogStore) UpdateEventLogStatus(ctx context.Context, id, status
 		record.Status = status
 		record.ErrorMessage = errorMessage
 		record.UpdatedAt = time.Now().UTC()
+		if status == "success" || status == "failed" {
+			record.LatencyMS = record.UpdatedAt.Sub(record.CreatedAt).Milliseconds()
+		}
 		m.values[i] = record
 	}
 	return nil
+}
+
+func (m *MockEventLogStore) GetEventLogTimeseries(ctx context.Context, filter EventLogFilter, interval EventLogInterval) ([]EventLogTimeseriesBucket, error) {
+	if interval == "" {
+		return nil, errors.New("interval is required")
+	}
+	if filter.StartTime.IsZero() || filter.EndTime.IsZero() {
+		return nil, errors.New("start_time and end_time are required")
+	}
+	if filter.EndTime.Before(filter.StartTime) {
+		return nil, errors.New("end_time must be after start_time")
+	}
+	filtered, err := m.ListEventLogs(ctx, EventLogFilter{
+		TenantID:       filter.TenantID,
+		Provider:       filter.Provider,
+		Name:           filter.Name,
+		RequestID:      filter.RequestID,
+		StateID:        filter.StateID,
+		InstallationID: filter.InstallationID,
+		NamespaceID:    filter.NamespaceID,
+		NamespaceName:  filter.NamespaceName,
+		Topic:          filter.Topic,
+		RuleID:         filter.RuleID,
+		RuleWhen:       filter.RuleWhen,
+		Matched:        filter.Matched,
+		StartTime:      filter.StartTime,
+		EndTime:        filter.EndTime,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	start := mockBucketStart(filter.StartTime.UTC(), interval)
+	end := filter.EndTime.UTC()
+	step := mockIntervalDuration(interval)
+	if step <= 0 {
+		return nil, errors.New("invalid interval")
+	}
+
+	type bucketData struct {
+		EventLogTimeseriesBucket
+		reqs map[string]struct{}
+	}
+	buckets := make(map[int64]*bucketData)
+	for _, record := range filtered {
+		ts := record.CreatedAt.UTC()
+		if ts.Before(start) || ts.After(end) {
+			continue
+		}
+		bucket := mockBucketStart(ts, interval)
+		key := bucket.Unix()
+		entry := buckets[key]
+		if entry == nil {
+			entry = &bucketData{
+				EventLogTimeseriesBucket: EventLogTimeseriesBucket{
+					Start: bucket,
+					End:   bucket.Add(step),
+				},
+				reqs: make(map[string]struct{}),
+			}
+			buckets[key] = entry
+		}
+		entry.EventCount++
+		if record.Matched {
+			entry.MatchedCount++
+		}
+		if record.RequestID != "" {
+			entry.reqs[record.RequestID] = struct{}{}
+		}
+		if strings.EqualFold(record.Status, "failed") {
+			entry.FailureCount++
+		}
+	}
+
+	out := make([]EventLogTimeseriesBucket, 0)
+	for cursor := start; cursor.Before(end) || cursor.Equal(end); cursor = cursor.Add(step) {
+		key := cursor.Unix()
+		if entry, ok := buckets[key]; ok {
+			entry.DistinctReq = int64(len(entry.reqs))
+			out = append(out, entry.EventLogTimeseriesBucket)
+		} else {
+			out = append(out, EventLogTimeseriesBucket{
+				Start: cursor,
+				End:   cursor.Add(step),
+			})
+		}
+	}
+	return out, nil
+}
+
+func (m *MockEventLogStore) GetEventLogBreakdown(ctx context.Context, filter EventLogFilter, groupBy EventLogBreakdownGroup, sortBy EventLogBreakdownSort, sortDesc bool, pageSize int, pageToken string, includeLatency bool) ([]EventLogBreakdown, string, error) {
+	filtered, err := m.ListEventLogs(ctx, EventLogFilter{
+		TenantID:       filter.TenantID,
+		Provider:       filter.Provider,
+		Name:           filter.Name,
+		RequestID:      filter.RequestID,
+		StateID:        filter.StateID,
+		InstallationID: filter.InstallationID,
+		NamespaceID:    filter.NamespaceID,
+		NamespaceName:  filter.NamespaceName,
+		Topic:          filter.Topic,
+		RuleID:         filter.RuleID,
+		RuleWhen:       filter.RuleWhen,
+		Matched:        filter.Matched,
+		StartTime:      filter.StartTime,
+		EndTime:        filter.EndTime,
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	grouped := make(map[string]*EventLogBreakdown)
+	latencies := make(map[string][]int64)
+	for _, record := range filtered {
+		key := mockBreakdownKey(record, groupBy)
+		if strings.TrimSpace(key) == "" {
+			continue
+		}
+		entry := grouped[key]
+		if entry == nil {
+			entry = &EventLogBreakdown{Key: key}
+			grouped[key] = entry
+		}
+		entry.EventCount++
+		if record.Matched {
+			entry.MatchedCount++
+		}
+		if strings.EqualFold(record.Status, "failed") {
+			entry.FailureCount++
+		}
+		if includeLatency && record.LatencyMS > 0 {
+			latencies[key] = append(latencies[key], record.LatencyMS)
+		}
+	}
+	out := make([]EventLogBreakdown, 0, len(grouped))
+	for _, entry := range grouped {
+		if includeLatency {
+			if values := latencies[entry.Key]; len(values) > 0 {
+				sort.Slice(values, func(i, j int) bool { return values[i] < values[j] })
+				entry.LatencyP50MS = mockPercentile(values, 0.50)
+				entry.LatencyP95MS = mockPercentile(values, 0.95)
+				entry.LatencyP99MS = mockPercentile(values, 0.99)
+			}
+		}
+		out = append(out, *entry)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		ai := mockSortValue(out[i], sortBy)
+		aj := mockSortValue(out[j], sortBy)
+		if ai == aj {
+			if sortDesc {
+				return out[i].Key < out[j].Key
+			}
+			return out[i].Key > out[j].Key
+		}
+		if sortDesc {
+			return ai > aj
+		}
+		return ai < aj
+	})
+
+	offset, err := mockParsePageToken(pageToken)
+	if err != nil {
+		return nil, "", err
+	}
+	if pageSize <= 0 {
+		pageSize = 50
+	}
+	if offset > len(out) {
+		offset = len(out)
+	}
+	end := offset + pageSize
+	if end > len(out) {
+		end = len(out)
+	}
+	nextToken := ""
+	if end < len(out) {
+		nextToken = mockFormatPageToken(end)
+	}
+	return append([]EventLogBreakdown(nil), out[offset:end]...), nextToken, nil
 }
 
 func (m *MockEventLogStore) Close() error {
@@ -678,4 +866,107 @@ func mapCounts(input map[string]int64) []EventLogCount {
 		return out[i].Count > out[j].Count
 	})
 	return out
+}
+
+func mockIntervalDuration(interval EventLogInterval) time.Duration {
+	switch interval {
+	case EventLogIntervalHour:
+		return time.Hour
+	case EventLogIntervalDay:
+		return 24 * time.Hour
+	case EventLogIntervalWeek:
+		return 7 * 24 * time.Hour
+	default:
+		return 0
+	}
+}
+
+func mockBucketStart(ts time.Time, interval EventLogInterval) time.Time {
+	ts = ts.UTC()
+	switch interval {
+	case EventLogIntervalHour:
+		return ts.Truncate(time.Hour)
+	case EventLogIntervalDay:
+		return time.Date(ts.Year(), ts.Month(), ts.Day(), 0, 0, 0, 0, time.UTC)
+	case EventLogIntervalWeek:
+		day := time.Date(ts.Year(), ts.Month(), ts.Day(), 0, 0, 0, 0, time.UTC)
+		weekday := int(day.Weekday())
+		shift := (weekday + 6) % 7
+		return day.AddDate(0, 0, -shift)
+	default:
+		return ts
+	}
+}
+
+func mockBreakdownKey(record EventLogRecord, groupBy EventLogBreakdownGroup) string {
+	switch groupBy {
+	case EventLogBreakdownProvider:
+		return record.Provider
+	case EventLogBreakdownEvent:
+		return record.Name
+	case EventLogBreakdownRuleID:
+		return record.RuleID
+	case EventLogBreakdownRuleWhen:
+		return record.RuleWhen
+	case EventLogBreakdownTopic:
+		return record.Topic
+	case EventLogBreakdownNamespaceID:
+		return record.NamespaceID
+	case EventLogBreakdownNamespaceName:
+		return record.NamespaceName
+	case EventLogBreakdownInstallation:
+		return record.InstallationID
+	default:
+		return ""
+	}
+}
+
+func mockSortValue(entry EventLogBreakdown, sortBy EventLogBreakdownSort) int64 {
+	switch sortBy {
+	case EventLogBreakdownSortMatched:
+		return entry.MatchedCount
+	case EventLogBreakdownSortFailed:
+		return entry.FailureCount
+	default:
+		return entry.EventCount
+	}
+}
+
+func mockPercentile(values []int64, p float64) float64 {
+	if len(values) == 0 {
+		return 0
+	}
+	if p <= 0 {
+		return float64(values[0])
+	}
+	if p >= 1 {
+		return float64(values[len(values)-1])
+	}
+	index := int(float64(len(values)-1) * p)
+	if index < 0 {
+		index = 0
+	}
+	if index >= len(values) {
+		index = len(values) - 1
+	}
+	return float64(values[index])
+}
+
+func mockParsePageToken(token string) (int, error) {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return 0, nil
+	}
+	offset, err := strconv.Atoi(token)
+	if err != nil || offset < 0 {
+		return 0, errors.New("invalid page_token")
+	}
+	return offset, nil
+}
+
+func mockFormatPageToken(offset int) string {
+	if offset <= 0 {
+		return ""
+	}
+	return strconv.Itoa(offset)
 }

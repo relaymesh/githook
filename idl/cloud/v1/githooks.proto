@@ -47,6 +47,8 @@ service ProvidersService {
 service EventLogsService {
   rpc ListEventLogs(ListEventLogsRequest) returns (ListEventLogsResponse);
   rpc GetEventLogAnalytics(GetEventLogAnalyticsRequest) returns (GetEventLogAnalyticsResponse);
+  rpc GetEventLogTimeseries(GetEventLogTimeseriesRequest) returns (GetEventLogTimeseriesResponse);
+  rpc GetEventLogBreakdown(GetEventLogBreakdownRequest) returns (GetEventLogBreakdownResponse);
   rpc UpdateEventLogStatus(UpdateEventLogStatusRequest) returns (UpdateEventLogStatusResponse);
 }
 
@@ -283,6 +285,51 @@ message EventLogAnalytics {
   repeated EventLogCount by_namespace = 9;
 }
 
+enum EventLogTimeseriesInterval {
+  EVENT_LOG_TIMESERIES_INTERVAL_UNSPECIFIED = 0;
+  EVENT_LOG_TIMESERIES_INTERVAL_HOUR = 1;
+  EVENT_LOG_TIMESERIES_INTERVAL_DAY = 2;
+  EVENT_LOG_TIMESERIES_INTERVAL_WEEK = 3;
+}
+
+message EventLogTimeseriesBucket {
+  google.protobuf.Timestamp start_time = 1;
+  google.protobuf.Timestamp end_time = 2;
+  int64 event_count = 3;
+  int64 matched_count = 4;
+  int64 distinct_requests = 5;
+  int64 failed_count = 6;
+}
+
+enum EventLogBreakdownGroup {
+  EVENT_LOG_BREAKDOWN_GROUP_UNSPECIFIED = 0;
+  EVENT_LOG_BREAKDOWN_GROUP_PROVIDER = 1;
+  EVENT_LOG_BREAKDOWN_GROUP_EVENT = 2;
+  EVENT_LOG_BREAKDOWN_GROUP_RULE_ID = 3;
+  EVENT_LOG_BREAKDOWN_GROUP_RULE_WHEN = 4;
+  EVENT_LOG_BREAKDOWN_GROUP_TOPIC = 5;
+  EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_ID = 6;
+  EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_NAME = 7;
+  EVENT_LOG_BREAKDOWN_GROUP_INSTALLATION_ID = 8;
+}
+
+enum EventLogBreakdownSort {
+  EVENT_LOG_BREAKDOWN_SORT_UNSPECIFIED = 0;
+  EVENT_LOG_BREAKDOWN_SORT_COUNT = 1;
+  EVENT_LOG_BREAKDOWN_SORT_MATCHED = 2;
+  EVENT_LOG_BREAKDOWN_SORT_FAILED = 3;
+}
+
+message EventLogBreakdown {
+  string key = 1;
+  int64 event_count = 2;
+  int64 matched_count = 3;
+  int64 failed_count = 4;
+  double latency_p50_ms = 5;
+  double latency_p95_ms = 6;
+  double latency_p99_ms = 7;
+}
+
 message EventPayload {
   string provider = 1 [
     (buf.validate.field).string.min_len = 1,
@@ -463,6 +510,64 @@ message GetEventLogAnalyticsRequest {
 
 message GetEventLogAnalyticsResponse {
   EventLogAnalytics analytics = 1;
+}
+
+message GetEventLogTimeseriesRequest {
+  string provider = 1 [
+    (buf.validate.field).string.in = "",
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
+  string name = 2;
+  string topic = 3;
+  string request_id = 4;
+  string state_id = 5;
+  string installation_id = 6;
+  string namespace_id = 7;
+  string namespace_name = 8;
+  string rule_id = 9;
+  string rule_when = 10;
+  bool matched_only = 11;
+  google.protobuf.Timestamp start_time = 12;
+  google.protobuf.Timestamp end_time = 13;
+  EventLogTimeseriesInterval interval = 14 [(buf.validate.field).enum.not_in = 0];
+}
+
+message GetEventLogTimeseriesResponse {
+  repeated EventLogTimeseriesBucket buckets = 1;
+}
+
+message GetEventLogBreakdownRequest {
+  string provider = 1 [
+    (buf.validate.field).string.in = "",
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
+  string name = 2;
+  string topic = 3;
+  string request_id = 4;
+  string state_id = 5;
+  string installation_id = 6;
+  string namespace_id = 7;
+  string namespace_name = 8;
+  string rule_id = 9;
+  string rule_when = 10;
+  bool matched_only = 11;
+  google.protobuf.Timestamp start_time = 12;
+  google.protobuf.Timestamp end_time = 13;
+  EventLogBreakdownGroup group_by = 14 [(buf.validate.field).enum.not_in = 0];
+  EventLogBreakdownSort sort_by = 15;
+  bool sort_desc = 16;
+  int32 page_size = 17 [(buf.validate.field).int32.gte = 0, (buf.validate.field).int32.lte = 200];
+  string page_token = 18;
+  bool include_latency = 19;
+}
+
+message GetEventLogBreakdownResponse {
+  repeated EventLogBreakdown breakdowns = 1;
+  string next_page_token = 2;
 }
 
 message UpdateEventLogStatusRequest {

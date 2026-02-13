@@ -1175,9 +1175,11 @@ var ProvidersService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	EventLogsService_ListEventLogs_FullMethodName        = "/cloud.v1.EventLogsService/ListEventLogs"
-	EventLogsService_GetEventLogAnalytics_FullMethodName = "/cloud.v1.EventLogsService/GetEventLogAnalytics"
-	EventLogsService_UpdateEventLogStatus_FullMethodName = "/cloud.v1.EventLogsService/UpdateEventLogStatus"
+	EventLogsService_ListEventLogs_FullMethodName         = "/cloud.v1.EventLogsService/ListEventLogs"
+	EventLogsService_GetEventLogAnalytics_FullMethodName  = "/cloud.v1.EventLogsService/GetEventLogAnalytics"
+	EventLogsService_GetEventLogTimeseries_FullMethodName = "/cloud.v1.EventLogsService/GetEventLogTimeseries"
+	EventLogsService_GetEventLogBreakdown_FullMethodName  = "/cloud.v1.EventLogsService/GetEventLogBreakdown"
+	EventLogsService_UpdateEventLogStatus_FullMethodName  = "/cloud.v1.EventLogsService/UpdateEventLogStatus"
 )
 
 // EventLogsServiceClient is the client API for EventLogsService service.
@@ -1186,6 +1188,8 @@ const (
 type EventLogsServiceClient interface {
 	ListEventLogs(ctx context.Context, in *ListEventLogsRequest, opts ...grpc.CallOption) (*ListEventLogsResponse, error)
 	GetEventLogAnalytics(ctx context.Context, in *GetEventLogAnalyticsRequest, opts ...grpc.CallOption) (*GetEventLogAnalyticsResponse, error)
+	GetEventLogTimeseries(ctx context.Context, in *GetEventLogTimeseriesRequest, opts ...grpc.CallOption) (*GetEventLogTimeseriesResponse, error)
+	GetEventLogBreakdown(ctx context.Context, in *GetEventLogBreakdownRequest, opts ...grpc.CallOption) (*GetEventLogBreakdownResponse, error)
 	UpdateEventLogStatus(ctx context.Context, in *UpdateEventLogStatusRequest, opts ...grpc.CallOption) (*UpdateEventLogStatusResponse, error)
 }
 
@@ -1217,6 +1221,26 @@ func (c *eventLogsServiceClient) GetEventLogAnalytics(ctx context.Context, in *G
 	return out, nil
 }
 
+func (c *eventLogsServiceClient) GetEventLogTimeseries(ctx context.Context, in *GetEventLogTimeseriesRequest, opts ...grpc.CallOption) (*GetEventLogTimeseriesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEventLogTimeseriesResponse)
+	err := c.cc.Invoke(ctx, EventLogsService_GetEventLogTimeseries_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *eventLogsServiceClient) GetEventLogBreakdown(ctx context.Context, in *GetEventLogBreakdownRequest, opts ...grpc.CallOption) (*GetEventLogBreakdownResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEventLogBreakdownResponse)
+	err := c.cc.Invoke(ctx, EventLogsService_GetEventLogBreakdown_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *eventLogsServiceClient) UpdateEventLogStatus(ctx context.Context, in *UpdateEventLogStatusRequest, opts ...grpc.CallOption) (*UpdateEventLogStatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateEventLogStatusResponse)
@@ -1233,6 +1257,8 @@ func (c *eventLogsServiceClient) UpdateEventLogStatus(ctx context.Context, in *U
 type EventLogsServiceServer interface {
 	ListEventLogs(context.Context, *ListEventLogsRequest) (*ListEventLogsResponse, error)
 	GetEventLogAnalytics(context.Context, *GetEventLogAnalyticsRequest) (*GetEventLogAnalyticsResponse, error)
+	GetEventLogTimeseries(context.Context, *GetEventLogTimeseriesRequest) (*GetEventLogTimeseriesResponse, error)
+	GetEventLogBreakdown(context.Context, *GetEventLogBreakdownRequest) (*GetEventLogBreakdownResponse, error)
 	UpdateEventLogStatus(context.Context, *UpdateEventLogStatusRequest) (*UpdateEventLogStatusResponse, error)
 	mustEmbedUnimplementedEventLogsServiceServer()
 }
@@ -1249,6 +1275,12 @@ func (UnimplementedEventLogsServiceServer) ListEventLogs(context.Context, *ListE
 }
 func (UnimplementedEventLogsServiceServer) GetEventLogAnalytics(context.Context, *GetEventLogAnalyticsRequest) (*GetEventLogAnalyticsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetEventLogAnalytics not implemented")
+}
+func (UnimplementedEventLogsServiceServer) GetEventLogTimeseries(context.Context, *GetEventLogTimeseriesRequest) (*GetEventLogTimeseriesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetEventLogTimeseries not implemented")
+}
+func (UnimplementedEventLogsServiceServer) GetEventLogBreakdown(context.Context, *GetEventLogBreakdownRequest) (*GetEventLogBreakdownResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetEventLogBreakdown not implemented")
 }
 func (UnimplementedEventLogsServiceServer) UpdateEventLogStatus(context.Context, *UpdateEventLogStatusRequest) (*UpdateEventLogStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateEventLogStatus not implemented")
@@ -1310,6 +1342,42 @@ func _EventLogsService_GetEventLogAnalytics_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EventLogsService_GetEventLogTimeseries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEventLogTimeseriesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EventLogsServiceServer).GetEventLogTimeseries(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EventLogsService_GetEventLogTimeseries_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EventLogsServiceServer).GetEventLogTimeseries(ctx, req.(*GetEventLogTimeseriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EventLogsService_GetEventLogBreakdown_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEventLogBreakdownRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EventLogsServiceServer).GetEventLogBreakdown(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EventLogsService_GetEventLogBreakdown_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EventLogsServiceServer).GetEventLogBreakdown(ctx, req.(*GetEventLogBreakdownRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _EventLogsService_UpdateEventLogStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateEventLogStatusRequest)
 	if err := dec(in); err != nil {
@@ -1342,6 +1410,14 @@ var EventLogsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetEventLogAnalytics",
 			Handler:    _EventLogsService_GetEventLogAnalytics_Handler,
+		},
+		{
+			MethodName: "GetEventLogTimeseries",
+			Handler:    _EventLogsService_GetEventLogTimeseries_Handler,
+		},
+		{
+			MethodName: "GetEventLogBreakdown",
+			Handler:    _EventLogsService_GetEventLogBreakdown_Handler,
 		},
 		{
 			MethodName: "UpdateEventLogStatus",

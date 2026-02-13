@@ -135,12 +135,12 @@ const (
 
 // EventLogTimeseriesBucket represents a time-series aggregate bucket.
 type EventLogTimeseriesBucket struct {
-	Start          time.Time
-	End            time.Time
-	EventCount     int64
-	MatchedCount   int64
-	DistinctReq    int64
-	FailureCount   int64
+	Start        time.Time
+	End          time.Time
+	EventCount   int64
+	MatchedCount int64
+	DistinctReq  int64
+	FailureCount int64
 }
 
 // EventLogBreakdownGroup defines supported breakdown dimensions.
@@ -161,10 +161,10 @@ const (
 type EventLogBreakdownSort string
 
 const (
-	EventLogBreakdownSortCount       EventLogBreakdownSort = "count"
-	EventLogBreakdownSortMatched     EventLogBreakdownSort = "matched"
-	EventLogBreakdownSortFailed      EventLogBreakdownSort = "failed"
-	EventLogBreakdownSortLatencyP95  EventLogBreakdownSort = "latency_p95"
+	EventLogBreakdownSortCount      EventLogBreakdownSort = "count"
+	EventLogBreakdownSortMatched    EventLogBreakdownSort = "matched"
+	EventLogBreakdownSortFailed     EventLogBreakdownSort = "failed"
+	EventLogBreakdownSortLatencyP95 EventLogBreakdownSort = "latency_p95"
 )
 
 // EventLogBreakdown represents aggregated counts for a breakdown dimension.

@@ -665,6 +665,112 @@ func (s *EventLogsService) GetEventLogAnalytics(
 	return connect.NewResponse(resp), nil
 }
 
+func (s *EventLogsService) GetEventLogTimeseries(
+	ctx context.Context,
+	req *connect.Request[cloudv1.GetEventLogTimeseriesRequest],
+) (*connect.Response[cloudv1.GetEventLogTimeseriesResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	interval, err := eventLogIntervalFromProto(req.Msg.GetInterval())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	var matched *bool
+	if req.Msg.GetMatchedOnly() {
+		value := true
+		matched = &value
+	}
+	filter := storage.EventLogFilter{
+		Provider:       strings.TrimSpace(req.Msg.GetProvider()),
+		Name:           strings.TrimSpace(req.Msg.GetName()),
+		Topic:          strings.TrimSpace(req.Msg.GetTopic()),
+		RequestID:      strings.TrimSpace(req.Msg.GetRequestId()),
+		StateID:        strings.TrimSpace(req.Msg.GetStateId()),
+		InstallationID: strings.TrimSpace(req.Msg.GetInstallationId()),
+		NamespaceID:    strings.TrimSpace(req.Msg.GetNamespaceId()),
+		NamespaceName:  strings.TrimSpace(req.Msg.GetNamespaceName()),
+		RuleID:         strings.TrimSpace(req.Msg.GetRuleId()),
+		RuleWhen:       strings.TrimSpace(req.Msg.GetRuleWhen()),
+		Matched:        matched,
+		StartTime:      fromProtoTimestamp(req.Msg.GetStartTime()),
+		EndTime:        fromProtoTimestamp(req.Msg.GetEndTime()),
+	}
+	buckets, err := s.Store.GetEventLogTimeseries(ctx, filter, interval)
+	if err != nil {
+		logError(s.Logger, "event log timeseries failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("event log timeseries failed"))
+	}
+	resp := &cloudv1.GetEventLogTimeseriesResponse{
+		Buckets: toProtoEventLogTimeseries(buckets),
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *EventLogsService) GetEventLogBreakdown(
+	ctx context.Context,
+	req *connect.Request[cloudv1.GetEventLogBreakdownRequest],
+) (*connect.Response[cloudv1.GetEventLogBreakdownResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	groupBy, err := eventLogBreakdownGroupFromProto(req.Msg.GetGroupBy())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	sortBy := eventLogBreakdownSortFromProto(req.Msg.GetSortBy())
+	pageSize := int(req.Msg.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultEventLogPageSize
+	}
+	if pageSize > maxEventLogPageSize {
+		pageSize = maxEventLogPageSize
+	}
+	offset, err := decodePageToken(req.Msg.GetPageToken())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	var matched *bool
+	if req.Msg.GetMatchedOnly() {
+		value := true
+		matched = &value
+	}
+	filter := storage.EventLogFilter{
+		Provider:       strings.TrimSpace(req.Msg.GetProvider()),
+		Name:           strings.TrimSpace(req.Msg.GetName()),
+		Topic:          strings.TrimSpace(req.Msg.GetTopic()),
+		RequestID:      strings.TrimSpace(req.Msg.GetRequestId()),
+		StateID:        strings.TrimSpace(req.Msg.GetStateId()),
+		InstallationID: strings.TrimSpace(req.Msg.GetInstallationId()),
+		NamespaceID:    strings.TrimSpace(req.Msg.GetNamespaceId()),
+		NamespaceName:  strings.TrimSpace(req.Msg.GetNamespaceName()),
+		RuleID:         strings.TrimSpace(req.Msg.GetRuleId()),
+		RuleWhen:       strings.TrimSpace(req.Msg.GetRuleWhen()),
+		Matched:        matched,
+		StartTime:      fromProtoTimestamp(req.Msg.GetStartTime()),
+		EndTime:        fromProtoTimestamp(req.Msg.GetEndTime()),
+	}
+	breakdowns, nextToken, err := s.Store.GetEventLogBreakdown(
+		ctx,
+		filter,
+		groupBy,
+		sortBy,
+		req.Msg.GetSortDesc(),
+		pageSize,
+		strconv.Itoa(offset),
+		req.Msg.GetIncludeLatency(),
+	)
+	if err != nil {
+		logError(s.Logger, "event log breakdown failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("event log breakdown failed"))
+	}
+	resp := &cloudv1.GetEventLogBreakdownResponse{
+		Breakdowns:    toProtoEventLogBreakdowns(breakdowns),
+		NextPageToken: encodePageTokenFromRaw(nextToken),
+	}
+	return connect.NewResponse(resp), nil
+}
+
 func (s *EventLogsService) UpdateEventLogStatus(
 	ctx context.Context,
 	req *connect.Request[cloudv1.UpdateEventLogStatusRequest],
@@ -957,6 +1063,65 @@ func encodePageToken(offset int) string {
 	return base64.StdEncoding.EncodeToString([]byte(strconv.Itoa(offset)))
 }
 
+func encodePageTokenFromRaw(token string) string {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return ""
+	}
+	offset, err := strconv.Atoi(token)
+	if err != nil || offset <= 0 {
+		return ""
+	}
+	return encodePageToken(offset)
+}
+
+func eventLogIntervalFromProto(interval cloudv1.EventLogTimeseriesInterval) (storage.EventLogInterval, error) {
+	switch interval {
+	case cloudv1.EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_HOUR:
+		return storage.EventLogIntervalHour, nil
+	case cloudv1.EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_DAY:
+		return storage.EventLogIntervalDay, nil
+	case cloudv1.EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_WEEK:
+		return storage.EventLogIntervalWeek, nil
+	default:
+		return "", errors.New("invalid interval")
+	}
+}
+
+func eventLogBreakdownGroupFromProto(group cloudv1.EventLogBreakdownGroup) (storage.EventLogBreakdownGroup, error) {
+	switch group {
+	case cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_PROVIDER:
+		return storage.EventLogBreakdownProvider, nil
+	case cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_EVENT:
+		return storage.EventLogBreakdownEvent, nil
+	case cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_RULE_ID:
+		return storage.EventLogBreakdownRuleID, nil
+	case cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_RULE_WHEN:
+		return storage.EventLogBreakdownRuleWhen, nil
+	case cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_TOPIC:
+		return storage.EventLogBreakdownTopic, nil
+	case cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_ID:
+		return storage.EventLogBreakdownNamespaceID, nil
+	case cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_NAME:
+		return storage.EventLogBreakdownNamespaceName, nil
+	case cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_INSTALLATION_ID:
+		return storage.EventLogBreakdownInstallation, nil
+	default:
+		return "", errors.New("invalid group_by")
+	}
+}
+
+func eventLogBreakdownSortFromProto(sortBy cloudv1.EventLogBreakdownSort) storage.EventLogBreakdownSort {
+	switch sortBy {
+	case cloudv1.EventLogBreakdownSort_EVENT_LOG_BREAKDOWN_SORT_MATCHED:
+		return storage.EventLogBreakdownSortMatched
+	case cloudv1.EventLogBreakdownSort_EVENT_LOG_BREAKDOWN_SORT_FAILED:
+		return storage.EventLogBreakdownSortFailed
+	default:
+		return storage.EventLogBreakdownSortCount
+	}
+}
+
 func toProtoInstallations(records []storage.InstallRecord) []*cloudv1.InstallRecord {
 	out := make([]*cloudv1.InstallRecord, 0, len(records))
 	for _, record := range records {
@@ -1188,6 +1353,37 @@ func toProtoEventLogCounts(counts []storage.EventLogCount) []*cloudv1.EventLogCo
 		out = append(out, &cloudv1.EventLogCount{
 			Key:   count.Key,
 			Count: count.Count,
+		})
+	}
+	return out
+}
+
+func toProtoEventLogTimeseries(buckets []storage.EventLogTimeseriesBucket) []*cloudv1.EventLogTimeseriesBucket {
+	out := make([]*cloudv1.EventLogTimeseriesBucket, 0, len(buckets))
+	for _, bucket := range buckets {
+		out = append(out, &cloudv1.EventLogTimeseriesBucket{
+			StartTime:        toProtoTimestamp(bucket.Start),
+			EndTime:          toProtoTimestamp(bucket.End),
+			EventCount:       bucket.EventCount,
+			MatchedCount:     bucket.MatchedCount,
+			DistinctRequests: bucket.DistinctReq,
+			FailedCount:      bucket.FailureCount,
+		})
+	}
+	return out
+}
+
+func toProtoEventLogBreakdowns(breakdowns []storage.EventLogBreakdown) []*cloudv1.EventLogBreakdown {
+	out := make([]*cloudv1.EventLogBreakdown, 0, len(breakdowns))
+	for _, item := range breakdowns {
+		out = append(out, &cloudv1.EventLogBreakdown{
+			Key:          item.Key,
+			EventCount:   item.EventCount,
+			MatchedCount: item.MatchedCount,
+			FailedCount:  item.FailureCount,
+			LatencyP50Ms: item.LatencyP50MS,
+			LatencyP95Ms: item.LatencyP95MS,
+			LatencyP99Ms: item.LatencyP99MS,
 		})
 	}
 	return out

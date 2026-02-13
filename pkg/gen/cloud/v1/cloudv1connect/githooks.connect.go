@@ -109,6 +109,12 @@ const (
 	// EventLogsServiceGetEventLogAnalyticsProcedure is the fully-qualified name of the
 	// EventLogsService's GetEventLogAnalytics RPC.
 	EventLogsServiceGetEventLogAnalyticsProcedure = "/cloud.v1.EventLogsService/GetEventLogAnalytics"
+	// EventLogsServiceGetEventLogTimeseriesProcedure is the fully-qualified name of the
+	// EventLogsService's GetEventLogTimeseries RPC.
+	EventLogsServiceGetEventLogTimeseriesProcedure = "/cloud.v1.EventLogsService/GetEventLogTimeseries"
+	// EventLogsServiceGetEventLogBreakdownProcedure is the fully-qualified name of the
+	// EventLogsService's GetEventLogBreakdown RPC.
+	EventLogsServiceGetEventLogBreakdownProcedure = "/cloud.v1.EventLogsService/GetEventLogBreakdown"
 	// EventLogsServiceUpdateEventLogStatusProcedure is the fully-qualified name of the
 	// EventLogsService's UpdateEventLogStatus RPC.
 	EventLogsServiceUpdateEventLogStatusProcedure = "/cloud.v1.EventLogsService/UpdateEventLogStatus"
@@ -910,6 +916,8 @@ func (UnimplementedProvidersServiceHandler) DeleteProvider(context.Context, *con
 type EventLogsServiceClient interface {
 	ListEventLogs(context.Context, *connect.Request[v1.ListEventLogsRequest]) (*connect.Response[v1.ListEventLogsResponse], error)
 	GetEventLogAnalytics(context.Context, *connect.Request[v1.GetEventLogAnalyticsRequest]) (*connect.Response[v1.GetEventLogAnalyticsResponse], error)
+	GetEventLogTimeseries(context.Context, *connect.Request[v1.GetEventLogTimeseriesRequest]) (*connect.Response[v1.GetEventLogTimeseriesResponse], error)
+	GetEventLogBreakdown(context.Context, *connect.Request[v1.GetEventLogBreakdownRequest]) (*connect.Response[v1.GetEventLogBreakdownResponse], error)
 	UpdateEventLogStatus(context.Context, *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error)
 }
 
@@ -936,6 +944,18 @@ func NewEventLogsServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(eventLogsServiceMethods.ByName("GetEventLogAnalytics")),
 			connect.WithClientOptions(opts...),
 		),
+		getEventLogTimeseries: connect.NewClient[v1.GetEventLogTimeseriesRequest, v1.GetEventLogTimeseriesResponse](
+			httpClient,
+			baseURL+EventLogsServiceGetEventLogTimeseriesProcedure,
+			connect.WithSchema(eventLogsServiceMethods.ByName("GetEventLogTimeseries")),
+			connect.WithClientOptions(opts...),
+		),
+		getEventLogBreakdown: connect.NewClient[v1.GetEventLogBreakdownRequest, v1.GetEventLogBreakdownResponse](
+			httpClient,
+			baseURL+EventLogsServiceGetEventLogBreakdownProcedure,
+			connect.WithSchema(eventLogsServiceMethods.ByName("GetEventLogBreakdown")),
+			connect.WithClientOptions(opts...),
+		),
 		updateEventLogStatus: connect.NewClient[v1.UpdateEventLogStatusRequest, v1.UpdateEventLogStatusResponse](
 			httpClient,
 			baseURL+EventLogsServiceUpdateEventLogStatusProcedure,
@@ -947,9 +967,11 @@ func NewEventLogsServiceClient(httpClient connect.HTTPClient, baseURL string, op
 
 // eventLogsServiceClient implements EventLogsServiceClient.
 type eventLogsServiceClient struct {
-	listEventLogs        *connect.Client[v1.ListEventLogsRequest, v1.ListEventLogsResponse]
-	getEventLogAnalytics *connect.Client[v1.GetEventLogAnalyticsRequest, v1.GetEventLogAnalyticsResponse]
-	updateEventLogStatus *connect.Client[v1.UpdateEventLogStatusRequest, v1.UpdateEventLogStatusResponse]
+	listEventLogs         *connect.Client[v1.ListEventLogsRequest, v1.ListEventLogsResponse]
+	getEventLogAnalytics  *connect.Client[v1.GetEventLogAnalyticsRequest, v1.GetEventLogAnalyticsResponse]
+	getEventLogTimeseries *connect.Client[v1.GetEventLogTimeseriesRequest, v1.GetEventLogTimeseriesResponse]
+	getEventLogBreakdown  *connect.Client[v1.GetEventLogBreakdownRequest, v1.GetEventLogBreakdownResponse]
+	updateEventLogStatus  *connect.Client[v1.UpdateEventLogStatusRequest, v1.UpdateEventLogStatusResponse]
 }
 
 // ListEventLogs calls cloud.v1.EventLogsService.ListEventLogs.
@@ -962,6 +984,16 @@ func (c *eventLogsServiceClient) GetEventLogAnalytics(ctx context.Context, req *
 	return c.getEventLogAnalytics.CallUnary(ctx, req)
 }
 
+// GetEventLogTimeseries calls cloud.v1.EventLogsService.GetEventLogTimeseries.
+func (c *eventLogsServiceClient) GetEventLogTimeseries(ctx context.Context, req *connect.Request[v1.GetEventLogTimeseriesRequest]) (*connect.Response[v1.GetEventLogTimeseriesResponse], error) {
+	return c.getEventLogTimeseries.CallUnary(ctx, req)
+}
+
+// GetEventLogBreakdown calls cloud.v1.EventLogsService.GetEventLogBreakdown.
+func (c *eventLogsServiceClient) GetEventLogBreakdown(ctx context.Context, req *connect.Request[v1.GetEventLogBreakdownRequest]) (*connect.Response[v1.GetEventLogBreakdownResponse], error) {
+	return c.getEventLogBreakdown.CallUnary(ctx, req)
+}
+
 // UpdateEventLogStatus calls cloud.v1.EventLogsService.UpdateEventLogStatus.
 func (c *eventLogsServiceClient) UpdateEventLogStatus(ctx context.Context, req *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error) {
 	return c.updateEventLogStatus.CallUnary(ctx, req)
@@ -971,6 +1003,8 @@ func (c *eventLogsServiceClient) UpdateEventLogStatus(ctx context.Context, req *
 type EventLogsServiceHandler interface {
 	ListEventLogs(context.Context, *connect.Request[v1.ListEventLogsRequest]) (*connect.Response[v1.ListEventLogsResponse], error)
 	GetEventLogAnalytics(context.Context, *connect.Request[v1.GetEventLogAnalyticsRequest]) (*connect.Response[v1.GetEventLogAnalyticsResponse], error)
+	GetEventLogTimeseries(context.Context, *connect.Request[v1.GetEventLogTimeseriesRequest]) (*connect.Response[v1.GetEventLogTimeseriesResponse], error)
+	GetEventLogBreakdown(context.Context, *connect.Request[v1.GetEventLogBreakdownRequest]) (*connect.Response[v1.GetEventLogBreakdownResponse], error)
 	UpdateEventLogStatus(context.Context, *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error)
 }
 
@@ -993,6 +1027,18 @@ func NewEventLogsServiceHandler(svc EventLogsServiceHandler, opts ...connect.Han
 		connect.WithSchema(eventLogsServiceMethods.ByName("GetEventLogAnalytics")),
 		connect.WithHandlerOptions(opts...),
 	)
+	eventLogsServiceGetEventLogTimeseriesHandler := connect.NewUnaryHandler(
+		EventLogsServiceGetEventLogTimeseriesProcedure,
+		svc.GetEventLogTimeseries,
+		connect.WithSchema(eventLogsServiceMethods.ByName("GetEventLogTimeseries")),
+		connect.WithHandlerOptions(opts...),
+	)
+	eventLogsServiceGetEventLogBreakdownHandler := connect.NewUnaryHandler(
+		EventLogsServiceGetEventLogBreakdownProcedure,
+		svc.GetEventLogBreakdown,
+		connect.WithSchema(eventLogsServiceMethods.ByName("GetEventLogBreakdown")),
+		connect.WithHandlerOptions(opts...),
+	)
 	eventLogsServiceUpdateEventLogStatusHandler := connect.NewUnaryHandler(
 		EventLogsServiceUpdateEventLogStatusProcedure,
 		svc.UpdateEventLogStatus,
@@ -1005,6 +1051,10 @@ func NewEventLogsServiceHandler(svc EventLogsServiceHandler, opts ...connect.Han
 			eventLogsServiceListEventLogsHandler.ServeHTTP(w, r)
 		case EventLogsServiceGetEventLogAnalyticsProcedure:
 			eventLogsServiceGetEventLogAnalyticsHandler.ServeHTTP(w, r)
+		case EventLogsServiceGetEventLogTimeseriesProcedure:
+			eventLogsServiceGetEventLogTimeseriesHandler.ServeHTTP(w, r)
+		case EventLogsServiceGetEventLogBreakdownProcedure:
+			eventLogsServiceGetEventLogBreakdownHandler.ServeHTTP(w, r)
 		case EventLogsServiceUpdateEventLogStatusProcedure:
 			eventLogsServiceUpdateEventLogStatusHandler.ServeHTTP(w, r)
 		default:
@@ -1022,6 +1072,14 @@ func (UnimplementedEventLogsServiceHandler) ListEventLogs(context.Context, *conn
 
 func (UnimplementedEventLogsServiceHandler) GetEventLogAnalytics(context.Context, *connect.Request[v1.GetEventLogAnalyticsRequest]) (*connect.Response[v1.GetEventLogAnalyticsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.EventLogsService.GetEventLogAnalytics is not implemented"))
+}
+
+func (UnimplementedEventLogsServiceHandler) GetEventLogTimeseries(context.Context, *connect.Request[v1.GetEventLogTimeseriesRequest]) (*connect.Response[v1.GetEventLogTimeseriesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.EventLogsService.GetEventLogTimeseries is not implemented"))
+}
+
+func (UnimplementedEventLogsServiceHandler) GetEventLogBreakdown(context.Context, *connect.Request[v1.GetEventLogBreakdownRequest]) (*connect.Response[v1.GetEventLogBreakdownResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.EventLogsService.GetEventLogBreakdown is not implemented"))
 }
 
 func (UnimplementedEventLogsServiceHandler) UpdateEventLogStatus(context.Context, *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error) {
