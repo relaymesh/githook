@@ -32,15 +32,16 @@ psql "postgres://githook:githook@localhost:5433/githook?sslmode=disable" -c "sel
 ```
 
 ## Worker
-This example worker uses the River client to consume jobs for a specific queue and kind.
+This example worker uses the Go SDK and pulls the RiverQueue driver config from the server API.
+You only need to provide the driver name.
 
 ```sh
-go run ./example/riverqueue/worker -dsn "postgres://githook:githook@localhost:5433/githook?sslmode=disable" \
-  -queue my_custom_queue \
-  -kind my_job \
-  -max-workers 5
+export GITHOOK_API_BASE_URL=http://localhost:8080
+go run ./example/riverqueue/worker \
+  -config example/riverqueue/app.yaml \
+  -driver riverqueue
 ```
 
 Notes:
 - `example/riverqueue/app.yaml` sets `queue: my_custom_queue` and `kind: my_job` for the RiverQueue publisher.
-- The worker must use the same queue/kind to consume those jobs.
+- The worker pulls the same queue/kind from the server via Drivers API.

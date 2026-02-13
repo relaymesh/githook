@@ -31,6 +31,8 @@ const (
 	DriversServiceName = "cloud.v1.DriversService"
 	// ProvidersServiceName is the fully-qualified name of the ProvidersService service.
 	ProvidersServiceName = "cloud.v1.ProvidersService"
+	// EventLogsServiceName is the fully-qualified name of the EventLogsService service.
+	EventLogsServiceName = "cloud.v1.EventLogsService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -47,6 +49,12 @@ const (
 	// InstallationsServiceGetInstallationByIDProcedure is the fully-qualified name of the
 	// InstallationsService's GetInstallationByID RPC.
 	InstallationsServiceGetInstallationByIDProcedure = "/cloud.v1.InstallationsService/GetInstallationByID"
+	// InstallationsServiceUpsertInstallationProcedure is the fully-qualified name of the
+	// InstallationsService's UpsertInstallation RPC.
+	InstallationsServiceUpsertInstallationProcedure = "/cloud.v1.InstallationsService/UpsertInstallation"
+	// InstallationsServiceDeleteInstallationProcedure is the fully-qualified name of the
+	// InstallationsService's DeleteInstallation RPC.
+	InstallationsServiceDeleteInstallationProcedure = "/cloud.v1.InstallationsService/DeleteInstallation"
 	// NamespacesServiceListNamespacesProcedure is the fully-qualified name of the NamespacesService's
 	// ListNamespaces RPC.
 	NamespacesServiceListNamespacesProcedure = "/cloud.v1.NamespacesService/ListNamespaces"
@@ -95,12 +103,23 @@ const (
 	// ProvidersServiceDeleteProviderProcedure is the fully-qualified name of the ProvidersService's
 	// DeleteProvider RPC.
 	ProvidersServiceDeleteProviderProcedure = "/cloud.v1.ProvidersService/DeleteProvider"
+	// EventLogsServiceListEventLogsProcedure is the fully-qualified name of the EventLogsService's
+	// ListEventLogs RPC.
+	EventLogsServiceListEventLogsProcedure = "/cloud.v1.EventLogsService/ListEventLogs"
+	// EventLogsServiceGetEventLogAnalyticsProcedure is the fully-qualified name of the
+	// EventLogsService's GetEventLogAnalytics RPC.
+	EventLogsServiceGetEventLogAnalyticsProcedure = "/cloud.v1.EventLogsService/GetEventLogAnalytics"
+	// EventLogsServiceUpdateEventLogStatusProcedure is the fully-qualified name of the
+	// EventLogsService's UpdateEventLogStatus RPC.
+	EventLogsServiceUpdateEventLogStatusProcedure = "/cloud.v1.EventLogsService/UpdateEventLogStatus"
 )
 
 // InstallationsServiceClient is a client for the cloud.v1.InstallationsService service.
 type InstallationsServiceClient interface {
 	ListInstallations(context.Context, *connect.Request[v1.ListInstallationsRequest]) (*connect.Response[v1.ListInstallationsResponse], error)
 	GetInstallationByID(context.Context, *connect.Request[v1.GetInstallationByIDRequest]) (*connect.Response[v1.GetInstallationByIDResponse], error)
+	UpsertInstallation(context.Context, *connect.Request[v1.UpsertInstallationRequest]) (*connect.Response[v1.UpsertInstallationResponse], error)
+	DeleteInstallation(context.Context, *connect.Request[v1.DeleteInstallationRequest]) (*connect.Response[v1.DeleteInstallationResponse], error)
 }
 
 // NewInstallationsServiceClient constructs a client for the cloud.v1.InstallationsService service.
@@ -126,6 +145,18 @@ func NewInstallationsServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(installationsServiceMethods.ByName("GetInstallationByID")),
 			connect.WithClientOptions(opts...),
 		),
+		upsertInstallation: connect.NewClient[v1.UpsertInstallationRequest, v1.UpsertInstallationResponse](
+			httpClient,
+			baseURL+InstallationsServiceUpsertInstallationProcedure,
+			connect.WithSchema(installationsServiceMethods.ByName("UpsertInstallation")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteInstallation: connect.NewClient[v1.DeleteInstallationRequest, v1.DeleteInstallationResponse](
+			httpClient,
+			baseURL+InstallationsServiceDeleteInstallationProcedure,
+			connect.WithSchema(installationsServiceMethods.ByName("DeleteInstallation")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -133,6 +164,8 @@ func NewInstallationsServiceClient(httpClient connect.HTTPClient, baseURL string
 type installationsServiceClient struct {
 	listInstallations   *connect.Client[v1.ListInstallationsRequest, v1.ListInstallationsResponse]
 	getInstallationByID *connect.Client[v1.GetInstallationByIDRequest, v1.GetInstallationByIDResponse]
+	upsertInstallation  *connect.Client[v1.UpsertInstallationRequest, v1.UpsertInstallationResponse]
+	deleteInstallation  *connect.Client[v1.DeleteInstallationRequest, v1.DeleteInstallationResponse]
 }
 
 // ListInstallations calls cloud.v1.InstallationsService.ListInstallations.
@@ -145,10 +178,22 @@ func (c *installationsServiceClient) GetInstallationByID(ctx context.Context, re
 	return c.getInstallationByID.CallUnary(ctx, req)
 }
 
+// UpsertInstallation calls cloud.v1.InstallationsService.UpsertInstallation.
+func (c *installationsServiceClient) UpsertInstallation(ctx context.Context, req *connect.Request[v1.UpsertInstallationRequest]) (*connect.Response[v1.UpsertInstallationResponse], error) {
+	return c.upsertInstallation.CallUnary(ctx, req)
+}
+
+// DeleteInstallation calls cloud.v1.InstallationsService.DeleteInstallation.
+func (c *installationsServiceClient) DeleteInstallation(ctx context.Context, req *connect.Request[v1.DeleteInstallationRequest]) (*connect.Response[v1.DeleteInstallationResponse], error) {
+	return c.deleteInstallation.CallUnary(ctx, req)
+}
+
 // InstallationsServiceHandler is an implementation of the cloud.v1.InstallationsService service.
 type InstallationsServiceHandler interface {
 	ListInstallations(context.Context, *connect.Request[v1.ListInstallationsRequest]) (*connect.Response[v1.ListInstallationsResponse], error)
 	GetInstallationByID(context.Context, *connect.Request[v1.GetInstallationByIDRequest]) (*connect.Response[v1.GetInstallationByIDResponse], error)
+	UpsertInstallation(context.Context, *connect.Request[v1.UpsertInstallationRequest]) (*connect.Response[v1.UpsertInstallationResponse], error)
+	DeleteInstallation(context.Context, *connect.Request[v1.DeleteInstallationRequest]) (*connect.Response[v1.DeleteInstallationResponse], error)
 }
 
 // NewInstallationsServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -170,12 +215,28 @@ func NewInstallationsServiceHandler(svc InstallationsServiceHandler, opts ...con
 		connect.WithSchema(installationsServiceMethods.ByName("GetInstallationByID")),
 		connect.WithHandlerOptions(opts...),
 	)
+	installationsServiceUpsertInstallationHandler := connect.NewUnaryHandler(
+		InstallationsServiceUpsertInstallationProcedure,
+		svc.UpsertInstallation,
+		connect.WithSchema(installationsServiceMethods.ByName("UpsertInstallation")),
+		connect.WithHandlerOptions(opts...),
+	)
+	installationsServiceDeleteInstallationHandler := connect.NewUnaryHandler(
+		InstallationsServiceDeleteInstallationProcedure,
+		svc.DeleteInstallation,
+		connect.WithSchema(installationsServiceMethods.ByName("DeleteInstallation")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/cloud.v1.InstallationsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case InstallationsServiceListInstallationsProcedure:
 			installationsServiceListInstallationsHandler.ServeHTTP(w, r)
 		case InstallationsServiceGetInstallationByIDProcedure:
 			installationsServiceGetInstallationByIDHandler.ServeHTTP(w, r)
+		case InstallationsServiceUpsertInstallationProcedure:
+			installationsServiceUpsertInstallationHandler.ServeHTTP(w, r)
+		case InstallationsServiceDeleteInstallationProcedure:
+			installationsServiceDeleteInstallationHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -191,6 +252,14 @@ func (UnimplementedInstallationsServiceHandler) ListInstallations(context.Contex
 
 func (UnimplementedInstallationsServiceHandler) GetInstallationByID(context.Context, *connect.Request[v1.GetInstallationByIDRequest]) (*connect.Response[v1.GetInstallationByIDResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.InstallationsService.GetInstallationByID is not implemented"))
+}
+
+func (UnimplementedInstallationsServiceHandler) UpsertInstallation(context.Context, *connect.Request[v1.UpsertInstallationRequest]) (*connect.Response[v1.UpsertInstallationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.InstallationsService.UpsertInstallation is not implemented"))
+}
+
+func (UnimplementedInstallationsServiceHandler) DeleteInstallation(context.Context, *connect.Request[v1.DeleteInstallationRequest]) (*connect.Response[v1.DeleteInstallationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.InstallationsService.DeleteInstallation is not implemented"))
 }
 
 // NamespacesServiceClient is a client for the cloud.v1.NamespacesService service.
@@ -835,4 +904,126 @@ func (UnimplementedProvidersServiceHandler) UpsertProvider(context.Context, *con
 
 func (UnimplementedProvidersServiceHandler) DeleteProvider(context.Context, *connect.Request[v1.DeleteProviderRequest]) (*connect.Response[v1.DeleteProviderResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.ProvidersService.DeleteProvider is not implemented"))
+}
+
+// EventLogsServiceClient is a client for the cloud.v1.EventLogsService service.
+type EventLogsServiceClient interface {
+	ListEventLogs(context.Context, *connect.Request[v1.ListEventLogsRequest]) (*connect.Response[v1.ListEventLogsResponse], error)
+	GetEventLogAnalytics(context.Context, *connect.Request[v1.GetEventLogAnalyticsRequest]) (*connect.Response[v1.GetEventLogAnalyticsResponse], error)
+	UpdateEventLogStatus(context.Context, *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error)
+}
+
+// NewEventLogsServiceClient constructs a client for the cloud.v1.EventLogsService service. By
+// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
+// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
+// connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewEventLogsServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) EventLogsServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	eventLogsServiceMethods := v1.File_cloud_v1_githooks_proto.Services().ByName("EventLogsService").Methods()
+	return &eventLogsServiceClient{
+		listEventLogs: connect.NewClient[v1.ListEventLogsRequest, v1.ListEventLogsResponse](
+			httpClient,
+			baseURL+EventLogsServiceListEventLogsProcedure,
+			connect.WithSchema(eventLogsServiceMethods.ByName("ListEventLogs")),
+			connect.WithClientOptions(opts...),
+		),
+		getEventLogAnalytics: connect.NewClient[v1.GetEventLogAnalyticsRequest, v1.GetEventLogAnalyticsResponse](
+			httpClient,
+			baseURL+EventLogsServiceGetEventLogAnalyticsProcedure,
+			connect.WithSchema(eventLogsServiceMethods.ByName("GetEventLogAnalytics")),
+			connect.WithClientOptions(opts...),
+		),
+		updateEventLogStatus: connect.NewClient[v1.UpdateEventLogStatusRequest, v1.UpdateEventLogStatusResponse](
+			httpClient,
+			baseURL+EventLogsServiceUpdateEventLogStatusProcedure,
+			connect.WithSchema(eventLogsServiceMethods.ByName("UpdateEventLogStatus")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// eventLogsServiceClient implements EventLogsServiceClient.
+type eventLogsServiceClient struct {
+	listEventLogs        *connect.Client[v1.ListEventLogsRequest, v1.ListEventLogsResponse]
+	getEventLogAnalytics *connect.Client[v1.GetEventLogAnalyticsRequest, v1.GetEventLogAnalyticsResponse]
+	updateEventLogStatus *connect.Client[v1.UpdateEventLogStatusRequest, v1.UpdateEventLogStatusResponse]
+}
+
+// ListEventLogs calls cloud.v1.EventLogsService.ListEventLogs.
+func (c *eventLogsServiceClient) ListEventLogs(ctx context.Context, req *connect.Request[v1.ListEventLogsRequest]) (*connect.Response[v1.ListEventLogsResponse], error) {
+	return c.listEventLogs.CallUnary(ctx, req)
+}
+
+// GetEventLogAnalytics calls cloud.v1.EventLogsService.GetEventLogAnalytics.
+func (c *eventLogsServiceClient) GetEventLogAnalytics(ctx context.Context, req *connect.Request[v1.GetEventLogAnalyticsRequest]) (*connect.Response[v1.GetEventLogAnalyticsResponse], error) {
+	return c.getEventLogAnalytics.CallUnary(ctx, req)
+}
+
+// UpdateEventLogStatus calls cloud.v1.EventLogsService.UpdateEventLogStatus.
+func (c *eventLogsServiceClient) UpdateEventLogStatus(ctx context.Context, req *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error) {
+	return c.updateEventLogStatus.CallUnary(ctx, req)
+}
+
+// EventLogsServiceHandler is an implementation of the cloud.v1.EventLogsService service.
+type EventLogsServiceHandler interface {
+	ListEventLogs(context.Context, *connect.Request[v1.ListEventLogsRequest]) (*connect.Response[v1.ListEventLogsResponse], error)
+	GetEventLogAnalytics(context.Context, *connect.Request[v1.GetEventLogAnalyticsRequest]) (*connect.Response[v1.GetEventLogAnalyticsResponse], error)
+	UpdateEventLogStatus(context.Context, *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error)
+}
+
+// NewEventLogsServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewEventLogsServiceHandler(svc EventLogsServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	eventLogsServiceMethods := v1.File_cloud_v1_githooks_proto.Services().ByName("EventLogsService").Methods()
+	eventLogsServiceListEventLogsHandler := connect.NewUnaryHandler(
+		EventLogsServiceListEventLogsProcedure,
+		svc.ListEventLogs,
+		connect.WithSchema(eventLogsServiceMethods.ByName("ListEventLogs")),
+		connect.WithHandlerOptions(opts...),
+	)
+	eventLogsServiceGetEventLogAnalyticsHandler := connect.NewUnaryHandler(
+		EventLogsServiceGetEventLogAnalyticsProcedure,
+		svc.GetEventLogAnalytics,
+		connect.WithSchema(eventLogsServiceMethods.ByName("GetEventLogAnalytics")),
+		connect.WithHandlerOptions(opts...),
+	)
+	eventLogsServiceUpdateEventLogStatusHandler := connect.NewUnaryHandler(
+		EventLogsServiceUpdateEventLogStatusProcedure,
+		svc.UpdateEventLogStatus,
+		connect.WithSchema(eventLogsServiceMethods.ByName("UpdateEventLogStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/cloud.v1.EventLogsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case EventLogsServiceListEventLogsProcedure:
+			eventLogsServiceListEventLogsHandler.ServeHTTP(w, r)
+		case EventLogsServiceGetEventLogAnalyticsProcedure:
+			eventLogsServiceGetEventLogAnalyticsHandler.ServeHTTP(w, r)
+		case EventLogsServiceUpdateEventLogStatusProcedure:
+			eventLogsServiceUpdateEventLogStatusHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedEventLogsServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedEventLogsServiceHandler struct{}
+
+func (UnimplementedEventLogsServiceHandler) ListEventLogs(context.Context, *connect.Request[v1.ListEventLogsRequest]) (*connect.Response[v1.ListEventLogsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.EventLogsService.ListEventLogs is not implemented"))
+}
+
+func (UnimplementedEventLogsServiceHandler) GetEventLogAnalytics(context.Context, *connect.Request[v1.GetEventLogAnalyticsRequest]) (*connect.Response[v1.GetEventLogAnalyticsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.EventLogsService.GetEventLogAnalytics is not implemented"))
+}
+
+func (UnimplementedEventLogsServiceHandler) UpdateEventLogStatus(context.Context, *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.EventLogsService.UpdateEventLogStatus is not implemented"))
 }

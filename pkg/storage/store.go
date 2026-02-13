@@ -52,7 +52,7 @@ type RuleRecord struct {
 	UpdatedAt time.Time
 }
 
-// DriverRecord stores per-tenant Watermill driver config.
+// DriverRecord stores Watermill driver config (per-tenant).
 type DriverRecord struct {
 	TenantID   string
 	Name       string
@@ -60,6 +60,67 @@ type DriverRecord struct {
 	Enabled    bool
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+}
+
+// EventLogRecord stores metadata about webhook events and rule matches.
+type EventLogRecord struct {
+	TenantID       string
+	ID             string
+	Provider       string
+	Name           string
+	RequestID      string
+	StateID        string
+	InstallationID string
+	NamespaceID    string
+	NamespaceName  string
+	Topic          string
+	RuleID         string
+	RuleWhen       string
+	Drivers        []string
+	Matched        bool
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	Status         string
+	ErrorMessage   string
+}
+
+// EventLogFilter selects event log rows.
+type EventLogFilter struct {
+	TenantID       string
+	Provider       string
+	Name           string
+	RequestID      string
+	StateID        string
+	InstallationID string
+	NamespaceID    string
+	NamespaceName  string
+	Topic          string
+	RuleID         string
+	RuleWhen       string
+	Matched        *bool
+	StartTime      time.Time
+	EndTime        time.Time
+	Limit          int
+	Offset         int
+}
+
+// EventLogCount represents an aggregate count bucket.
+type EventLogCount struct {
+	Key   string
+	Count int64
+}
+
+// EventLogAnalytics contains aggregate data for event logs.
+type EventLogAnalytics struct {
+	Total       int64
+	Matched     int64
+	DistinctReq int64
+	ByProvider  []EventLogCount
+	ByEvent     []EventLogCount
+	ByTopic     []EventLogCount
+	ByRule      []EventLogCount
+	ByInstall   []EventLogCount
+	ByNamespace []EventLogCount
 }
 
 // ProviderInstanceRecord stores per-tenant provider instance config.
@@ -78,6 +139,7 @@ type NamespaceFilter struct {
 	TenantID            string
 	Provider            string
 	AccountID           string
+	InstallationID      string
 	ProviderInstanceKey string
 	RepoID              string
 	Owner               string
@@ -92,6 +154,7 @@ type Store interface {
 	GetInstallationByInstallationID(ctx context.Context, provider, installationID string) (*InstallRecord, error)
 	// ListInstallations lists installations for a provider, optionally filtered by accountID.
 	ListInstallations(ctx context.Context, provider, accountID string) ([]InstallRecord, error)
+	DeleteInstallation(ctx context.Context, provider, accountID, installationID, instanceKey string) error
 	Close() error
 }
 
@@ -100,6 +163,7 @@ type NamespaceStore interface {
 	UpsertNamespace(ctx context.Context, record NamespaceRecord) error
 	GetNamespace(ctx context.Context, provider, repoID, instanceKey string) (*NamespaceRecord, error)
 	ListNamespaces(ctx context.Context, filter NamespaceFilter) ([]NamespaceRecord, error)
+	DeleteNamespace(ctx context.Context, provider, repoID, instanceKey string) error
 	Close() error
 }
 
@@ -122,11 +186,20 @@ type ProviderInstanceStore interface {
 	Close() error
 }
 
-// DriverStore defines persistence for per-tenant driver configs.
+// DriverStore defines persistence for driver configs.
 type DriverStore interface {
 	ListDrivers(ctx context.Context) ([]DriverRecord, error)
 	GetDriver(ctx context.Context, name string) (*DriverRecord, error)
 	UpsertDriver(ctx context.Context, record DriverRecord) (*DriverRecord, error)
 	DeleteDriver(ctx context.Context, name string) error
+	Close() error
+}
+
+// EventLogStore defines persistence for webhook event logs.
+type EventLogStore interface {
+	CreateEventLogs(ctx context.Context, records []EventLogRecord) error
+	ListEventLogs(ctx context.Context, filter EventLogFilter) ([]EventLogRecord, error)
+	GetEventLogAnalytics(ctx context.Context, filter EventLogFilter) (EventLogAnalytics, error)
+	UpdateEventLogStatus(ctx context.Context, id, status, errorMessage string) error
 	Close() error
 }

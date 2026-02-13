@@ -29,6 +29,7 @@ import (
 	"githook/pkg/providerinstance"
 	"githook/pkg/storage"
 	driversstore "githook/pkg/storage/drivers"
+	"githook/pkg/storage/eventlogs"
 	"githook/pkg/storage/installations"
 	"githook/pkg/storage/namespaces"
 	providerinstancestore "githook/pkg/storage/provider_instances"
@@ -100,6 +101,7 @@ func bootstrapRules(ctx context.Context, store storage.RuleStore, engine *core.R
 		loaded := make([]core.Rule, 0, len(records))
 		for _, record := range records {
 			loaded = append(loaded, core.Rule{
+				ID:      record.ID,
 				When:    record.When,
 				Emit:    core.EmitList(record.Emit),
 				Drivers: record.Drivers,
@@ -123,6 +125,7 @@ func bootstrapRules(ctx context.Context, store storage.RuleStore, engine *core.R
 	grouped := make(map[string][]core.Rule)
 	for _, record := range records {
 		grouped[record.TenantID] = append(grouped[record.TenantID], core.Rule{
+			ID:      record.ID,
 			When:    record.When,
 			Emit:    core.EmitList(record.Emit),
 			Drivers: record.Drivers,
@@ -365,6 +368,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		installStore   *installations.Store
 		namespaceStore *namespaces.Store
 		ruleStore      *rules.Store
+		logStore       *eventlogs.Store
 		driverStore    *driversstore.Store
 		driverCache    *driverspkg.Cache
 		instanceStore  *providerinstancestore.Store
@@ -409,6 +413,19 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		ruleStore = rsStore
 		defer ruleStore.Close()
 		logger.Printf("rules enabled driver=%s dialect=%s table=githook_rules", config.Storage.Driver, config.Storage.Dialect)
+
+		elStore, err := eventlogs.Open(eventlogs.Config{
+			Driver:      config.Storage.Driver,
+			DSN:         config.Storage.DSN,
+			Dialect:     config.Storage.Dialect,
+			AutoMigrate: config.Storage.AutoMigrate,
+		})
+		if err != nil {
+			return fmt.Errorf("event logs storage: %w", err)
+		}
+		logStore = elStore
+		defer logStore.Close()
+		logger.Printf("event logs enabled driver=%s dialect=%s table=githook_event_logs", config.Storage.Driver, config.Storage.Dialect)
 
 		dsStore, err := driversstore.Open(driversstore.Config{
 			Driver:      config.Storage.Driver,
@@ -493,9 +510,11 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 	}
 	connectOpts = append(connectOpts, connect.WithInterceptors(newTenantInterceptor()))
 	mux.Handle("/", &oauth.StartHandler{
-		Providers:     config.Providers,
-		PublicBaseURL: config.Server.PublicBaseURL,
-		Logger:        logger,
+		Providers:             config.Providers,
+		PublicBaseURL:         config.Server.PublicBaseURL,
+		Logger:                logger,
+		ProviderInstanceStore: instanceStore,
+		ProviderInstanceCache: instanceCache,
 	})
 	{
 		installSvc := &api.InstallationsService{
@@ -508,11 +527,13 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 	}
 	{
 		namespaceSvc := &api.NamespacesService{
-			Store:         namespaceStore,
-			InstallStore:  installStore,
-			Providers:     config.Providers,
-			PublicBaseURL: config.Server.PublicBaseURL,
-			Logger:        logger,
+			Store:                 namespaceStore,
+			InstallStore:          installStore,
+			ProviderInstanceStore: instanceStore,
+			ProviderInstanceCache: instanceCache,
+			Providers:             config.Providers,
+			PublicBaseURL:         config.Server.PublicBaseURL,
+			Logger:                logger,
 		}
 		path, handler := cloudv1connect.NewNamespacesServiceHandler(namespaceSvc, connectOpts...)
 		mux.Handle(path, handler)
@@ -545,6 +566,14 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		path, handler := cloudv1connect.NewProvidersServiceHandler(providerSvc, connectOpts...)
 		mux.Handle(path, handler)
 	}
+	{
+		eventLogSvc := &api.EventLogsService{
+			Store:  logStore,
+			Logger: logger,
+		}
+		path, handler := cloudv1connect.NewEventLogsServiceHandler(eventLogSvc, connectOpts...)
+		mux.Handle(path, handler)
+	}
 
 	if config.Providers.GitHub.Enabled {
 		ghHandler, err := webhook.NewGitHubHandler(
@@ -556,6 +585,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 			config.Server.DebugEvents,
 			installStore,
 			namespaceStore,
+			logStore,
 		)
 		if err != nil {
 			return fmt.Errorf("github handler: %w", err)
@@ -577,6 +607,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 			config.Server.MaxBodyBytes,
 			config.Server.DebugEvents,
 			namespaceStore,
+			logStore,
 		)
 		if err != nil {
 			return fmt.Errorf("gitlab handler: %w", err)
@@ -597,6 +628,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 			config.Server.MaxBodyBytes,
 			config.Server.DebugEvents,
 			namespaceStore,
+			logStore,
 		)
 		if err != nil {
 			return fmt.Errorf("bitbucket handler: %w", err)

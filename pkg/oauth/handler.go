@@ -105,6 +105,10 @@ func (h *Handler) handleGitHubApp(w http.ResponseWriter, r *http.Request, logger
 	if err != nil {
 		logger.Printf("github account resolve failed: %v", err)
 	}
+	storeCtx := storage.WithTenant(r.Context(), stateValue.TenantID)
+	if err := SyncGitHubNamespaces(storeCtx, h.NamespaceStore, cfg, installationID, accountID, instanceKey); err != nil {
+		logger.Printf("github namespaces sync failed: %v", err)
+	}
 
 	record := storage.InstallRecord{
 		TenantID:            stateValue.TenantID,
@@ -123,11 +127,13 @@ func (h *Handler) handleGitHubApp(w http.ResponseWriter, r *http.Request, logger
 		if warning == "" {
 			warning = "storage_not_configured"
 		}
-	} else if err := h.Store.UpsertInstallation(r.Context(), record); err != nil {
+	} else if err := h.Store.UpsertInstallation(storeCtx, record); err != nil {
 		logger.Printf("github install upsert failed: %v", err)
 		if warning == "" {
 			warning = "storage_persist_failed"
 		}
+	} else {
+		dedupeInstallations(storeCtx, h.Store, "github", accountID, instanceKey, installationID)
 	}
 
 	params := map[string]string{
@@ -166,13 +172,17 @@ func (h *Handler) handleGitLab(w http.ResponseWriter, r *http.Request, logger *l
 	accessToken := token.AccessToken
 	refreshToken := token.RefreshToken
 	warning := ""
-	installationID := randomID()
 
 	accountID, accountName, err := resolveGitLabAccount(r.Context(), cfg, token.AccessToken)
 	if err != nil {
 		logger.Printf("gitlab account resolve failed: %v", err)
 	}
-	if err := SyncGitLabNamespaces(r.Context(), h.NamespaceStore, cfg, token.AccessToken, accountID, installationID, instanceKey); err != nil {
+	storeCtx := storage.WithTenant(r.Context(), stateValue.TenantID)
+	installationID := resolveExistingInstallationID(storeCtx, h.Store, "gitlab", accountID, instanceKey)
+	if installationID == "" {
+		installationID = randomID()
+	}
+	if err := SyncGitLabNamespaces(storeCtx, h.NamespaceStore, cfg, token.AccessToken, accountID, installationID, instanceKey); err != nil {
 		logger.Printf("gitlab namespaces sync failed: %v", err)
 	}
 	record := storage.InstallRecord{
@@ -192,11 +202,13 @@ func (h *Handler) handleGitLab(w http.ResponseWriter, r *http.Request, logger *l
 		if warning == "" {
 			warning = "storage_not_configured"
 		}
-	} else if err := h.Store.UpsertInstallation(r.Context(), record); err != nil {
+	} else if err := h.Store.UpsertInstallation(storeCtx, record); err != nil {
 		logger.Printf("gitlab install upsert failed: %v", err)
 		if warning == "" {
 			warning = "storage_persist_failed"
 		}
+	} else {
+		dedupeInstallations(storeCtx, h.Store, "gitlab", accountID, instanceKey, installationID)
 	}
 
 	params := map[string]string{
@@ -238,13 +250,17 @@ func (h *Handler) handleBitbucket(w http.ResponseWriter, r *http.Request, logger
 	accessToken := token.AccessToken
 	refreshToken := token.RefreshToken
 	warning := ""
-	installationID := randomID()
 
 	accountID, accountName, err := resolveBitbucketAccount(r.Context(), cfg, token.AccessToken)
 	if err != nil {
 		logger.Printf("bitbucket account resolve failed: %v", err)
 	}
-	if err := SyncBitbucketNamespaces(r.Context(), h.NamespaceStore, cfg, token.AccessToken, accountID, installationID, instanceKey); err != nil {
+	storeCtx := storage.WithTenant(r.Context(), stateValue.TenantID)
+	installationID := resolveExistingInstallationID(storeCtx, h.Store, "bitbucket", accountID, instanceKey)
+	if installationID == "" {
+		installationID = randomID()
+	}
+	if err := SyncBitbucketNamespaces(storeCtx, h.NamespaceStore, cfg, token.AccessToken, accountID, installationID, instanceKey); err != nil {
 		logger.Printf("bitbucket namespaces sync failed: %v", err)
 	}
 	record := storage.InstallRecord{
@@ -264,11 +280,13 @@ func (h *Handler) handleBitbucket(w http.ResponseWriter, r *http.Request, logger
 		if warning == "" {
 			warning = "storage_not_configured"
 		}
-	} else if err := h.Store.UpsertInstallation(r.Context(), record); err != nil {
+	} else if err := h.Store.UpsertInstallation(storeCtx, record); err != nil {
 		logger.Printf("bitbucket install upsert failed: %v", err)
 		if warning == "" {
 			warning = "storage_persist_failed"
 		}
+	} else {
+		dedupeInstallations(storeCtx, h.Store, "bitbucket", accountID, instanceKey, installationID)
 	}
 
 	params := map[string]string{
@@ -357,6 +375,63 @@ func (h *Handler) resolveInstanceConfig(ctx context.Context, provider, instanceK
 	return cfg, instanceKey
 }
 
+func resolveExistingInstallationID(ctx context.Context, store storage.Store, provider, accountID, instanceKey string) string {
+	if store == nil {
+		return ""
+	}
+	provider = strings.TrimSpace(provider)
+	accountID = strings.TrimSpace(accountID)
+	instanceKey = strings.TrimSpace(instanceKey)
+	if provider == "" || accountID == "" {
+		return ""
+	}
+	records, err := store.ListInstallations(ctx, provider, accountID)
+	if err != nil || len(records) == 0 {
+		return ""
+	}
+	var bestID string
+	var bestTime time.Time
+	for _, record := range records {
+		if instanceKey != "" && record.ProviderInstanceKey != instanceKey {
+			continue
+		}
+		if record.InstallationID == "" {
+			continue
+		}
+		if bestID == "" || record.UpdatedAt.After(bestTime) {
+			bestID = record.InstallationID
+			bestTime = record.UpdatedAt
+		}
+	}
+	return bestID
+}
+
+func dedupeInstallations(ctx context.Context, store storage.Store, provider, accountID, instanceKey, keepID string) {
+	if store == nil {
+		return
+	}
+	provider = strings.TrimSpace(provider)
+	accountID = strings.TrimSpace(accountID)
+	keepID = strings.TrimSpace(keepID)
+	instanceKey = strings.TrimSpace(instanceKey)
+	if provider == "" || accountID == "" || keepID == "" {
+		return
+	}
+	records, err := store.ListInstallations(ctx, provider, accountID)
+	if err != nil {
+		return
+	}
+	for _, record := range records {
+		if record.InstallationID == "" || record.InstallationID == keepID {
+			continue
+		}
+		if instanceKey != "" && record.ProviderInstanceKey != "" && record.ProviderInstanceKey != instanceKey {
+			continue
+		}
+		_ = store.DeleteInstallation(ctx, provider, accountID, record.InstallationID, record.ProviderInstanceKey)
+	}
+}
+
 func matchProviderConfigRecord(records []storage.ProviderInstanceRecord, fallback auth.ProviderConfig) (storage.ProviderInstanceRecord, bool) {
 	configJSON, ok := providerConfigJSON(fallback)
 	if !ok {
@@ -365,7 +440,8 @@ func matchProviderConfigRecord(records []storage.ProviderInstanceRecord, fallbac
 	var match *storage.ProviderInstanceRecord
 	for i := range records {
 		record := records[i]
-		if strings.TrimSpace(record.ConfigJSON) != configJSON {
+		normalized, ok := providerinstance.NormalizeProviderConfigJSON(record.ConfigJSON)
+		if !ok || normalized != configJSON {
 			continue
 		}
 		if !isProviderInstanceHash(record.Key) {
@@ -462,7 +538,9 @@ func exchangeGitLabToken(ctx context.Context, cfg auth.ProviderConfig, code, red
 }
 
 func resolveGitHubAccount(ctx context.Context, cfg auth.ProviderConfig, installationID string) (string, string, error) {
-	if cfg.App.AppID == 0 || cfg.App.PrivateKeyPath == "" || installationID == "" {
+	if cfg.App.AppID == 0 ||
+		(cfg.App.PrivateKeyPath == "" && cfg.App.PrivateKeyPEM == "") ||
+		installationID == "" {
 		return "", "", errors.New("github app config missing")
 	}
 	id, err := strconv.ParseInt(installationID, 10, 64)
@@ -472,6 +550,7 @@ func resolveGitHubAccount(ctx context.Context, cfg auth.ProviderConfig, installa
 	account, err := ghprovider.FetchInstallationAccount(ctx, ghprovider.AppConfig{
 		AppID:          cfg.App.AppID,
 		PrivateKeyPath: cfg.App.PrivateKeyPath,
+		PrivateKeyPEM:  cfg.App.PrivateKeyPEM,
 		BaseURL:        cfg.API.BaseURL,
 	}, id)
 	if err != nil {

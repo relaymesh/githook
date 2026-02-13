@@ -8,6 +8,8 @@ type Event struct {
 	Name string `json:"name"`
 	// RequestID links the event back to the inbound webhook request.
 	RequestID string `json:"request_id,omitempty"`
+	// LogID links the event to a stored event log entry.
+	LogID string `json:"-"`
 	// Data is the flattened JSON payload of the event.
 	Data map[string]interface{} `json:"data"`
 	// RawPayload is the raw JSON payload from the webhook.
@@ -18,4 +20,8 @@ type Event struct {
 	StateID string `json:"-"`
 	// InstallationID maps the event to a provider installation for token lookup.
 	InstallationID string `json:"-"`
+	// NamespaceID identifies the repository/namespace for the event.
+	NamespaceID string `json:"-"`
+	// NamespaceName is the human-readable namespace (owner/repo).
+	NamespaceName string `json:"-"`
 }

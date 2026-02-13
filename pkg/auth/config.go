@@ -28,6 +28,7 @@ type WebhookConfig struct {
 type AppConfig struct {
 	AppID          int64  `yaml:"app_id"`
 	PrivateKeyPath string `yaml:"private_key_path"`
+	PrivateKeyPEM  string `yaml:"private_key_pem" json:"PrivateKeyPEM,omitempty"`
 	AppSlug        string `yaml:"app_slug"`
 }
 

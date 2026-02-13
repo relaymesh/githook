@@ -165,6 +165,8 @@ func buildSingleSubscriber(cfg SubscriberConfig, logger watermill.LoggerAdapter,
 			return nil, err
 		}
 		return sub, nil
+	case "riverqueue":
+		return newRiverQueueSubscriber(cfg, logger)
 	default:
 		return nil, fmt.Errorf("unsupported subscriber driver: %s", driver)
 	}
@@ -336,7 +338,7 @@ func uniqueStrings(values []string) []string {
 
 func isSubscriberDriverSupported(driver string) bool {
 	switch strings.ToLower(driver) {
-	case "gochannel", "amqp", "nats", "kafka", "sql":
+	case "gochannel", "amqp", "nats", "kafka", "sql", "riverqueue":
 		return true
 	default:
 		return false

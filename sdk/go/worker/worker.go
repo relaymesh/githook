@@ -207,9 +207,14 @@ func (w *Worker) Close() error {
 }
 
 func (w *Worker) handleMessage(ctx context.Context, topic string, msg *message.Message) {
+	logID := ""
+	if msg != nil {
+		logID = msg.Metadata.Get("log_id")
+	}
 	evt, err := w.codec.Decode(topic, msg)
 	if err != nil {
 		w.logger.Printf("decode failed: %v", err)
+		w.updateEventLogStatus(ctx, logID, EventLogStatusFailed, err)
 		w.notifyError(ctx, nil, err)
 		decision := w.retry.OnError(ctx, nil, err)
 		if decision.Retry || decision.Nack {
@@ -220,10 +225,13 @@ func (w *Worker) handleMessage(ctx context.Context, topic string, msg *message.M
 		return
 	}
 
+	w.updateEventLogStatus(ctx, logID, EventLogStatusDelivered, nil)
+
 	if w.clientProvider != nil {
 		client, err := w.clientProvider.Client(ctx, evt)
 		if err != nil {
 			w.logger.Printf("client init failed: %v", err)
+			w.updateEventLogStatus(ctx, logID, EventLogStatusFailed, err)
 			w.notifyError(ctx, evt, err)
 			decision := w.retry.OnError(ctx, evt, err)
 			if decision.Retry || decision.Nack {
@@ -249,6 +257,7 @@ func (w *Worker) handleMessage(ctx context.Context, topic string, msg *message.M
 	if handler == nil {
 		w.logger.Printf("no handler for topic=%s type=%s", topic, evt.Type)
 		w.notifyMessageFinish(ctx, evt, nil)
+		w.updateEventLogStatus(ctx, logID, EventLogStatusSuccess, nil)
 		msg.Ack()
 		return
 	}
@@ -257,6 +266,7 @@ func (w *Worker) handleMessage(ctx context.Context, topic string, msg *message.M
 	if err := wrapped(ctx, evt); err != nil {
 		w.notifyMessageFinish(ctx, evt, err)
 		w.notifyError(ctx, evt, err)
+		w.updateEventLogStatus(ctx, logID, EventLogStatusFailed, err)
 		decision := w.retry.OnError(ctx, evt, err)
 		if decision.Retry || decision.Nack {
 			msg.Nack()
@@ -266,6 +276,7 @@ func (w *Worker) handleMessage(ctx context.Context, topic string, msg *message.M
 		return
 	}
 	w.notifyMessageFinish(ctx, evt, nil)
+	w.updateEventLogStatus(ctx, logID, EventLogStatusSuccess, nil)
 	msg.Ack()
 }
 

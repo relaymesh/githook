@@ -33,6 +33,8 @@ func applyDriverConfig(cfg *SubscriberConfig, name, raw string) error {
 		return unmarshalJSON(raw, &cfg.Kafka)
 	case "sql":
 		return unmarshalJSON(raw, &cfg.SQL)
+	case "riverqueue":
+		return unmarshalJSON(raw, &cfg.RiverQueue)
 	default:
 		return errors.New("unsupported driver: " + name)
 	}

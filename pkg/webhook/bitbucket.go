@@ -25,6 +25,7 @@ type BitbucketHandler struct {
 	maxBody     int64
 	debugEvents bool
 	namespaces  storage.NamespaceStore
+	logs        storage.EventLogStore
 }
 
 var bitbucketEvents = []bitbucket.Event{
@@ -49,7 +50,7 @@ var bitbucketEvents = []bitbucket.Event{
 }
 
 // NewBitbucketHandler creates a new BitbucketHandler.
-func NewBitbucketHandler(secret string, rules *core.RuleEngine, publisher core.Publisher, logger *log.Logger, maxBody int64, debugEvents bool, namespaces storage.NamespaceStore) (*BitbucketHandler, error) {
+func NewBitbucketHandler(secret string, rules *core.RuleEngine, publisher core.Publisher, logger *log.Logger, maxBody int64, debugEvents bool, namespaces storage.NamespaceStore, logs storage.EventLogStore) (*BitbucketHandler, error) {
 	options := make([]bitbucket.Option, 0, 1)
 	if secret != "" {
 		options = append(options, bitbucket.Options.UUID(secret))
@@ -61,7 +62,7 @@ func NewBitbucketHandler(secret string, rules *core.RuleEngine, publisher core.P
 	if logger == nil {
 		logger = log.Default()
 	}
-	return &BitbucketHandler{hook: hook, rules: rules, publisher: publisher, logger: logger, maxBody: maxBody, debugEvents: debugEvents, namespaces: namespaces}, nil
+	return &BitbucketHandler{hook: hook, rules: rules, publisher: publisher, logger: logger, maxBody: maxBody, debugEvents: debugEvents, namespaces: namespaces, logs: logs}, nil
 }
 
 // ServeHTTP handles an incoming HTTP request.
@@ -106,9 +107,18 @@ func (h *BitbucketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch payload.(type) {
 	default:
 		rawObject, data := rawObjectAndFlatten(rawBody)
+		namespaceID, namespaceName := bitbucketNamespaceInfo(rawBody)
 		stateID, installationID := h.resolveStateID(r.Context(), rawBody)
 		if installationID == "" {
 			logger.Printf("bitbucket webhook ignored: missing installation_id")
+			logEventFailure(r.Context(), h.logs, logger, core.Event{
+				Provider:      "bitbucket",
+				Name:          eventName,
+				RequestID:     reqID,
+				StateID:       stateID,
+				NamespaceID:   namespaceID,
+				NamespaceName: namespaceName,
+			}, "missing installation_id")
 			w.WriteHeader(http.StatusOK)
 			return
 		}
@@ -121,6 +131,8 @@ func (h *BitbucketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			RawObject:      rawObject,
 			StateID:        stateID,
 			InstallationID: installationID,
+			NamespaceID:    namespaceID,
+			NamespaceName:  namespaceName,
 		})
 	}
 
@@ -152,11 +164,59 @@ func (h *BitbucketHandler) resolveStateID(ctx context.Context, raw []byte) (stri
 
 func (h *BitbucketHandler) emit(r *http.Request, logger *log.Logger, event core.Event) {
 	tenantID := storage.TenantFromContext(r.Context())
-	topics := h.rules.EvaluateForTenantWithLogger(event, tenantID, logger)
-	logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topics)
-	for _, match := range topics {
-		if err := h.publisher.PublishForDrivers(r.Context(), match.Topic, event, match.Drivers); err != nil {
-			logger.Printf("publish %s failed: %v", match.Topic, err)
+	rules := h.rules.EvaluateRulesForTenantWithLogger(event, tenantID, logger)
+	if h.logs == nil {
+		matches := ruleMatchesFromRules(rules)
+		logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromMatches(matches))
+		for _, match := range matches {
+			if err := h.publisher.PublishForDrivers(r.Context(), match.Topic, event, match.Drivers); err != nil {
+				logger.Printf("publish %s failed: %v", match.Topic, err)
+			}
+		}
+		return
+	}
+
+	matchLogs := logEventMatches(r.Context(), h.logs, logger, event, rules)
+	logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromLogRecords(matchLogs))
+	for _, record := range matchLogs {
+		event.LogID = record.ID
+		if err := h.publisher.PublishForDrivers(r.Context(), record.Topic, event, record.Drivers); err != nil {
+			logger.Printf("publish %s failed: %v", record.Topic, err)
+			if err := h.logs.UpdateEventLogStatus(r.Context(), record.ID, eventLogStatusFailed, err.Error()); err != nil {
+				logger.Printf("event log update failed: %v", err)
+			}
 		}
 	}
+}
+
+func bitbucketNamespaceInfo(raw []byte) (string, string) {
+	var payload struct {
+		Repository struct {
+			UUID     string `json:"uuid"`
+			FullName string `json:"full_name"`
+			Name     string `json:"name"`
+			Owner    struct {
+				Username string `json:"username"`
+				Nickname string `json:"nickname"`
+			} `json:"owner"`
+			Workspace struct {
+				Slug string `json:"slug"`
+			} `json:"workspace"`
+		} `json:"repository"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return "", ""
+	}
+	namespaceID := strings.TrimSpace(payload.Repository.UUID)
+	namespaceName := strings.TrimSpace(payload.Repository.FullName)
+	if namespaceName == "" && payload.Repository.Workspace.Slug != "" && payload.Repository.Name != "" {
+		namespaceName = payload.Repository.Workspace.Slug + "/" + payload.Repository.Name
+	}
+	if namespaceName == "" && payload.Repository.Owner.Username != "" && payload.Repository.Name != "" {
+		namespaceName = payload.Repository.Owner.Username + "/" + payload.Repository.Name
+	}
+	if namespaceName == "" && payload.Repository.Owner.Nickname != "" && payload.Repository.Name != "" {
+		namespaceName = payload.Repository.Owner.Nickname + "/" + payload.Repository.Name
+	}
+	return namespaceID, namespaceName
 }

@@ -10,6 +10,8 @@ option go_package = "githook/pkg/gen/cloud/v1;cloudv1";
 service InstallationsService {
   rpc ListInstallations(ListInstallationsRequest) returns (ListInstallationsResponse);
   rpc GetInstallationByID(GetInstallationByIDRequest) returns (GetInstallationByIDResponse);
+  rpc UpsertInstallation(UpsertInstallationRequest) returns (UpsertInstallationResponse);
+  rpc DeleteInstallation(DeleteInstallationRequest) returns (DeleteInstallationResponse);
 }
 
 service NamespacesService {
@@ -42,17 +44,24 @@ service ProvidersService {
   rpc DeleteProvider(DeleteProviderRequest) returns (DeleteProviderResponse);
 }
 
+service EventLogsService {
+  rpc ListEventLogs(ListEventLogsRequest) returns (ListEventLogsResponse);
+  rpc GetEventLogAnalytics(GetEventLogAnalyticsRequest) returns (GetEventLogAnalyticsResponse);
+  rpc UpdateEventLogStatus(UpdateEventLogStatusRequest) returns (UpdateEventLogStatusResponse);
+}
+
 message InstallRecord {
   string provider = 1 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
-  string account_id = 2;
+  string account_id = 2 [(buf.validate.field).string.min_len = 1];
   string account_name = 3;
-  string installation_id = 4;
+  string installation_id = 4 [(buf.validate.field).string.min_len = 1];
   string access_token = 5;
   string refresh_token = 6;
   google.protobuf.Timestamp expires_at = 7;
   string metadata_json = 8;
   google.protobuf.Timestamp created_at = 9;
   google.protobuf.Timestamp updated_at = 10;
+  string provider_instance_key = 11;
 }
 
 message NamespaceRecord {
@@ -100,6 +109,28 @@ message GetInstallationByIDRequest {
 message GetInstallationByIDResponse {
   InstallRecord installation = 1;
 }
+
+message UpsertInstallationRequest {
+  InstallRecord installation = 1 [(buf.validate.field).required = true];
+}
+
+message UpsertInstallationResponse {
+  InstallRecord installation = 1;
+}
+
+message DeleteInstallationRequest {
+  string provider = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
+  string account_id = 2 [(buf.validate.field).string.min_len = 1];
+  string installation_id = 3 [(buf.validate.field).string.min_len = 1];
+  string provider_instance_key = 4;
+}
+
+message DeleteInstallationResponse {}
 
 message ListNamespacesRequest {
   // Optional account filter. When omitted, all accounts for the provider are returned.
@@ -209,6 +240,47 @@ message ProviderRecord {
   bool enabled = 4;
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
+}
+
+message EventLogRecord {
+  string id = 1;
+  string provider = 2 [
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
+  string name = 3;
+  string request_id = 4;
+  string state_id = 5;
+  string installation_id = 6;
+  string namespace_id = 7;
+  string namespace_name = 8;
+  string topic = 9;
+  string rule_id = 10;
+  string rule_when = 11;
+  repeated string drivers = 12;
+  bool matched = 13;
+  string status = 14;
+  string error_message = 15;
+  google.protobuf.Timestamp created_at = 16;
+  google.protobuf.Timestamp updated_at = 17;
+}
+
+message EventLogCount {
+  string key = 1;
+  int64 count = 2;
+}
+
+message EventLogAnalytics {
+  int64 total = 1;
+  int64 matched = 2;
+  int64 distinct_requests = 3;
+  repeated EventLogCount by_provider = 4;
+  repeated EventLogCount by_event = 5;
+  repeated EventLogCount by_topic = 6;
+  repeated EventLogCount by_rule = 7;
+  repeated EventLogCount by_installation = 8;
+  repeated EventLogCount by_namespace = 9;
 }
 
 message EventPayload {
@@ -339,3 +411,70 @@ message DeleteProviderRequest {
 }
 
 message DeleteProviderResponse {}
+
+message ListEventLogsRequest {
+  string provider = 1 [
+    (buf.validate.field).string.in = "",
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
+  string name = 2;
+  string topic = 3;
+  string request_id = 4;
+  string state_id = 5;
+  string installation_id = 6;
+  string namespace_id = 7;
+  string namespace_name = 8;
+  string rule_id = 9;
+  string rule_when = 10;
+  bool matched_only = 11;
+  int32 page_size = 12 [(buf.validate.field).int32.gte = 0, (buf.validate.field).int32.lte = 200];
+  string page_token = 13;
+  google.protobuf.Timestamp start_time = 14;
+  google.protobuf.Timestamp end_time = 15;
+}
+
+message ListEventLogsResponse {
+  repeated EventLogRecord logs = 1;
+  string next_page_token = 2;
+}
+
+message GetEventLogAnalyticsRequest {
+  string provider = 1 [
+    (buf.validate.field).string.in = "",
+    (buf.validate.field).string.in = "github",
+    (buf.validate.field).string.in = "gitlab",
+    (buf.validate.field).string.in = "bitbucket"
+  ];
+  string name = 2;
+  string topic = 3;
+  string request_id = 4;
+  string state_id = 5;
+  string installation_id = 6;
+  string namespace_id = 7;
+  string namespace_name = 8;
+  string rule_id = 9;
+  string rule_when = 10;
+  bool matched_only = 11;
+  google.protobuf.Timestamp start_time = 12;
+  google.protobuf.Timestamp end_time = 13;
+}
+
+message GetEventLogAnalyticsResponse {
+  EventLogAnalytics analytics = 1;
+}
+
+message UpdateEventLogStatusRequest {
+  string log_id = 1 [(buf.validate.field).string.min_len = 1];
+  string status = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.in = "queued",
+    (buf.validate.field).string.in = "delivered",
+    (buf.validate.field).string.in = "success",
+    (buf.validate.field).string.in = "failed"
+  ];
+  string error_message = 3;
+}
+
+message UpdateEventLogStatusResponse {}

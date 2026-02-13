@@ -1,6 +1,7 @@
 package webhook
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -8,6 +9,14 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 
 	"githook/pkg/core"
+	"githook/pkg/storage"
+)
+
+const (
+	eventLogStatusQueued    = "queued"
+	eventLogStatusDelivered = "delivered"
+	eventLogStatusSuccess   = "success"
+	eventLogStatusFailed    = "failed"
 )
 
 // rawObjectAndFlatten unmarshals a raw JSON byte slice into both an interface{}
@@ -46,4 +55,119 @@ func logDebugEvent(logger *log.Logger, provider string, event string, body []byt
 		logger = log.Default()
 	}
 	logger.Printf("debug event provider=%s name=%s payload=%s", provider, event, string(body))
+}
+
+func ruleMatchesFromRules(rules []core.MatchedRule) []core.RuleMatch {
+	matches := make([]core.RuleMatch, 0, len(rules))
+	for _, rule := range rules {
+		for _, topic := range rule.Emit {
+			matches = append(matches, core.RuleMatch{
+				Topic:   topic,
+				Drivers: append([]string(nil), rule.Drivers...),
+			})
+		}
+	}
+	return matches
+}
+
+func topicsFromMatches(matches []core.RuleMatch) []string {
+	topics := make([]string, 0, len(matches))
+	for _, match := range matches {
+		if match.Topic == "" {
+			continue
+		}
+		topics = append(topics, match.Topic)
+	}
+	return topics
+}
+
+func logEventFailure(ctx context.Context, store storage.EventLogStore, logger *log.Logger, event core.Event, reason string) {
+	if store == nil {
+		return
+	}
+	record := storage.EventLogRecord{
+		ID:             watermill.NewUUID(),
+		Provider:       event.Provider,
+		Name:           event.Name,
+		RequestID:      event.RequestID,
+		StateID:        event.StateID,
+		InstallationID: event.InstallationID,
+		NamespaceID:    event.NamespaceID,
+		NamespaceName:  event.NamespaceName,
+		Status:         eventLogStatusFailed,
+		ErrorMessage:   reason,
+		Matched:        false,
+	}
+	if err := store.CreateEventLogs(ctx, []storage.EventLogRecord{record}); err != nil && logger != nil {
+		logger.Printf("event log write failed: %v", err)
+	}
+}
+
+func logEventMatches(ctx context.Context, store storage.EventLogStore, logger *log.Logger, event core.Event, rules []core.MatchedRule) []storage.EventLogRecord {
+	if store == nil {
+		return nil
+	}
+	records, matched := buildEventLogRecords(event, rules)
+	if len(records) == 0 {
+		return nil
+	}
+	if err := store.CreateEventLogs(ctx, records); err != nil && logger != nil {
+		logger.Printf("event log write failed: %v", err)
+	}
+	return matched
+}
+
+func buildEventLogRecords(event core.Event, rules []core.MatchedRule) ([]storage.EventLogRecord, []storage.EventLogRecord) {
+	if len(rules) == 0 {
+		record := storage.EventLogRecord{
+			ID:             watermill.NewUUID(),
+			Provider:       event.Provider,
+			Name:           event.Name,
+			RequestID:      event.RequestID,
+			StateID:        event.StateID,
+			InstallationID: event.InstallationID,
+			NamespaceID:    event.NamespaceID,
+			NamespaceName:  event.NamespaceName,
+			Status:         eventLogStatusSuccess,
+			Matched:        false,
+		}
+		return []storage.EventLogRecord{record}, nil
+	}
+
+	records := make([]storage.EventLogRecord, 0, len(rules))
+	matched := make([]storage.EventLogRecord, 0, len(rules))
+	for _, rule := range rules {
+		for _, topic := range rule.Emit {
+			record := storage.EventLogRecord{
+				ID:             watermill.NewUUID(),
+				Provider:       event.Provider,
+				Name:           event.Name,
+				RequestID:      event.RequestID,
+				StateID:        event.StateID,
+				InstallationID: event.InstallationID,
+				NamespaceID:    event.NamespaceID,
+				NamespaceName:  event.NamespaceName,
+				Topic:          topic,
+				RuleID:         rule.ID,
+				RuleWhen:       rule.When,
+				Drivers:        append([]string(nil), rule.Drivers...),
+				Status:         eventLogStatusQueued,
+				Matched:        true,
+			}
+			records = append(records, record)
+			matched = append(matched, record)
+		}
+	}
+	return records, matched
+}
+
+func topicsFromLogRecords(records []storage.EventLogRecord) []string {
+	topics := make([]string, 0, len(records))
+	for _, record := range records {
+		if record.Topic == "" {
+			continue
+		}
+		topics = append(topics, record.Topic)
+	}
+	return topics
 }

@@ -31,6 +31,8 @@ type Store struct {
 	table string
 }
 
+const globalTenantID = ""
+
 type row struct {
 	TenantID   string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_driver,priority:1"`
 	Name       string    `gorm:"column:name;size:64;not null;uniqueIndex:idx_driver,priority:2"`
@@ -90,10 +92,10 @@ func (s *Store) ListDrivers(ctx context.Context) ([]storage.DriverRecord, error)
 	if s == nil || s.db == nil {
 		return nil, errors.New("store is not initialized")
 	}
-	query := s.tableDB().WithContext(ctx).Order("name asc")
-	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
-	}
+	tenantID := tenantIDFromContext(ctx)
+	query := s.tableDB().WithContext(ctx).
+		Where("tenant_id = ?", tenantID).
+		Order("name asc")
 	var data []row
 	if err := query.Find(&data).Error; err != nil {
 		return nil, err
@@ -114,10 +116,10 @@ func (s *Store) GetDriver(ctx context.Context, name string) (*storage.DriverReco
 	if name == "" {
 		return nil, errors.New("name is required")
 	}
-	query := s.tableDB().WithContext(ctx).Where("name = ?", name)
-	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
-	}
+	tenantID := tenantIDFromContext(ctx)
+	query := s.tableDB().WithContext(ctx).
+		Where("name = ?", name).
+		Where("tenant_id = ?", tenantID)
 	var data row
 	err := query.Take(&data).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -138,23 +140,28 @@ func (s *Store) UpsertDriver(ctx context.Context, record storage.DriverRecord) (
 	if record.Name == "" {
 		return nil, errors.New("name is required")
 	}
-	if record.TenantID == "" {
-		record.TenantID = storage.TenantFromContext(ctx)
-	}
+	tenantID := tenantIDFromContext(ctx)
+	record.TenantID = tenantID
 	now := time.Now().UTC()
 	if record.CreatedAt.IsZero() {
 		record.CreatedAt = now
 	}
 	record.UpdatedAt = now
 	data := toRow(record)
-	err := s.tableDB().
-		WithContext(ctx).
-		Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "tenant_id"}, {Name: "name"}},
-			DoUpdates: clause.AssignmentColumns([]string{"config_json", "enabled", "updated_at"}),
-		}).
-		Create(&data).Error
-	if err != nil {
+	if err := s.tableDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.
+			Where("tenant_id = ?", tenantID).
+			Where("name <> ?", record.Name).
+			Delete(&row{}).Error; err != nil {
+			return err
+		}
+		return tx.
+			Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "tenant_id"}, {Name: "name"}},
+				DoUpdates: clause.AssignmentColumns([]string{"config_json", "enabled", "updated_at"}),
+			}).
+			Create(&data).Error
+	}); err != nil {
 		return nil, err
 	}
 	out := fromRow(data)
@@ -170,10 +177,10 @@ func (s *Store) DeleteDriver(ctx context.Context, name string) error {
 	if name == "" {
 		return errors.New("name is required")
 	}
-	query := s.tableDB().WithContext(ctx).Where("name = ?", name)
-	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
-	}
+	tenantID := tenantIDFromContext(ctx)
+	query := s.tableDB().WithContext(ctx).
+		Where("name = ?", name).
+		Where("tenant_id = ?", tenantID)
 	return query.Delete(&row{}).Error
 }
 
@@ -183,6 +190,13 @@ func (s *Store) migrate() error {
 
 func (s *Store) tableDB() *gorm.DB {
 	return s.db.Table(s.table)
+}
+
+func tenantIDFromContext(ctx context.Context) string {
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		return tenantID
+	}
+	return globalTenantID
 }
 
 func normalizeDriver(value string) string {

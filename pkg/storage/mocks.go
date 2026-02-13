@@ -2,8 +2,11 @@ package storage
 
 import (
 	"context"
+	"sort"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // MockStore is an in-memory implementation of Store for tests.
@@ -27,7 +30,7 @@ func (m *MockStore) UpsertInstallation(ctx context.Context, record InstallRecord
 		record.CreatedAt = time.Now().UTC()
 	}
 	record.UpdatedAt = time.Now().UTC()
-	m.values[m.installKey(record.TenantID, record.Provider, record.AccountID, record.InstallationID)] = record
+	m.values[m.installKey(record.TenantID, record.Provider, record.AccountID, record.InstallationID, record.ProviderInstanceKey)] = record
 	return nil
 }
 
@@ -35,11 +38,26 @@ func (m *MockStore) GetInstallation(ctx context.Context, provider, accountID, in
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	tenantID := TenantFromContext(ctx)
-	record, ok := m.values[m.installKey(tenantID, provider, accountID, installationID)]
-	if !ok {
+	var (
+		found  bool
+		latest InstallRecord
+	)
+	for _, record := range m.values {
+		if record.Provider != provider || record.AccountID != accountID || record.InstallationID != installationID {
+			continue
+		}
+		if tenantID != "" && record.TenantID != tenantID {
+			continue
+		}
+		if !found || record.UpdatedAt.After(latest.UpdatedAt) {
+			latest = record
+			found = true
+		}
+	}
+	if !found {
 		return nil, nil
 	}
-	copied := record
+	copied := latest
 	return &copied, nil
 }
 
@@ -90,12 +108,31 @@ func (m *MockStore) ListInstallations(ctx context.Context, provider, accountID s
 	return results, nil
 }
 
+func (m *MockStore) DeleteInstallation(ctx context.Context, provider, accountID, installationID, instanceKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	tenantID := TenantFromContext(ctx)
+	for key, record := range m.values {
+		if record.Provider != provider || record.AccountID != accountID || record.InstallationID != installationID {
+			continue
+		}
+		if instanceKey != "" && record.ProviderInstanceKey != instanceKey {
+			continue
+		}
+		if tenantID != "" && record.TenantID != tenantID {
+			continue
+		}
+		delete(m.values, key)
+	}
+	return nil
+}
+
 func (m *MockStore) Close() error {
 	return nil
 }
 
-func (m *MockStore) installKey(tenantID, provider, accountID, installationID string) string {
-	return tenantID + "|" + provider + "|" + accountID + "|" + installationID
+func (m *MockStore) installKey(tenantID, provider, accountID, installationID, instanceKey string) string {
+	return tenantID + "|" + provider + "|" + accountID + "|" + installationID + "|" + instanceKey
 }
 
 // MockNamespaceStore is an in-memory implementation of NamespaceStore for tests.
@@ -156,6 +193,9 @@ func (m *MockNamespaceStore) ListNamespaces(ctx context.Context, filter Namespac
 		if filter.AccountID != "" && record.AccountID != filter.AccountID {
 			continue
 		}
+		if filter.InstallationID != "" && record.InstallationID != filter.InstallationID {
+			continue
+		}
 		if filter.RepoID != "" && record.RepoID != filter.RepoID {
 			continue
 		}
@@ -171,6 +211,25 @@ func (m *MockNamespaceStore) ListNamespaces(ctx context.Context, filter Namespac
 		results = append(results, record)
 	}
 	return results, nil
+}
+
+func (m *MockNamespaceStore) DeleteNamespace(ctx context.Context, provider, repoID, instanceKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	tenantID := TenantFromContext(ctx)
+	for key, record := range m.values {
+		if record.Provider != provider || record.RepoID != repoID {
+			continue
+		}
+		if instanceKey != "" && record.ProviderInstanceKey != instanceKey {
+			continue
+		}
+		if tenantID != "" && record.TenantID != tenantID {
+			continue
+		}
+		delete(m.values, key)
+	}
+	return nil
 }
 
 func (m *MockNamespaceStore) Close() error {
@@ -351,13 +410,12 @@ func NewMockDriverStore() *MockDriverStore {
 func (m *MockDriverStore) ListDrivers(ctx context.Context) ([]DriverRecord, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	results := make([]DriverRecord, 0, len(m.values))
 	tenantID := TenantFromContext(ctx)
+	results := make([]DriverRecord, 0, len(m.values))
 	for _, record := range m.values {
-		if tenantID != "" && record.TenantID != tenantID {
-			continue
+		if record.TenantID == tenantID {
+			results = append(results, record)
 		}
-		results = append(results, record)
 	}
 	return results, nil
 }
@@ -378,14 +436,18 @@ func (m *MockDriverStore) GetDriver(ctx context.Context, name string) (*DriverRe
 func (m *MockDriverStore) UpsertDriver(ctx context.Context, record DriverRecord) (*DriverRecord, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if record.TenantID == "" {
-		record.TenantID = TenantFromContext(ctx)
-	}
+	tenantID := TenantFromContext(ctx)
+	record.TenantID = tenantID
 	if record.CreatedAt.IsZero() {
 		record.CreatedAt = time.Now().UTC()
 	}
 	record.UpdatedAt = time.Now().UTC()
-	key := m.driverKey(record.TenantID, record.Name)
+	for key, stored := range m.values {
+		if stored.TenantID == tenantID && stored.Name != record.Name {
+			delete(m.values, key)
+		}
+	}
+	key := m.driverKey(tenantID, record.Name)
 	m.values[key] = record
 	copied := record
 	return &copied, nil
@@ -405,4 +467,215 @@ func (m *MockDriverStore) Close() error {
 
 func (m *MockDriverStore) driverKey(tenantID, name string) string {
 	return tenantID + "|" + name
+}
+
+// MockEventLogStore is an in-memory implementation of EventLogStore for tests.
+type MockEventLogStore struct {
+	mu     sync.RWMutex
+	values []EventLogRecord
+}
+
+// NewMockEventLogStore returns a new in-memory EventLogStore.
+func NewMockEventLogStore() *MockEventLogStore {
+	return &MockEventLogStore{values: make([]EventLogRecord, 0)}
+}
+
+func (m *MockEventLogStore) CreateEventLogs(ctx context.Context, records []EventLogRecord) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if len(records) == 0 {
+		return nil
+	}
+	now := time.Now().UTC()
+	for _, record := range records {
+		if record.TenantID == "" {
+			record.TenantID = TenantFromContext(ctx)
+		}
+		if record.ID == "" {
+			record.ID = uuid.NewString()
+		}
+		if record.Status == "" {
+			record.Status = "queued"
+		}
+		if record.CreatedAt.IsZero() {
+			record.CreatedAt = now
+		}
+		if record.UpdatedAt.IsZero() {
+			record.UpdatedAt = record.CreatedAt
+		}
+		m.values = append(m.values, record)
+	}
+	return nil
+}
+
+func (m *MockEventLogStore) ListEventLogs(ctx context.Context, filter EventLogFilter) ([]EventLogRecord, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	tenantID := filter.TenantID
+	if tenantID == "" {
+		tenantID = TenantFromContext(ctx)
+	}
+	filtered := make([]EventLogRecord, 0)
+	for _, record := range m.values {
+		if tenantID != "" && record.TenantID != tenantID {
+			continue
+		}
+		if filter.Provider != "" && record.Provider != filter.Provider {
+			continue
+		}
+		if filter.Name != "" && record.Name != filter.Name {
+			continue
+		}
+		if filter.RequestID != "" && record.RequestID != filter.RequestID {
+			continue
+		}
+		if filter.StateID != "" && record.StateID != filter.StateID {
+			continue
+		}
+		if filter.InstallationID != "" && record.InstallationID != filter.InstallationID {
+			continue
+		}
+		if filter.NamespaceID != "" && record.NamespaceID != filter.NamespaceID {
+			continue
+		}
+		if filter.NamespaceName != "" && record.NamespaceName != filter.NamespaceName {
+			continue
+		}
+		if filter.Topic != "" && record.Topic != filter.Topic {
+			continue
+		}
+		if filter.RuleID != "" && record.RuleID != filter.RuleID {
+			continue
+		}
+		if filter.RuleWhen != "" && record.RuleWhen != filter.RuleWhen {
+			continue
+		}
+		if filter.Matched != nil && record.Matched != *filter.Matched {
+			continue
+		}
+		if !filter.StartTime.IsZero() && record.CreatedAt.Before(filter.StartTime) {
+			continue
+		}
+		if !filter.EndTime.IsZero() && record.CreatedAt.After(filter.EndTime) {
+			continue
+		}
+		filtered = append(filtered, record)
+	}
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+	})
+	start := filter.Offset
+	if start < 0 || start > len(filtered) {
+		start = len(filtered)
+	}
+	end := len(filtered)
+	if filter.Limit > 0 && start+filter.Limit < end {
+		end = start + filter.Limit
+	}
+	return append([]EventLogRecord(nil), filtered[start:end]...), nil
+}
+
+func (m *MockEventLogStore) GetEventLogAnalytics(ctx context.Context, filter EventLogFilter) (EventLogAnalytics, error) {
+	records, err := m.ListEventLogs(ctx, EventLogFilter{
+		TenantID:       filter.TenantID,
+		Provider:       filter.Provider,
+		Name:           filter.Name,
+		RequestID:      filter.RequestID,
+		StateID:        filter.StateID,
+		InstallationID: filter.InstallationID,
+		Topic:          filter.Topic,
+		Matched:        filter.Matched,
+		StartTime:      filter.StartTime,
+		EndTime:        filter.EndTime,
+	})
+	if err != nil {
+		return EventLogAnalytics{}, err
+	}
+	total := int64(len(records))
+	matched := int64(0)
+	reqs := make(map[string]struct{})
+	byProvider := make(map[string]int64)
+	byEvent := make(map[string]int64)
+	byTopic := make(map[string]int64)
+	byRule := make(map[string]int64)
+	byInstall := make(map[string]int64)
+	byNamespace := make(map[string]int64)
+	for _, record := range records {
+		if record.Matched {
+			matched++
+		}
+		if record.RequestID != "" {
+			reqs[record.RequestID] = struct{}{}
+		}
+		if record.Provider != "" {
+			byProvider[record.Provider]++
+		}
+		if record.Name != "" {
+			byEvent[record.Name]++
+		}
+		if record.Topic != "" {
+			byTopic[record.Topic]++
+		}
+		if record.RuleID != "" {
+			byRule[record.RuleID]++
+		} else if record.RuleWhen != "" {
+			byRule[record.RuleWhen]++
+		}
+		if record.InstallationID != "" {
+			byInstall[record.InstallationID]++
+		}
+		if record.NamespaceName != "" {
+			byNamespace[record.NamespaceName]++
+		} else if record.NamespaceID != "" {
+			byNamespace[record.NamespaceID]++
+		}
+	}
+	return EventLogAnalytics{
+		Total:       total,
+		Matched:     matched,
+		DistinctReq: int64(len(reqs)),
+		ByProvider:  mapCounts(byProvider),
+		ByEvent:     mapCounts(byEvent),
+		ByTopic:     mapCounts(byTopic),
+		ByRule:      mapCounts(byRule),
+		ByInstall:   mapCounts(byInstall),
+		ByNamespace: mapCounts(byNamespace),
+	}, nil
+}
+
+func (m *MockEventLogStore) UpdateEventLogStatus(ctx context.Context, id, status, errorMessage string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	tenantID := TenantFromContext(ctx)
+	for i, record := range m.values {
+		if record.ID != id {
+			continue
+		}
+		if tenantID != "" && record.TenantID != tenantID {
+			continue
+		}
+		record.Status = status
+		record.ErrorMessage = errorMessage
+		record.UpdatedAt = time.Now().UTC()
+		m.values[i] = record
+	}
+	return nil
+}
+
+func (m *MockEventLogStore) Close() error {
+	return nil
+}
+
+func mapCounts(input map[string]int64) []EventLogCount {
+	out := make([]EventLogCount, 0, len(input))
+	for key, count := range input {
+		out = append(out, EventLogCount{Key: key, Count: count})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Count == out[j].Count {
+			return out[i].Key < out[j].Key
+		}
+		return out[i].Count > out[j].Count
+	})
+	return out
 }

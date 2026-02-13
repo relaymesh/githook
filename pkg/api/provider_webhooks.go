@@ -14,26 +14,46 @@ import (
 	"githook/pkg/storage"
 )
 
-func enableProviderWebhook(ctx context.Context, provider string, cfg auth.Config, token string, record storage.NamespaceRecord, hookURL string) error {
+func enableProviderWebhook(ctx context.Context, provider string, cfg auth.ProviderConfig, token string, record storage.NamespaceRecord, hookURL string) error {
 	switch provider {
 	case "gitlab":
-		return ensureGitLabWebhook(ctx, cfg.GitLab, token, record.RepoID, hookURL, true)
+		return ensureGitLabWebhook(ctx, cfg, token, record.RepoID, hookURL, true)
 	case "bitbucket":
-		return ensureBitbucketWebhook(ctx, cfg.Bitbucket, token, record.Owner, record.RepoName, hookURL, true)
+		owner, repo := bitbucketOwnerRepo(record)
+		return ensureBitbucketWebhook(ctx, cfg, token, owner, repo, hookURL, true)
 	default:
 		return fmt.Errorf("unsupported provider: %s", provider)
 	}
 }
 
-func disableProviderWebhook(ctx context.Context, provider string, cfg auth.Config, token string, record storage.NamespaceRecord, hookURL string) error {
+func disableProviderWebhook(ctx context.Context, provider string, cfg auth.ProviderConfig, token string, record storage.NamespaceRecord, hookURL string) error {
 	switch provider {
 	case "gitlab":
-		return ensureGitLabWebhook(ctx, cfg.GitLab, token, record.RepoID, hookURL, false)
+		return ensureGitLabWebhook(ctx, cfg, token, record.RepoID, hookURL, false)
 	case "bitbucket":
-		return ensureBitbucketWebhook(ctx, cfg.Bitbucket, token, record.Owner, record.RepoName, hookURL, false)
+		owner, repo := bitbucketOwnerRepo(record)
+		return ensureBitbucketWebhook(ctx, cfg, token, owner, repo, hookURL, false)
 	default:
 		return fmt.Errorf("unsupported provider: %s", provider)
 	}
+}
+
+func bitbucketOwnerRepo(record storage.NamespaceRecord) (string, string) {
+	owner := strings.TrimSpace(record.Owner)
+	repo := strings.TrimSpace(record.RepoName)
+	full := strings.TrimSpace(record.FullName)
+	if full != "" {
+		parts := strings.SplitN(full, "/", 2)
+		if len(parts) == 2 {
+			if strings.TrimSpace(parts[0]) != "" {
+				owner = strings.TrimSpace(parts[0])
+			}
+			if strings.TrimSpace(parts[1]) != "" {
+				repo = strings.TrimSpace(parts[1])
+			}
+		}
+	}
+	return owner, repo
 }
 
 func ensureGitLabWebhook(ctx context.Context, cfg auth.ProviderConfig, token, repoID, hookURL string, enable bool) error {

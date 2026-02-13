@@ -9,8 +9,85 @@ import (
 	"strings"
 
 	"githook/pkg/auth"
+	ghprovider "githook/pkg/providers/github"
 	"githook/pkg/storage"
+
+	gh "github.com/google/go-github/v57/github"
 )
+
+// SyncGitHubNamespaces fetches repositories for an installation and upserts them into the namespace store.
+func SyncGitHubNamespaces(ctx context.Context, store storage.NamespaceStore, cfg auth.ProviderConfig, installationID, accountID, instanceKey string) error {
+	if !namespaceStoreAvailable(store) {
+		return nil
+	}
+	if installationID == "" {
+		return nil
+	}
+	if cfg.App.AppID == 0 || (cfg.App.PrivateKeyPath == "" && cfg.App.PrivateKeyPEM == "") {
+		return nil
+	}
+	installationInt, err := strconv.ParseInt(installationID, 10, 64)
+	if err != nil {
+		return err
+	}
+	client, err := ghprovider.NewAppClient(ctx, ghprovider.AppConfig{
+		AppID:          cfg.App.AppID,
+		PrivateKeyPath: cfg.App.PrivateKeyPath,
+		PrivateKeyPEM:  cfg.App.PrivateKeyPEM,
+		BaseURL:        cfg.API.BaseURL,
+	}, installationInt)
+	if err != nil {
+		return err
+	}
+	opts := &gh.ListOptions{PerPage: 100}
+	for {
+		repos, resp, err := client.Apps.ListRepos(ctx, opts)
+		if err != nil {
+			return err
+		}
+		for _, repo := range repos.Repositories {
+			if repo == nil || repo.ID == nil {
+				continue
+			}
+			repoID := strconv.FormatInt(repo.GetID(), 10)
+			existing, err := store.GetNamespace(ctx, "github", repoID, instanceKey)
+			if err != nil {
+				return err
+			}
+			owner := ""
+			if repo.Owner != nil {
+				owner = repo.Owner.GetLogin()
+			}
+			visibility := "public"
+			if repo.GetPrivate() {
+				visibility = "private"
+			}
+			record := storage.NamespaceRecord{
+				Provider:            "github",
+				ProviderInstanceKey: instanceKey,
+				AccountID:           accountID,
+				InstallationID:      installationID,
+				RepoID:              repoID,
+				Owner:               owner,
+				RepoName:            repo.GetName(),
+				FullName:            repo.GetFullName(),
+				Visibility:          visibility,
+				DefaultBranch:       repo.GetDefaultBranch(),
+				HTTPURL:             repo.GetHTMLURL(),
+				SSHURL:              repo.GetSSHURL(),
+				WebhooksEnabled:     existingWebhooks(existing, true),
+			}
+			if err := store.UpsertNamespace(ctx, record); err != nil {
+				return err
+			}
+		}
+		if resp == nil || resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+	return nil
+}
 
 // SyncGitLabNamespaces fetches repositories and upserts them into the namespace store.
 func SyncGitLabNamespaces(ctx context.Context, store storage.NamespaceStore, cfg auth.ProviderConfig, accessToken, accountID, installationID, instanceKey string) error {
@@ -116,10 +193,14 @@ func SyncBitbucketNamespaces(ctx context.Context, store storage.NamespaceStore, 
 		var payload struct {
 			Next   string `json:"next"`
 			Values []struct {
-				UUID     string `json:"uuid"`
-				Name     string `json:"name"`
-				FullName string `json:"full_name"`
-				Owner    struct {
+				UUID      string `json:"uuid"`
+				Name      string `json:"name"`
+				Slug      string `json:"slug"`
+				FullName  string `json:"full_name"`
+				Workspace struct {
+					Slug string `json:"slug"`
+				} `json:"workspace"`
+				Owner struct {
 					Username    string `json:"username"`
 					DisplayName string `json:"display_name"`
 				} `json:"owner"`
@@ -144,9 +225,20 @@ func SyncBitbucketNamespaces(ctx context.Context, store storage.NamespaceStore, 
 			return err
 		}
 		for _, repo := range payload.Values {
-			owner := repo.Owner.Username
+			owner := strings.TrimSpace(repo.Workspace.Slug)
 			if owner == "" {
-				owner = repo.Owner.DisplayName
+				owner = strings.TrimSpace(repo.Owner.Username)
+			}
+			if owner == "" {
+				owner = strings.TrimSpace(repo.Owner.DisplayName)
+			}
+			repoName := strings.TrimSpace(repo.Slug)
+			if repoName == "" {
+				repoName = strings.TrimSpace(repo.Name)
+			}
+			fullName := strings.TrimSpace(repo.FullName)
+			if fullName == "" && owner != "" && repoName != "" {
+				fullName = owner + "/" + repoName
 			}
 			visibility := "public"
 			if repo.IsPrivate {
@@ -170,8 +262,8 @@ func SyncBitbucketNamespaces(ctx context.Context, store storage.NamespaceStore, 
 				InstallationID:      installationID,
 				RepoID:              repo.UUID,
 				Owner:               owner,
-				RepoName:            repo.Name,
-				FullName:            repo.FullName,
+				RepoName:            repoName,
+				FullName:            fullName,
 				Visibility:          visibility,
 				DefaultBranch:       repo.MainBranch.Name,
 				HTTPURL:             repo.Links.HTML.Href,

@@ -1,11 +1,14 @@
 package core
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 
@@ -18,6 +21,8 @@ import (
 
 // Rule defines a condition and an action to take when the condition is met.
 type Rule struct {
+	// ID is an optional identifier for the rule.
+	ID string `yaml:"id"`
 	// When is a govaluate expression that is evaluated against the event data.
 	When string `yaml:"when"`
 	// Emit is the topic to publish the event to if the 'When' expression is true.
@@ -29,6 +34,7 @@ type Rule struct {
 
 // compiledRule is a pre-processed version of a Rule.
 type compiledRule struct {
+	id      string
 	when    string
 	emit    []string
 	drivers []string
@@ -59,6 +65,7 @@ type RuleMatch struct {
 
 // MatchedRule represents a successful rule evaluation with the original rule data.
 type MatchedRule struct {
+	ID      string
 	When    string
 	Emit    []string
 	Drivers []string
@@ -91,9 +98,15 @@ func (r *RuleEngine) Update(cfg RulesConfig) error {
 		if err != nil {
 			return err
 		}
+		emit := rule.Emit.Values()
+		ruleID := strings.TrimSpace(rule.ID)
+		if ruleID == "" {
+			ruleID = ruleIDFromParts(rule.When, emit, rule.Drivers)
+		}
 		rules = append(rules, compiledRule{
+			id:      ruleID,
 			when:    rule.When,
-			emit:    rule.Emit.Values(),
+			emit:    emit,
 			drivers: rule.Drivers,
 			vars:    expr.Vars(),
 			varMap:  varMap,
@@ -343,8 +356,18 @@ func (r *RuleEngine) EvaluateRules(event Event) []MatchedRule {
 	return r.evaluateRulesWithLogger(event, r.logger)
 }
 
+// EvaluateRulesWithLogger returns rule-level matches using the provided logger.
+func (r *RuleEngine) EvaluateRulesWithLogger(event Event, logger *log.Logger) []MatchedRule {
+	return r.evaluateRulesWithLogger(event, logger)
+}
+
 func (r *RuleEngine) EvaluateRulesForTenant(event Event, tenantID string) []MatchedRule {
 	return r.evaluateRulesWithLoggerForTenant(event, tenantID, r.logger)
+}
+
+// EvaluateRulesForTenantWithLogger returns rule-level matches scoped to a tenant using the provided logger.
+func (r *RuleEngine) EvaluateRulesForTenantWithLogger(event Event, tenantID string, logger *log.Logger) []MatchedRule {
+	return r.evaluateRulesWithLoggerForTenant(event, tenantID, logger)
 }
 
 func (r *RuleEngine) evaluateRulesWithLogger(event Event, logger *log.Logger) []MatchedRule {
@@ -391,6 +414,7 @@ func (r *RuleEngine) evaluateRulesWithLoggerForTenant(event Event, tenantID stri
 		ok, _ := result.(bool)
 		if ok {
 			matches = append(matches, MatchedRule{
+				ID:      rule.id,
 				When:    rule.when,
 				Emit:    append([]string(nil), rule.emit...),
 				Drivers: append([]string(nil), rule.drivers...),
@@ -466,6 +490,25 @@ func resolveJSONPath(event Event, path string) (interface{}, error) {
 		return nil, err
 	}
 	return normalizeJSONPathResult(value), nil
+}
+
+func ruleIDFromParts(when string, emit []string, drivers []string) string {
+	key := strings.TrimSpace(when) + "|" + strings.Join(normalizeRuleParts(emit), ",") + "|" + strings.Join(normalizeRuleParts(drivers), ",")
+	sum := sha1.Sum([]byte(key))
+	return "rule_" + hex.EncodeToString(sum[:])
+}
+
+func normalizeRuleParts(values []string) []string {
+	clean := make([]string, 0, len(values))
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+		clean = append(clean, trimmed)
+	}
+	sort.Strings(clean)
+	return clean
 }
 
 func normalizeJSONPathResult(value interface{}) interface{} {

@@ -15,21 +15,23 @@ import (
 )
 
 func newDriversCmd() *cobra.Command {
+	var tenantID string
 	cmd := &cobra.Command{
 		Use:   "drivers",
 		Short: "Manage driver configs",
-		Long:  "Manage per-tenant Watermill driver configs stored on the server.",
+		Long:  "Manage Watermill driver configs stored on the server.",
 		Example: "  githook --endpoint http://localhost:8080 drivers list\n" +
 			"  githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.json",
 	}
-	cmd.AddCommand(newDriversListCmd())
-	cmd.AddCommand(newDriversGetCmd())
-	cmd.AddCommand(newDriversSetCmd())
-	cmd.AddCommand(newDriversDeleteCmd())
+	cmd.PersistentFlags().StringVar(&tenantID, "tenant-id", "", "Tenant ID for driver operations")
+	cmd.AddCommand(newDriversListCmd(&tenantID))
+	cmd.AddCommand(newDriversGetCmd(&tenantID))
+	cmd.AddCommand(newDriversSetCmd(&tenantID))
+	cmd.AddCommand(newDriversDeleteCmd(&tenantID))
 	return cmd
 }
 
-func newDriversListCmd() *cobra.Command {
+func newDriversListCmd(tenantID *string) *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Short:   "List driver configs",
@@ -41,6 +43,7 @@ func newDriversListCmd() *cobra.Command {
 			}
 			client := cloudv1connect.NewDriversServiceClient(http.DefaultClient, apiBaseURL, opts...)
 			req := connect.NewRequest(&cloudv1.ListDriversRequest{})
+			applyTenantHeader(req, tenantID)
 			resp, err := client.ListDrivers(context.Background(), req)
 			if err != nil {
 				return err
@@ -50,7 +53,7 @@ func newDriversListCmd() *cobra.Command {
 	}
 }
 
-func newDriversGetCmd() *cobra.Command {
+func newDriversGetCmd(tenantID *string) *cobra.Command {
 	var name string
 	cmd := &cobra.Command{
 		Use:     "get",
@@ -66,6 +69,7 @@ func newDriversGetCmd() *cobra.Command {
 			}
 			client := cloudv1connect.NewDriversServiceClient(http.DefaultClient, apiBaseURL, opts...)
 			req := connect.NewRequest(&cloudv1.GetDriverRequest{Name: strings.TrimSpace(name)})
+			applyTenantHeader(req, tenantID)
 			resp, err := client.GetDriver(context.Background(), req)
 			if err != nil {
 				return err
@@ -77,7 +81,7 @@ func newDriversGetCmd() *cobra.Command {
 	return cmd
 }
 
-func newDriversSetCmd() *cobra.Command {
+func newDriversSetCmd(tenantID *string) *cobra.Command {
 	var name string
 	var configFile string
 	var configJSON string
@@ -110,6 +114,7 @@ func newDriversSetCmd() *cobra.Command {
 					Enabled:    enabled,
 				},
 			})
+			applyTenantHeader(req, tenantID)
 			resp, err := client.UpsertDriver(context.Background(), req)
 			if err != nil {
 				return err
@@ -124,7 +129,7 @@ func newDriversSetCmd() *cobra.Command {
 	return cmd
 }
 
-func newDriversDeleteCmd() *cobra.Command {
+func newDriversDeleteCmd(tenantID *string) *cobra.Command {
 	var name string
 	cmd := &cobra.Command{
 		Use:     "delete",
@@ -140,6 +145,7 @@ func newDriversDeleteCmd() *cobra.Command {
 			}
 			client := cloudv1connect.NewDriversServiceClient(http.DefaultClient, apiBaseURL, opts...)
 			req := connect.NewRequest(&cloudv1.DeleteDriverRequest{Name: strings.TrimSpace(name)})
+			applyTenantHeader(req, tenantID)
 			resp, err := client.DeleteDriver(context.Background(), req)
 			if err != nil {
 				return err
@@ -149,4 +155,13 @@ func newDriversDeleteCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&name, "name", "", "Driver name (amqp/nats/kafka/sql/http/...)")
 	return cmd
+}
+
+func applyTenantHeader[T any](req *connect.Request[T], tenantID *string) {
+	if tenantID == nil {
+		return
+	}
+	if trimmed := strings.TrimSpace(*tenantID); trimmed != "" {
+		req.Header().Set("X-Tenant-ID", trimmed)
+	}
 }

@@ -25,6 +25,7 @@ const defaultBaseURL = "https://api.github.com"
 type AppConfig struct {
 	AppID          int64
 	PrivateKeyPath string
+	PrivateKeyPEM  string
 	BaseURL        string
 }
 
@@ -47,6 +48,7 @@ func InstallationIDFromPayload(payload []byte) (int64, bool, error) {
 type appAuthenticator struct {
 	appID    int64
 	keyPath  string
+	keyPEM   string
 	baseURL  string
 	client   *http.Client
 	keyOnce  sync.Once
@@ -58,6 +60,7 @@ func newAppAuthenticator(cfg AppConfig) *appAuthenticator {
 	return &appAuthenticator{
 		appID:   cfg.AppID,
 		keyPath: cfg.PrivateKeyPath,
+		keyPEM:  cfg.PrivateKeyPEM,
 		baseURL: normalizeBaseURL(cfg.BaseURL),
 		client:  &http.Client{Timeout: 10 * time.Second},
 	}
@@ -188,10 +191,16 @@ func (a *appAuthenticator) jwt() (string, error) {
 
 func (a *appAuthenticator) privateKey() (*rsa.PrivateKey, error) {
 	a.keyOnce.Do(func() {
-		keyBytes, err := os.ReadFile(a.keyPath)
-		if err != nil {
-			a.keyError = err
-			return
+		var keyBytes []byte
+		if strings.TrimSpace(a.keyPEM) != "" {
+			keyBytes = []byte(a.keyPEM)
+		} else {
+			var readErr error
+			keyBytes, readErr = os.ReadFile(a.keyPath)
+			if readErr != nil {
+				a.keyError = readErr
+				return
+			}
 		}
 		block, _ := pem.Decode(keyBytes)
 		if block == nil {

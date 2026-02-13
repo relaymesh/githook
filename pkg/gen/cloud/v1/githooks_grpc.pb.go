@@ -21,6 +21,8 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	InstallationsService_ListInstallations_FullMethodName   = "/cloud.v1.InstallationsService/ListInstallations"
 	InstallationsService_GetInstallationByID_FullMethodName = "/cloud.v1.InstallationsService/GetInstallationByID"
+	InstallationsService_UpsertInstallation_FullMethodName  = "/cloud.v1.InstallationsService/UpsertInstallation"
+	InstallationsService_DeleteInstallation_FullMethodName  = "/cloud.v1.InstallationsService/DeleteInstallation"
 )
 
 // InstallationsServiceClient is the client API for InstallationsService service.
@@ -29,6 +31,8 @@ const (
 type InstallationsServiceClient interface {
 	ListInstallations(ctx context.Context, in *ListInstallationsRequest, opts ...grpc.CallOption) (*ListInstallationsResponse, error)
 	GetInstallationByID(ctx context.Context, in *GetInstallationByIDRequest, opts ...grpc.CallOption) (*GetInstallationByIDResponse, error)
+	UpsertInstallation(ctx context.Context, in *UpsertInstallationRequest, opts ...grpc.CallOption) (*UpsertInstallationResponse, error)
+	DeleteInstallation(ctx context.Context, in *DeleteInstallationRequest, opts ...grpc.CallOption) (*DeleteInstallationResponse, error)
 }
 
 type installationsServiceClient struct {
@@ -59,12 +63,34 @@ func (c *installationsServiceClient) GetInstallationByID(ctx context.Context, in
 	return out, nil
 }
 
+func (c *installationsServiceClient) UpsertInstallation(ctx context.Context, in *UpsertInstallationRequest, opts ...grpc.CallOption) (*UpsertInstallationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpsertInstallationResponse)
+	err := c.cc.Invoke(ctx, InstallationsService_UpsertInstallation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *installationsServiceClient) DeleteInstallation(ctx context.Context, in *DeleteInstallationRequest, opts ...grpc.CallOption) (*DeleteInstallationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteInstallationResponse)
+	err := c.cc.Invoke(ctx, InstallationsService_DeleteInstallation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InstallationsServiceServer is the server API for InstallationsService service.
 // All implementations must embed UnimplementedInstallationsServiceServer
 // for forward compatibility.
 type InstallationsServiceServer interface {
 	ListInstallations(context.Context, *ListInstallationsRequest) (*ListInstallationsResponse, error)
 	GetInstallationByID(context.Context, *GetInstallationByIDRequest) (*GetInstallationByIDResponse, error)
+	UpsertInstallation(context.Context, *UpsertInstallationRequest) (*UpsertInstallationResponse, error)
+	DeleteInstallation(context.Context, *DeleteInstallationRequest) (*DeleteInstallationResponse, error)
 	mustEmbedUnimplementedInstallationsServiceServer()
 }
 
@@ -80,6 +106,12 @@ func (UnimplementedInstallationsServiceServer) ListInstallations(context.Context
 }
 func (UnimplementedInstallationsServiceServer) GetInstallationByID(context.Context, *GetInstallationByIDRequest) (*GetInstallationByIDResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetInstallationByID not implemented")
+}
+func (UnimplementedInstallationsServiceServer) UpsertInstallation(context.Context, *UpsertInstallationRequest) (*UpsertInstallationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertInstallation not implemented")
+}
+func (UnimplementedInstallationsServiceServer) DeleteInstallation(context.Context, *DeleteInstallationRequest) (*DeleteInstallationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteInstallation not implemented")
 }
 func (UnimplementedInstallationsServiceServer) mustEmbedUnimplementedInstallationsServiceServer() {}
 func (UnimplementedInstallationsServiceServer) testEmbeddedByValue()                              {}
@@ -138,6 +170,42 @@ func _InstallationsService_GetInstallationByID_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InstallationsService_UpsertInstallation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertInstallationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InstallationsServiceServer).UpsertInstallation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InstallationsService_UpsertInstallation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InstallationsServiceServer).UpsertInstallation(ctx, req.(*UpsertInstallationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InstallationsService_DeleteInstallation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteInstallationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InstallationsServiceServer).DeleteInstallation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InstallationsService_DeleteInstallation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InstallationsServiceServer).DeleteInstallation(ctx, req.(*DeleteInstallationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InstallationsService_ServiceDesc is the grpc.ServiceDesc for InstallationsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +220,14 @@ var InstallationsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetInstallationByID",
 			Handler:    _InstallationsService_GetInstallationByID_Handler,
+		},
+		{
+			MethodName: "UpsertInstallation",
+			Handler:    _InstallationsService_UpsertInstallation_Handler,
+		},
+		{
+			MethodName: "DeleteInstallation",
+			Handler:    _InstallationsService_DeleteInstallation_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -1092,6 +1168,184 @@ var ProvidersService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteProvider",
 			Handler:    _ProvidersService_DeleteProvider_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "cloud/v1/githooks.proto",
+}
+
+const (
+	EventLogsService_ListEventLogs_FullMethodName        = "/cloud.v1.EventLogsService/ListEventLogs"
+	EventLogsService_GetEventLogAnalytics_FullMethodName = "/cloud.v1.EventLogsService/GetEventLogAnalytics"
+	EventLogsService_UpdateEventLogStatus_FullMethodName = "/cloud.v1.EventLogsService/UpdateEventLogStatus"
+)
+
+// EventLogsServiceClient is the client API for EventLogsService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type EventLogsServiceClient interface {
+	ListEventLogs(ctx context.Context, in *ListEventLogsRequest, opts ...grpc.CallOption) (*ListEventLogsResponse, error)
+	GetEventLogAnalytics(ctx context.Context, in *GetEventLogAnalyticsRequest, opts ...grpc.CallOption) (*GetEventLogAnalyticsResponse, error)
+	UpdateEventLogStatus(ctx context.Context, in *UpdateEventLogStatusRequest, opts ...grpc.CallOption) (*UpdateEventLogStatusResponse, error)
+}
+
+type eventLogsServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewEventLogsServiceClient(cc grpc.ClientConnInterface) EventLogsServiceClient {
+	return &eventLogsServiceClient{cc}
+}
+
+func (c *eventLogsServiceClient) ListEventLogs(ctx context.Context, in *ListEventLogsRequest, opts ...grpc.CallOption) (*ListEventLogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListEventLogsResponse)
+	err := c.cc.Invoke(ctx, EventLogsService_ListEventLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *eventLogsServiceClient) GetEventLogAnalytics(ctx context.Context, in *GetEventLogAnalyticsRequest, opts ...grpc.CallOption) (*GetEventLogAnalyticsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEventLogAnalyticsResponse)
+	err := c.cc.Invoke(ctx, EventLogsService_GetEventLogAnalytics_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *eventLogsServiceClient) UpdateEventLogStatus(ctx context.Context, in *UpdateEventLogStatusRequest, opts ...grpc.CallOption) (*UpdateEventLogStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateEventLogStatusResponse)
+	err := c.cc.Invoke(ctx, EventLogsService_UpdateEventLogStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EventLogsServiceServer is the server API for EventLogsService service.
+// All implementations must embed UnimplementedEventLogsServiceServer
+// for forward compatibility.
+type EventLogsServiceServer interface {
+	ListEventLogs(context.Context, *ListEventLogsRequest) (*ListEventLogsResponse, error)
+	GetEventLogAnalytics(context.Context, *GetEventLogAnalyticsRequest) (*GetEventLogAnalyticsResponse, error)
+	UpdateEventLogStatus(context.Context, *UpdateEventLogStatusRequest) (*UpdateEventLogStatusResponse, error)
+	mustEmbedUnimplementedEventLogsServiceServer()
+}
+
+// UnimplementedEventLogsServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedEventLogsServiceServer struct{}
+
+func (UnimplementedEventLogsServiceServer) ListEventLogs(context.Context, *ListEventLogsRequest) (*ListEventLogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListEventLogs not implemented")
+}
+func (UnimplementedEventLogsServiceServer) GetEventLogAnalytics(context.Context, *GetEventLogAnalyticsRequest) (*GetEventLogAnalyticsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetEventLogAnalytics not implemented")
+}
+func (UnimplementedEventLogsServiceServer) UpdateEventLogStatus(context.Context, *UpdateEventLogStatusRequest) (*UpdateEventLogStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateEventLogStatus not implemented")
+}
+func (UnimplementedEventLogsServiceServer) mustEmbedUnimplementedEventLogsServiceServer() {}
+func (UnimplementedEventLogsServiceServer) testEmbeddedByValue()                          {}
+
+// UnsafeEventLogsServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to EventLogsServiceServer will
+// result in compilation errors.
+type UnsafeEventLogsServiceServer interface {
+	mustEmbedUnimplementedEventLogsServiceServer()
+}
+
+func RegisterEventLogsServiceServer(s grpc.ServiceRegistrar, srv EventLogsServiceServer) {
+	// If the following call panics, it indicates UnimplementedEventLogsServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&EventLogsService_ServiceDesc, srv)
+}
+
+func _EventLogsService_ListEventLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListEventLogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EventLogsServiceServer).ListEventLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EventLogsService_ListEventLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EventLogsServiceServer).ListEventLogs(ctx, req.(*ListEventLogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EventLogsService_GetEventLogAnalytics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEventLogAnalyticsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EventLogsServiceServer).GetEventLogAnalytics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EventLogsService_GetEventLogAnalytics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EventLogsServiceServer).GetEventLogAnalytics(ctx, req.(*GetEventLogAnalyticsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EventLogsService_UpdateEventLogStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateEventLogStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EventLogsServiceServer).UpdateEventLogStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EventLogsService_UpdateEventLogStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EventLogsServiceServer).UpdateEventLogStatus(ctx, req.(*UpdateEventLogStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// EventLogsService_ServiceDesc is the grpc.ServiceDesc for EventLogsService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var EventLogsService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "cloud.v1.EventLogsService",
+	HandlerType: (*EventLogsServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListEventLogs",
+			Handler:    _EventLogsService_ListEventLogs_Handler,
+		},
+		{
+			MethodName: "GetEventLogAnalytics",
+			Handler:    _EventLogsService_GetEventLogAnalytics_Handler,
+		},
+		{
+			MethodName: "UpdateEventLogStatus",
+			Handler:    _EventLogsService_UpdateEventLogStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
