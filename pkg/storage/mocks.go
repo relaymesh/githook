@@ -436,11 +436,38 @@ func (m *MockDriverStore) GetDriver(ctx context.Context, name string) (*DriverRe
 	return &copied, nil
 }
 
+func (m *MockDriverStore) GetDriverByID(ctx context.Context, id string) (*DriverRecord, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	tenantID := TenantFromContext(ctx)
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, nil
+	}
+	for _, record := range m.values {
+		if record.TenantID != tenantID {
+			continue
+		}
+		if record.ID == id {
+			copied := record
+			return &copied, nil
+		}
+	}
+	return nil, nil
+}
+
 func (m *MockDriverStore) UpsertDriver(ctx context.Context, record DriverRecord) (*DriverRecord, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	tenantID := TenantFromContext(ctx)
 	record.TenantID = tenantID
+	if record.ID == "" {
+		if tenantID != "" {
+			record.ID = tenantID + ":" + record.Name
+		} else {
+			record.ID = record.Name
+		}
+	}
 	if record.CreatedAt.IsZero() {
 		record.CreatedAt = time.Now().UTC()
 	}

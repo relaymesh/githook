@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/ThreeDotsLabs/watermill"
 
@@ -32,6 +33,29 @@ func rawObjectAndFlatten(raw []byte) (interface{}, map[string]interface{}) {
 		return out, map[string]interface{}{}
 	}
 	return out, core.Flatten(objectMap)
+}
+
+func annotatePayload(rawObject interface{}, data map[string]interface{}, provider, eventName string) interface{} {
+	provider = strings.TrimSpace(provider)
+	eventName = strings.TrimSpace(eventName)
+	if data != nil {
+		if provider != "" {
+			data["provider"] = provider
+		}
+		if eventName != "" {
+			data["event"] = eventName
+		}
+	}
+	if obj, ok := rawObject.(map[string]interface{}); ok {
+		if provider != "" {
+			obj["provider"] = provider
+		}
+		if eventName != "" {
+			obj["event"] = eventName
+		}
+		return obj
+	}
+	return rawObject
 }
 
 func requestID(r *http.Request) string {

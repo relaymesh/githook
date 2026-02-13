@@ -1438,6 +1438,7 @@ type DriverRecord struct {
 	Enabled       bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Id            string                 `protobuf:"bytes,6,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1505,6 +1506,13 @@ func (x *DriverRecord) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *DriverRecord) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
 }
 
 type ProviderRecord struct {
@@ -4465,11 +4473,11 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\x1bGetNamespaceWebhookResponse\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\"7\n" +
 	"\x1bSetNamespaceWebhookResponse\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\"o\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\"q\n" +
 	"\x04Rule\x12\x1b\n" +
 	"\x04when\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04when\x12\"\n" +
-	"\x04emit\x18\x02 \x03(\tB\x0e\xbaH\v\x92\x01\b\b\x01\"\x04r\x02\x10\x01R\x04emit\x12&\n" +
-	"\adrivers\x18\x03 \x03(\tB\f\xbaH\t\x92\x01\x06\"\x04r\x02\x10\x01R\adrivers\"\x84\x02\n" +
+	"\x04emit\x18\x02 \x03(\tB\x0e\xbaH\v\x92\x01\b\b\x01\"\x04r\x02\x10\x01R\x04emit\x12(\n" +
+	"\adrivers\x18\x03 \x03(\tB\x0e\xbaH\v\x92\x01\b\b\x01\"\x04r\x02\x10\x01R\adrivers\"\x84\x02\n" +
 	"\n" +
 	"RuleRecord\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x1b\n" +
@@ -4479,7 +4487,7 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xdc\x01\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xec\x01\n" +
 	"\fDriverRecord\x12\x1b\n" +
 	"\x04name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12\x1f\n" +
 	"\vconfig_json\x18\x02 \x01(\tR\n" +
@@ -4488,7 +4496,8 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x95\x02\n" +
+	"updated_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x0e\n" +
+	"\x02id\x18\x06 \x01(\tR\x02id\"\x95\x02\n" +
 	"\x0eProviderRecord\x12>\n" +
 	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x12\n" +
 	"\x04hash\x18\x02 \x01(\tR\x04hash\x12\x1f\n" +

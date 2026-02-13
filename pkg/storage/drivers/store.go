@@ -34,7 +34,8 @@ type Store struct {
 const globalTenantID = ""
 
 type row struct {
-	TenantID   string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_driver,priority:1"`
+	TenantID   string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_driver,priority:1;uniqueIndex:idx_driver_id,priority:1"`
+	ID         string    `gorm:"column:id;size:64;not null;default:'';uniqueIndex:idx_driver_id,priority:2"`
 	Name       string    `gorm:"column:name;size:64;not null;uniqueIndex:idx_driver,priority:2"`
 	ConfigJSON string    `gorm:"column:config_json;type:text"`
 	Enabled    bool      `gorm:"column:enabled;not null;default:true"`
@@ -132,6 +133,31 @@ func (s *Store) GetDriver(ctx context.Context, name string) (*storage.DriverReco
 	return &record, nil
 }
 
+// GetDriverByID returns a driver configuration by ID.
+func (s *Store) GetDriverByID(ctx context.Context, id string) (*storage.DriverRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("store is not initialized")
+	}
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, errors.New("id is required")
+	}
+	tenantID := tenantIDFromContext(ctx)
+	query := s.tableDB().WithContext(ctx).
+		Where("id = ?", id).
+		Where("tenant_id = ?", tenantID)
+	var data row
+	err := query.Take(&data).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	record := fromRow(data)
+	return &record, nil
+}
+
 // UpsertDriver inserts or updates a driver record.
 func (s *Store) UpsertDriver(ctx context.Context, record storage.DriverRecord) (*storage.DriverRecord, error) {
 	if s == nil || s.db == nil {
@@ -142,6 +168,14 @@ func (s *Store) UpsertDriver(ctx context.Context, record storage.DriverRecord) (
 	}
 	tenantID := tenantIDFromContext(ctx)
 	record.TenantID = tenantID
+	record.ID = strings.TrimSpace(record.ID)
+	if record.ID == "" {
+		if tenantID != "" {
+			record.ID = fmt.Sprintf("%s:%s", tenantID, record.Name)
+		} else {
+			record.ID = record.Name
+		}
+	}
 	now := time.Now().UTC()
 	if record.CreatedAt.IsZero() {
 		record.CreatedAt = now
@@ -229,6 +263,7 @@ func openGorm(driver, dsn string) (*gorm.DB, error) {
 func toRow(record storage.DriverRecord) row {
 	return row{
 		TenantID:   record.TenantID,
+		ID:         record.ID,
 		Name:       record.Name,
 		ConfigJSON: record.ConfigJSON,
 		Enabled:    record.Enabled,
@@ -240,6 +275,7 @@ func toRow(record storage.DriverRecord) row {
 func fromRow(data row) storage.DriverRecord {
 	return storage.DriverRecord{
 		TenantID:   data.TenantID,
+		ID:         data.ID,
 		Name:       data.Name,
 		ConfigJSON: data.ConfigJSON,
 		Enabled:    data.Enabled,

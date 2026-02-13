@@ -90,6 +90,7 @@ func (h *GitLabHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch payload.(type) {
 	default:
 		rawObject, data := rawObjectAndFlatten(rawBody)
+		rawObject = annotatePayload(rawObject, data, "gitlab", eventName)
 		namespaceID, namespaceName := gitlabNamespaceInfo(rawBody)
 		stateID, installationID := h.resolveStateID(r.Context(), rawBody)
 		if installationID == "" {
@@ -142,6 +143,9 @@ func (h *GitLabHandler) resolveStateID(ctx context.Context, raw []byte) (string,
 }
 
 func (h *GitLabHandler) emit(r *http.Request, logger *log.Logger, event core.Event) {
+	if logger != nil {
+		logger.Printf("event received provider=%s name=%s installation_id=%s namespace=%s request_id=%s", event.Provider, event.Name, event.InstallationID, event.NamespaceName, event.RequestID)
+	}
 	tenantID := storage.TenantFromContext(r.Context())
 	rules := h.rules.EvaluateRulesForTenantWithLogger(event, tenantID, logger)
 	if h.logs == nil {

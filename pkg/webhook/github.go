@@ -160,6 +160,7 @@ func (h *GitHubHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		rawObject, data := rawObjectAndFlatten(rawBody)
+		rawObject = annotatePayload(rawObject, data, "github", eventName)
 		namespaceID, namespaceName := githubNamespaceInfo(rawBody)
 		tenantID, stateID, installationID := h.resolveStateID(r.Context(), rawBody)
 		if installationID == "" {
@@ -460,6 +461,9 @@ func recordInstanceKey(record *storage.InstallRecord) string {
 }
 
 func (h *GitHubHandler) emit(r *http.Request, logger *log.Logger, event core.Event) {
+	if logger != nil {
+		logger.Printf("event received provider=%s name=%s installation_id=%s namespace=%s request_id=%s", event.Provider, event.Name, event.InstallationID, event.NamespaceName, event.RequestID)
+	}
 	tenantID := storage.TenantFromContext(r.Context())
 	rules := h.rules.EvaluateRulesForTenantWithLogger(event, tenantID, logger)
 	if h.logs == nil {

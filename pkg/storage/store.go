@@ -55,6 +55,7 @@ type RuleRecord struct {
 // DriverRecord stores Watermill driver config (per-tenant).
 type DriverRecord struct {
 	TenantID   string
+	ID         string
 	Name       string
 	ConfigJSON string
 	Enabled    bool
@@ -245,6 +246,7 @@ type ProviderInstanceStore interface {
 type DriverStore interface {
 	ListDrivers(ctx context.Context) ([]DriverRecord, error)
 	GetDriver(ctx context.Context, name string) (*DriverRecord, error)
+	GetDriverByID(ctx context.Context, id string) (*DriverRecord, error)
 	UpsertDriver(ctx context.Context, record DriverRecord) (*DriverRecord, error)
 	DeleteDriver(ctx context.Context, name string) error
 	Close() error

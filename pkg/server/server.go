@@ -52,7 +52,7 @@ func RunConfig(configPath string) error {
 	return Run(ctx, config, logger)
 }
 
-func bootstrapRules(ctx context.Context, store storage.RuleStore, engine *core.RuleEngine, configRules []core.Rule, strict bool, logger *log.Logger) error {
+func bootstrapRules(ctx context.Context, store storage.RuleStore, driverStore storage.DriverStore, engine *core.RuleEngine, configRules []core.Rule, strict bool, logger *log.Logger) error {
 	if store == nil {
 		return nil
 	}
@@ -100,11 +100,18 @@ func bootstrapRules(ctx context.Context, store storage.RuleStore, engine *core.R
 	if tenantID != "" {
 		loaded := make([]core.Rule, 0, len(records))
 		for _, record := range records {
+			drivers, err := resolveRuleDrivers(ctx, driverStore, record.Drivers)
+			if err != nil {
+				if logger != nil {
+					logger.Printf("rule driver resolve failed: %v", err)
+				}
+				continue
+			}
 			loaded = append(loaded, core.Rule{
 				ID:      record.ID,
 				When:    record.When,
 				Emit:    core.EmitList(record.Emit),
-				Drivers: record.Drivers,
+				Drivers: drivers,
 			})
 		}
 		normalized, err := core.NormalizeRules(loaded)
@@ -124,11 +131,19 @@ func bootstrapRules(ctx context.Context, store storage.RuleStore, engine *core.R
 
 	grouped := make(map[string][]core.Rule)
 	for _, record := range records {
+		tenantCtx := storage.WithTenant(ctx, record.TenantID)
+		drivers, err := resolveRuleDrivers(tenantCtx, driverStore, record.Drivers)
+		if err != nil {
+			if logger != nil {
+				logger.Printf("rule driver resolve failed: %v", err)
+			}
+			continue
+		}
 		grouped[record.TenantID] = append(grouped[record.TenantID], core.Rule{
 			ID:      record.ID,
 			When:    record.When,
 			Emit:    core.EmitList(record.Emit),
-			Drivers: record.Drivers,
+			Drivers: drivers,
 		})
 	}
 	for id, rules := range grouped {
@@ -149,6 +164,43 @@ func bootstrapRules(ctx context.Context, store storage.RuleStore, engine *core.R
 		}
 	}
 	return nil
+}
+
+func resolveRuleDrivers(ctx context.Context, store storage.DriverStore, driverIDs []string) ([]string, error) {
+	if len(driverIDs) == 0 {
+		return nil, errors.New("drivers are required")
+	}
+	if store == nil {
+		return nil, errors.New("driver store not configured")
+	}
+	seen := make(map[string]struct{}, len(driverIDs))
+	drivers := make([]string, 0, len(driverIDs))
+	for _, id := range driverIDs {
+		trimmed := strings.TrimSpace(id)
+		if trimmed == "" {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		record, err := store.GetDriverByID(ctx, trimmed)
+		if err != nil {
+			return nil, err
+		}
+		if record == nil {
+			return nil, fmt.Errorf("driver not found: %s", trimmed)
+		}
+		name := strings.TrimSpace(record.Name)
+		if name == "" {
+			return nil, fmt.Errorf("driver %s has empty name", trimmed)
+		}
+		drivers = append(drivers, name)
+	}
+	if len(drivers) == 0 {
+		return nil, errors.New("drivers are required")
+	}
+	return drivers, nil
 }
 
 func bootstrapDrivers(ctx context.Context, store storage.DriverStore, cfg core.WatermillConfig, logger *log.Logger) error {
@@ -457,7 +509,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 	}
 
 	if ruleStore != nil {
-		if err := bootstrapRules(ctx, ruleStore, ruleEngine, config.Rules, config.RulesStrict, logger); err != nil {
+		if err := bootstrapRules(ctx, ruleStore, driverStore, ruleEngine, config.Rules, config.RulesStrict, logger); err != nil {
 			return fmt.Errorf("rules bootstrap: %w", err)
 		}
 	}
@@ -540,10 +592,11 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 	}
 	{
 		rulesSvc := &api.RulesService{
-			Store:  ruleStore,
-			Engine: ruleEngine,
-			Strict: config.RulesStrict,
-			Logger: logger,
+			Store:       ruleStore,
+			DriverStore: driverStore,
+			Engine:      ruleEngine,
+			Strict:      config.RulesStrict,
+			Logger:      logger,
 		}
 		path, handler := cloudv1connect.NewRulesServiceHandler(rulesSvc, connectOpts...)
 		mux.Handle(path, handler)
