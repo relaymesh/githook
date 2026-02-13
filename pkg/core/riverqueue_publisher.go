@@ -48,6 +48,18 @@ func (p *riverQueuePublisher) Publish(ctx context.Context, topic string, event E
 		"name":     event.Name,
 		"topic":    topic,
 	}
+	if event.LogID != "" {
+		metadata["log_id"] = event.LogID
+	}
+	if event.RequestID != "" {
+		metadata["request_id"] = event.RequestID
+	}
+	if event.StateID != "" {
+		metadata["state_id"] = event.StateID
+	}
+	if event.InstallationID != "" {
+		metadata["installation_id"] = event.InstallationID
+	}
 	metadataPayload, err := json.Marshal(metadata)
 	if err != nil {
 		return err

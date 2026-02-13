@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -10,13 +11,17 @@ import (
 	"strings"
 
 	"githook/pkg/auth"
+	"githook/pkg/providerinstance"
+	"githook/pkg/storage"
 )
 
 // StartHandler redirects users into provider install/authorize flows.
 type StartHandler struct {
-	Providers     auth.Config
-	PublicBaseURL string
-	Logger        *log.Logger
+	Providers             auth.Config
+	PublicBaseURL         string
+	Logger                *log.Logger
+	ProviderInstanceStore storage.ProviderInstanceStore
+	ProviderInstanceCache *providerinstance.Cache
 }
 
 func (h *StartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -45,11 +50,16 @@ func (h *StartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	tenantID := strings.TrimSpace(r.URL.Query().Get("tenant_id"))
 	instanceKey := strings.TrimSpace(r.URL.Query().Get("instance"))
+	ctx := storage.WithTenant(r.Context(), tenantID)
+	providerCfg, resolvedKey := h.resolveProviderConfig(ctx, provider, instanceKey)
+	if resolvedKey != "" {
+		instanceKey = resolvedKey
+	}
 	state = encodeState(state, tenantID, instanceKey)
 
 	switch provider {
 	case "github":
-		target, err := githubInstallURL(h.Providers.GitHub, state)
+		target, err := githubInstallURL(providerCfg, state)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -57,7 +67,7 @@ func (h *StartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, target, http.StatusFound)
 	case "gitlab":
 		redirectURL := callbackURL(r, "gitlab", h.PublicBaseURL)
-		target, err := gitlabAuthorizeURL(h.Providers.GitLab, state, redirectURL)
+		target, err := gitlabAuthorizeURL(providerCfg, state, redirectURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -65,7 +75,7 @@ func (h *StartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, target, http.StatusFound)
 	case "bitbucket":
 		redirectURL := callbackURL(r, "bitbucket", h.PublicBaseURL)
-		target, err := bitbucketAuthorizeURL(h.Providers.Bitbucket, state, redirectURL)
+		target, err := bitbucketAuthorizeURL(providerCfg, state, redirectURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -73,6 +83,52 @@ func (h *StartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, target, http.StatusFound)
 	default:
 		http.Error(w, "unsupported provider", http.StatusBadRequest)
+	}
+}
+
+func (h *StartHandler) resolveProviderConfig(ctx context.Context, provider, instanceKey string) (auth.ProviderConfig, string) {
+	fallback := providerConfigFromAuth(h.Providers, provider)
+	instanceKey = strings.TrimSpace(instanceKey)
+
+	if instanceKey != "" {
+		if h.ProviderInstanceCache != nil {
+			if cfg, ok, err := h.ProviderInstanceCache.ConfigFor(ctx, provider, instanceKey); err == nil && ok {
+				return cfg, instanceKey
+			}
+		}
+		if h.ProviderInstanceStore != nil {
+			record, err := h.ProviderInstanceStore.GetProviderInstance(ctx, provider, instanceKey)
+			if err == nil && record != nil {
+				cfg, err := providerinstance.ProviderConfigFromRecord(*record)
+				if err == nil {
+					return cfg, instanceKey
+				}
+			}
+		}
+		return fallback, instanceKey
+	}
+
+	if h.ProviderInstanceStore != nil {
+		records, err := h.ProviderInstanceStore.ListProviderInstances(ctx, provider)
+		if err == nil && len(records) == 1 {
+			cfg, err := providerinstance.ProviderConfigFromRecord(records[0])
+			if err == nil {
+				return cfg, records[0].Key
+			}
+		}
+	}
+
+	return fallback, ""
+}
+
+func providerConfigFromAuth(cfg auth.Config, provider string) auth.ProviderConfig {
+	switch provider {
+	case "gitlab":
+		return cfg.GitLab
+	case "bitbucket":
+		return cfg.Bitbucket
+	default:
+		return cfg.GitHub
 	}
 }
 

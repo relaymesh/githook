@@ -171,6 +171,9 @@ func (s *Store) ListNamespaces(ctx context.Context, filter storage.NamespaceFilt
 	if filter.AccountID != "" {
 		query = query.Where("account_id = ?", filter.AccountID)
 	}
+	if filter.InstallationID != "" {
+		query = query.Where("installation_id = ?", filter.InstallationID)
+	}
 	if filter.RepoID != "" {
 		query = query.Where("repo_id = ?", filter.RepoID)
 	}
@@ -193,6 +196,29 @@ func (s *Store) ListNamespaces(ctx context.Context, filter storage.NamespaceFilt
 		records = append(records, fromRow(item))
 	}
 	return records, nil
+}
+
+// DeleteNamespace removes a namespace record by provider and repo ID.
+func (s *Store) DeleteNamespace(ctx context.Context, provider, repoID, instanceKey string) error {
+	if s == nil || s.db == nil {
+		return errors.New("store is not initialized")
+	}
+	provider = strings.TrimSpace(provider)
+	repoID = strings.TrimSpace(repoID)
+	instanceKey = strings.TrimSpace(instanceKey)
+	if provider == "" || repoID == "" {
+		return errors.New("provider and repo_id are required")
+	}
+	query := s.tableDB().
+		WithContext(ctx).
+		Where("provider = ? AND repo_id = ?", provider, repoID)
+	if instanceKey != "" {
+		query = query.Where("provider_instance_key = ?", instanceKey)
+	}
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	return query.Delete(&row{}).Error
 }
 
 // UpdateProviderInstanceKey updates the provider instance key for a provider and tenant.

@@ -167,7 +167,7 @@ func (s *Store) GetInstallationByInstallationID(ctx context.Context, provider, i
 	return &record, nil
 }
 
-// ListInstallations lists installations for a provider/account.
+// ListInstallations lists installations for a provider, optionally filtered by account.
 func (s *Store) ListInstallations(ctx context.Context, provider, accountID string) ([]storage.InstallRecord, error) {
 	if s == nil || s.db == nil {
 		return nil, errors.New("store is not initialized")
@@ -175,7 +175,10 @@ func (s *Store) ListInstallations(ctx context.Context, provider, accountID strin
 	var data []row
 	query := s.tableDB().
 		WithContext(ctx).
-		Where("provider = ? AND account_id = ?", provider, accountID)
+		Where("provider = ?", provider)
+	if accountID != "" {
+		query = query.Where("account_id = ?", accountID)
+	}
 	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
@@ -188,6 +191,30 @@ func (s *Store) ListInstallations(ctx context.Context, provider, accountID strin
 		records = append(records, fromRow(item))
 	}
 	return records, nil
+}
+
+// DeleteInstallation removes an installation record.
+func (s *Store) DeleteInstallation(ctx context.Context, provider, accountID, installationID, instanceKey string) error {
+	if s == nil || s.db == nil {
+		return errors.New("store is not initialized")
+	}
+	provider = strings.TrimSpace(provider)
+	accountID = strings.TrimSpace(accountID)
+	installationID = strings.TrimSpace(installationID)
+	instanceKey = strings.TrimSpace(instanceKey)
+	if provider == "" || accountID == "" || installationID == "" {
+		return errors.New("provider, account_id, and installation_id are required")
+	}
+	query := s.tableDB().
+		WithContext(ctx).
+		Where("provider = ? AND account_id = ? AND installation_id = ?", provider, accountID, installationID)
+	if instanceKey != "" {
+		query = query.Where("provider_instance_key = ?", instanceKey)
+	}
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	return query.Delete(&row{}).Error
 }
 
 // UpdateProviderInstanceKey updates the provider instance key for a provider and tenant.

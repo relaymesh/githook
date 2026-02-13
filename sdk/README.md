@@ -13,7 +13,39 @@ All SDKs are expected to:
 
 - Consume the same event envelope (`provider`, `topic`, `payload`, `metadata`).
 - Rely on the same rules DSL defined in the server config.
-- Resolve provider clients via the Installations API.
+- Resolve provider clients via the Installations API (no direct access to platform storage; SQL subscribers are for event queues only).
+
+## Go Worker Quick Start
+
+Create a worker from config and optionally override the subscriber driver:
+
+```go
+wk, err := worker.NewFromConfigPathWithDriver("worker.yaml", "nats")
+if err != nil {
+  return err
+}
+
+wk.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) error {
+  return nil
+})
+
+return wk.Run(ctx)
+```
+
+Fetch driver details from the server API and only provide the driver name:
+
+```go
+wk, err := worker.NewFromConfigPathWithDriverFromAPI("worker.yaml", "nats")
+if err != nil {
+  return err
+}
+
+wk.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) error {
+  return nil
+})
+
+return wk.Run(ctx)
+```
 
 See `docs/sdk-dsl.md` for the proposed portable worker spec.
 

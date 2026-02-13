@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"githook/pkg/core"
 	"githook/pkg/storage"
@@ -35,6 +36,7 @@ type GitHubHandler struct {
 	debugEvents  bool
 	store        storage.Store
 	namespaces   storage.NamespaceStore
+	logs         storage.EventLogStore
 }
 
 var githubEvents = []github.Event{
@@ -87,7 +89,7 @@ var githubEvents = []github.Event{
 }
 
 // NewGitHubHandler creates a new GitHubHandler.
-func NewGitHubHandler(secret string, rules *core.RuleEngine, publisher core.Publisher, logger *log.Logger, maxBody int64, debugEvents bool, store storage.Store, namespaces storage.NamespaceStore) (*GitHubHandler, error) {
+func NewGitHubHandler(secret string, rules *core.RuleEngine, publisher core.Publisher, logger *log.Logger, maxBody int64, debugEvents bool, store storage.Store, namespaces storage.NamespaceStore, logs storage.EventLogStore) (*GitHubHandler, error) {
 	hook, err := github.New(github.Options.Secret(secret))
 	if err != nil {
 		return nil, err
@@ -111,6 +113,7 @@ func NewGitHubHandler(secret string, rules *core.RuleEngine, publisher core.Publ
 		debugEvents:  debugEvents,
 		store:        store,
 		namespaces:   namespaces,
+		logs:         logs,
 	}, nil
 }
 
@@ -157,14 +160,21 @@ func (h *GitHubHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		rawObject, data := rawObjectAndFlatten(rawBody)
-		if err := h.applyInstallSystemRules(r.Context(), eventName, rawBody); err != nil {
-			logger.Printf("github install sync failed: %v", err)
-		}
-		stateID, installationID := h.resolveStateID(r.Context(), rawBody)
+		rawObject = annotatePayload(rawObject, data, "github", eventName)
+		namespaceID, namespaceName := githubNamespaceInfo(rawBody)
+		tenantID, stateID, installationID := h.resolveStateID(r.Context(), rawBody)
 		if installationID == "" {
 			logger.Printf("github webhook ignored: missing installation_id")
 			w.WriteHeader(http.StatusOK)
 			return
+		}
+		ctx := r.Context()
+		if tenantID != "" {
+			ctx = storage.WithTenant(ctx, tenantID)
+		}
+		r = r.WithContext(ctx)
+		if err := h.applyInstallSystemRules(ctx, eventName, rawBody); err != nil {
+			logger.Printf("github install sync failed: %v", err)
 		}
 		h.emit(r, logger, core.Event{
 			Provider:       "github",
@@ -175,26 +185,28 @@ func (h *GitHubHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			RawObject:      rawObject,
 			StateID:        stateID,
 			InstallationID: installationID,
+			NamespaceID:    namespaceID,
+			NamespaceName:  namespaceName,
 		})
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *GitHubHandler) resolveStateID(ctx context.Context, raw []byte) (string, string) {
+func (h *GitHubHandler) resolveStateID(ctx context.Context, raw []byte) (string, string, string) {
 	installationID, ok, err := ghprovider.InstallationIDFromPayload(raw)
 	if err != nil || !ok {
-		return "", ""
+		return "", "", ""
 	}
 	installationIDStr := strconv.FormatInt(installationID, 10)
 	if h.store == nil {
-		return "", installationIDStr
+		return "", "", installationIDStr
 	}
 	record, err := h.store.GetInstallationByInstallationID(ctx, "github", installationIDStr)
 	if err != nil || record == nil {
-		return "", installationIDStr
+		return "", "", installationIDStr
 	}
-	return record.AccountID, installationIDStr
+	return record.TenantID, record.AccountID, installationIDStr
 }
 
 func (h *GitHubHandler) applyInstallSystemRules(ctx context.Context, eventName string, raw []byte) error {
@@ -223,47 +235,114 @@ func (h *GitHubHandler) applyInstallSystemRules(ctx context.Context, eventName s
 	if payload.Installation.ID == 0 {
 		return fmt.Errorf("installation id missing in webhook")
 	}
+	action := strings.TrimSpace(payload.Action)
 	installationID := strconv.FormatInt(payload.Installation.ID, 10)
 
 	var record *storage.InstallRecord
+	storeCtx := ctx
 	if h.store != nil {
 		found, err := h.store.GetInstallationByInstallationID(ctx, "github", installationID)
 		if err != nil {
 			return err
 		}
 		record = found
+		if record == nil {
+			return nil
+		}
 		accountID := recordAccountID(record, payload.Installation.Account.ID)
 		accountName := recordAccountName(record, payload.Installation.Account.Login)
-
-		update := storage.InstallRecord{
-			Provider:       "github",
-			AccountID:      accountID,
-			AccountName:    accountName,
-			InstallationID: installationID,
+		tenantID := recordTenantID(record)
+		instanceKey := recordInstanceKey(record)
+		accessToken := ""
+		refreshToken := ""
+		var expiresAt *time.Time
+		metadataJSON := ""
+		if record != nil {
+			accessToken = record.AccessToken
+			refreshToken = record.RefreshToken
+			expiresAt = record.ExpiresAt
+			metadataJSON = record.MetadataJSON
 		}
-		if err := h.store.UpsertInstallation(ctx, update); err != nil {
-			return err
+		if tenantID != "" {
+			storeCtx = storage.WithTenant(ctx, tenantID)
+		}
+
+		if action == "deleted" {
+			if err := h.store.DeleteInstallation(storeCtx, "github", accountID, installationID, instanceKey); err != nil {
+				return err
+			}
+		} else {
+			update := storage.InstallRecord{
+				TenantID:            tenantID,
+				Provider:            "github",
+				AccountID:           accountID,
+				AccountName:         accountName,
+				InstallationID:      installationID,
+				ProviderInstanceKey: instanceKey,
+				AccessToken:         accessToken,
+				RefreshToken:        refreshToken,
+				ExpiresAt:           expiresAt,
+				MetadataJSON:        metadataJSON,
+			}
+			if err := h.store.UpsertInstallation(storeCtx, update); err != nil {
+				return err
+			}
 		}
 	}
 
 	if h.namespaces != nil {
+		if record == nil {
+			return nil
+		}
+		if action == "deleted" {
+			filter := storage.NamespaceFilter{
+				Provider:            "github",
+				InstallationID:      installationID,
+				ProviderInstanceKey: record.ProviderInstanceKey,
+			}
+			namespaces, err := h.namespaces.ListNamespaces(storeCtx, filter)
+			if err != nil {
+				return err
+			}
+			for _, namespace := range namespaces {
+				if err := h.namespaces.DeleteNamespace(storeCtx, "github", namespace.RepoID, record.ProviderInstanceKey); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+
+		if action == "removed" || action == "repositories_removed" {
+			if record == nil {
+				return nil
+			}
+			removed := extractGitHubRemovedRepoIDs(raw, eventName)
+			for _, repoID := range removed {
+				if err := h.namespaces.DeleteNamespace(storeCtx, "github", repoID, record.ProviderInstanceKey); err != nil {
+					return err
+				}
+			}
+		}
+
 		repos := extractGitHubRepos(raw, eventName)
 		for _, repo := range repos {
 			namespace := storage.NamespaceRecord{
-				Provider:        "github",
-				AccountID:       recordAccountID(record, payload.Installation.Account.ID),
-				InstallationID:  installationID,
-				RepoID:          repo.ID,
-				Owner:           repo.Owner,
-				RepoName:        repo.Name,
-				FullName:        repo.FullName,
-				Visibility:      repo.Visibility,
-				DefaultBranch:   repo.DefaultBranch,
-				HTTPURL:         repo.HTMLURL,
-				SSHURL:          repo.SSHURL,
-				WebhooksEnabled: true,
+				TenantID:            recordTenantID(record),
+				Provider:            "github",
+				AccountID:           recordAccountID(record, payload.Installation.Account.ID),
+				InstallationID:      installationID,
+				ProviderInstanceKey: recordInstanceKey(record),
+				RepoID:              repo.ID,
+				Owner:               repo.Owner,
+				RepoName:            repo.Name,
+				FullName:            repo.FullName,
+				Visibility:          repo.Visibility,
+				DefaultBranch:       repo.DefaultBranch,
+				HTTPURL:             repo.HTMLURL,
+				SSHURL:              repo.SSHURL,
+				WebhooksEnabled:     true,
 			}
-			if err := h.namespaces.UpsertNamespace(ctx, namespace); err != nil {
+			if err := h.namespaces.UpsertNamespace(storeCtx, namespace); err != nil {
 				return err
 			}
 		}
@@ -327,6 +406,29 @@ func extractGitHubRepos(raw []byte, eventName string) []githubRepo {
 	return repos
 }
 
+func extractGitHubRemovedRepoIDs(raw []byte, eventName string) []string {
+	if eventName != "installation_repositories" && eventName != "integration_installation_repositories" {
+		return nil
+	}
+	type repoPayload struct {
+		ID int64 `json:"id"`
+	}
+	var body struct {
+		RepositoriesRemoved []repoPayload `json:"repositories_removed"`
+	}
+	if err := json.Unmarshal(raw, &body); err != nil {
+		return nil
+	}
+	out := make([]string, 0, len(body.RepositoriesRemoved))
+	for _, repo := range body.RepositoriesRemoved {
+		if repo.ID == 0 {
+			continue
+		}
+		out = append(out, strconv.FormatInt(repo.ID, 10))
+	}
+	return out
+}
+
 func recordAccountID(record *storage.InstallRecord, providerID int64) string {
 	if record != nil && record.AccountID != "" {
 		return record.AccountID
@@ -344,13 +446,46 @@ func recordAccountName(record *storage.InstallRecord, providerName string) strin
 	return providerName
 }
 
+func recordTenantID(record *storage.InstallRecord) string {
+	if record != nil {
+		return record.TenantID
+	}
+	return ""
+}
+
+func recordInstanceKey(record *storage.InstallRecord) string {
+	if record != nil {
+		return record.ProviderInstanceKey
+	}
+	return ""
+}
+
 func (h *GitHubHandler) emit(r *http.Request, logger *log.Logger, event core.Event) {
+	if logger != nil {
+		logger.Printf("event received provider=%s name=%s installation_id=%s namespace=%s request_id=%s", event.Provider, event.Name, event.InstallationID, event.NamespaceName, event.RequestID)
+	}
 	tenantID := storage.TenantFromContext(r.Context())
-	topics := h.rules.EvaluateForTenantWithLogger(event, tenantID, logger)
-	logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topics)
-	for _, match := range topics {
-		if err := h.publisher.PublishForDrivers(r.Context(), match.Topic, event, match.Drivers); err != nil {
-			logger.Printf("publish %s failed: %v", match.Topic, err)
+	rules := h.rules.EvaluateRulesForTenantWithLogger(event, tenantID, logger)
+	if h.logs == nil {
+		matches := ruleMatchesFromRules(rules)
+		logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromMatches(matches))
+		for _, match := range matches {
+			if err := h.publisher.PublishForDrivers(r.Context(), match.Topic, event, match.Drivers); err != nil {
+				logger.Printf("publish %s failed: %v", match.Topic, err)
+			}
+		}
+		return
+	}
+
+	matchLogs := logEventMatches(r.Context(), h.logs, logger, event, rules)
+	logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromLogRecords(matchLogs))
+	for _, record := range matchLogs {
+		event.LogID = record.ID
+		if err := h.publisher.PublishForDrivers(r.Context(), record.Topic, event, record.Drivers); err != nil {
+			logger.Printf("publish %s failed: %v", record.Topic, err)
+			if err := h.logs.UpdateEventLogStatus(r.Context(), record.ID, eventLogStatusFailed, err.Error()); err != nil {
+				logger.Printf("event log update failed: %v", err)
+			}
 		}
 	}
 }
@@ -364,4 +499,29 @@ func verifyGitHubSHA1(secret string, body []byte, signature string) bool {
 	_, _ = mac.Write(body)
 	expected := hex.EncodeToString(mac.Sum(nil))
 	return hmac.Equal([]byte(signature), []byte(expected))
+}
+
+func githubNamespaceInfo(raw []byte) (string, string) {
+	var payload struct {
+		Repository struct {
+			ID       int64  `json:"id"`
+			FullName string `json:"full_name"`
+			Name     string `json:"name"`
+			Owner    struct {
+				Login string `json:"login"`
+			} `json:"owner"`
+		} `json:"repository"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return "", ""
+	}
+	namespaceID := ""
+	if payload.Repository.ID > 0 {
+		namespaceID = strconv.FormatInt(payload.Repository.ID, 10)
+	}
+	namespaceName := strings.TrimSpace(payload.Repository.FullName)
+	if namespaceName == "" && payload.Repository.Owner.Login != "" && payload.Repository.Name != "" {
+		namespaceName = payload.Repository.Owner.Login + "/" + payload.Repository.Name
+	}
+	return namespaceID, namespaceName
 }

@@ -10,7 +10,7 @@ import (
 	"githook/pkg/storage"
 )
 
-// Cache maintains per-tenant driver configs and publishers.
+// Cache maintains driver configs and publishers.
 type Cache struct {
 	store  storage.DriverStore
 	base   core.WatermillConfig
@@ -18,6 +18,8 @@ type Cache struct {
 	config *cache.TenantCache[core.WatermillConfig]
 	pub    *cache.TenantCache[core.Publisher]
 }
+
+const globalDriverKey = "global"
 
 // NewCache creates a new driver cache.
 func NewCache(store storage.DriverStore, base core.WatermillConfig, logger *log.Logger) *Cache {
@@ -38,34 +40,12 @@ func (c *Cache) Refresh(ctx context.Context) error {
 	if c == nil || c.store == nil {
 		return nil
 	}
-	tenantID := storage.TenantFromContext(ctx)
+	tenantKey := cacheKeyFromContext(ctx)
 	records, err := c.store.ListDrivers(ctx)
 	if err != nil {
 		return err
 	}
-	if tenantID != "" {
-		return c.refreshTenant(tenantID, records)
-	}
-	grouped := make(map[string][]storage.DriverRecord)
-	for _, record := range records {
-		grouped[record.TenantID] = append(grouped[record.TenantID], record)
-	}
-	for id, group := range grouped {
-		if err := c.refreshTenant(id, group); err != nil {
-			return err
-		}
-	}
-	c.pub.Range(func(id string, existing core.Publisher) {
-		if _, ok := grouped[id]; ok {
-			return
-		}
-		if existing != nil {
-			_ = existing.Close()
-		}
-		c.pub.Delete(id)
-		c.config.Delete(id)
-	})
-	return nil
+	return c.refreshTenant(tenantKey, records)
 }
 
 func (c *Cache) refreshTenant(tenantID string, records []storage.DriverRecord) error {
@@ -98,8 +78,8 @@ func (c *Cache) PublisherFor(ctx context.Context) (core.Publisher, error) {
 	if c == nil {
 		return nil, errors.New("driver cache not configured")
 	}
-	tenantID := storage.TenantFromContext(ctx)
-	if pub, ok := c.pub.Get(tenantID); ok && pub != nil {
+	tenantKey := cacheKeyFromContext(ctx)
+	if pub, ok := c.pub.Get(tenantKey); ok && pub != nil {
 		return pub, nil
 	}
 	if c.store == nil {
@@ -108,7 +88,7 @@ func (c *Cache) PublisherFor(ctx context.Context) (core.Publisher, error) {
 	if err := c.Refresh(ctx); err != nil {
 		return nil, err
 	}
-	pub, _ := c.pub.Get(tenantID)
+	pub, _ := c.pub.Get(tenantKey)
 	if pub == nil {
 		return nil, errors.New("no publisher available")
 	}
@@ -120,13 +100,17 @@ func (c *Cache) Close() {
 	if c == nil {
 		return
 	}
-	c.pub.Range(func(tenantID string, pub core.Publisher) {
+	keys := make([]string, 0)
+	c.pub.Range(func(key string, pub core.Publisher) {
 		if pub != nil {
 			_ = pub.Close()
 		}
-		c.pub.Delete(tenantID)
-		c.config.Delete(tenantID)
+		keys = append(keys, key)
 	})
+	for _, key := range keys {
+		c.pub.Delete(key)
+		c.config.Delete(key)
+	}
 }
 
 // TenantPublisher routes publish calls to the cached publisher for each tenant.
@@ -181,4 +165,11 @@ func (p *TenantPublisher) publisherFor(ctx context.Context) (core.Publisher, err
 		return p.fallback, nil
 	}
 	return nil, err
+}
+
+func cacheKeyFromContext(ctx context.Context) string {
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		return tenantID
+	}
+	return globalDriverKey
 }

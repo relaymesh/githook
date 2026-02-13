@@ -26,3 +26,18 @@ wk.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) e
 
 _ = wk.Run(context.Background())
 ```
+
+## Driver config from API
+
+When you want the worker to use driver configuration stored on the server (Drivers API),
+use the driver name only:
+
+```go
+wk, _ := worker.NewFromConfigPathWithDriverFromAPI("config.yaml", "riverqueue")
+
+wk.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) error {
+  return nil
+})
+
+_ = wk.Run(context.Background())
+```

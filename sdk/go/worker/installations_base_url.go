@@ -12,6 +12,12 @@ func installationsBaseURL() string {
 	}
 	configPath := configPathFromEnv()
 	if configPath != "" {
+		if endpoint, err := LoadEndpoint(configPath); err == nil {
+			endpoint = strings.TrimRight(strings.TrimSpace(endpoint), "/")
+			if endpoint != "" {
+				return endpoint
+			}
+		}
 		if cfg, err := LoadServerConfig(configPath); err == nil {
 			if base := serverBaseURL(cfg); base != "" {
 				return base

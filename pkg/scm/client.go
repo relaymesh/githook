@@ -32,6 +32,7 @@ func (f *Factory) NewClient(ctx context.Context, authCtx auth.AuthContext) (Clie
 		return github.NewAppClient(ctx, github.AppConfig{
 			AppID:          f.cfg.GitHub.App.AppID,
 			PrivateKeyPath: f.cfg.GitHub.App.PrivateKeyPath,
+			PrivateKeyPEM:  f.cfg.GitHub.App.PrivateKeyPEM,
 			BaseURL:        f.cfg.GitHub.API.BaseURL,
 		}, authCtx.InstallationID)
 	case "gitlab":

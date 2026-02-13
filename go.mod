@@ -30,6 +30,7 @@ require (
 	github.com/xanzy/go-gitlab v0.115.0
 	golang.org/x/net v0.47.0
 	golang.org/x/oauth2 v0.33.0
+	google.golang.org/grpc v1.71.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/mysql v1.6.0

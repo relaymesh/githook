@@ -37,7 +37,7 @@ wk.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) e
 
 ## Resolve tokens in workers
 
-Use the server API to map `state_id` → stored tokens:
+Use the server API to map `installation_id` → stored tokens:
 
 ```go
 providerClient, err := worker.ResolveProviderClient(ctx, evt)

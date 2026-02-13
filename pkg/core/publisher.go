@@ -283,6 +283,9 @@ func (w *watermillPublisher) Publish(ctx context.Context, topic string, event Ev
 	if event.InstallationID != "" {
 		msg.Metadata.Set("installation_id", event.InstallationID)
 	}
+	if event.LogID != "" {
+		msg.Metadata.Set("log_id", event.LogID)
+	}
 	msg.Metadata.Set("content_type", "application/x-protobuf")
 	msg.Metadata.Set("schema", "cloud.v1.EventPayload")
 	return w.publisher.Publish(topic, msg)

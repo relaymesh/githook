@@ -5,11 +5,12 @@ type SubscriberConfig struct {
 	Driver  string   `yaml:"driver"`
 	Drivers []string `yaml:"drivers"`
 
-	GoChannel GoChannelConfig `yaml:"gochannel"`
-	Kafka     KafkaConfig     `yaml:"kafka"`
-	NATS      NATSConfig      `yaml:"nats"`
-	AMQP      AMQPConfig      `yaml:"amqp"`
-	SQL       SQLConfig       `yaml:"sql"`
+	GoChannel  GoChannelConfig  `yaml:"gochannel"`
+	Kafka      KafkaConfig      `yaml:"kafka"`
+	NATS       NATSConfig       `yaml:"nats"`
+	AMQP       AMQPConfig       `yaml:"amqp"`
+	SQL        SQLConfig        `yaml:"sql"`
+	RiverQueue RiverQueueConfig `yaml:"riverqueue"`
 }
 
 // GoChannelConfig holds configuration for the GoChannel pub/sub.
@@ -48,4 +49,17 @@ type SQLConfig struct {
 	ConsumerGroup        string `yaml:"consumer_group"`
 	InitializeSchema     bool   `yaml:"initialize_schema"`
 	AutoInitializeSchema bool   `yaml:"auto_initialize_schema"`
+}
+
+// RiverQueueConfig holds configuration for RiverQueue subscribers.
+type RiverQueueConfig struct {
+	Driver      string   `yaml:"driver"`
+	DSN         string   `yaml:"dsn"`
+	Table       string   `yaml:"table"`
+	Queue       string   `yaml:"queue"`
+	Kind        string   `yaml:"kind"`
+	MaxAttempts int      `yaml:"max_attempts"`
+	Priority    int      `yaml:"priority"`
+	Tags        []string `yaml:"tags"`
+	MaxWorkers  int      `yaml:"max_workers"`
 }

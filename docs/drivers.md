@@ -128,14 +128,16 @@ watermill:
 
 ### RiverQueue (Postgres)
 
-Publishes events as jobs to a [River](https://github.com/riverqueue/river) job queue. This is a **publish-only** driver.
+Publishes events as jobs to a [River](https://github.com/riverqueue/river) job queue. The Go SDK can also consume
+RiverQueue jobs using the same driver config via the Drivers API.
 
 -   **`driver`**: The Go database driver for River (`postgres`).
 -   **`dsn`**: The database connection string.
--   **`table`**: The River jobs table name (default: `river_job`).
+-   **`table`**: The River jobs table name (default: `river_job`). For workers, only `river_job` or `schema.river_job` is supported.
 -   **`queue`**: The queue to insert jobs into (default: `default`).
 -   **`kind`**: The `kind` of job to insert. This should match a registered River worker.
 -   **`tags`**: (Optional) Tags to add to the job.
+-   **`max_workers`**: (Workers only) Max workers for the queue (default: 5).
 
 ```yaml
 watermill:

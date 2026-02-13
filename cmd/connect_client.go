@@ -24,6 +24,10 @@ func connectClientOptions() ([]connect.ClientOption, error) {
 		return opts, err
 	}
 	apiBaseURL = resolveEndpoint(cfg)
+	if apiKey := strings.TrimSpace(os.Getenv("GITHOOK_API_KEY")); apiKey != "" {
+		opts = append(opts, connect.WithInterceptors(apiKeyHeaderInterceptor(apiKey)))
+		return opts, nil
+	}
 	if !cfg.Auth.OAuth2.Enabled {
 		return opts, nil
 	}
@@ -42,6 +46,17 @@ func authHeaderInterceptor(token string) connect.UnaryInterceptorFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			if token != "" {
 				req.Header().Set("Authorization", "Bearer "+token)
+			}
+			return next(ctx, req)
+		}
+	}
+}
+
+func apiKeyHeaderInterceptor(apiKey string) connect.UnaryInterceptorFunc {
+	return func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			if apiKey != "" {
+				req.Header().Set("x-api-key", apiKey)
 			}
 			return next(ctx, req)
 		}

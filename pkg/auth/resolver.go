@@ -41,8 +41,9 @@ func (r *DefaultResolver) Resolve(_ context.Context, event EventContext) (AuthCo
 	provider := strings.ToLower(strings.TrimSpace(event.Provider))
 	switch provider {
 	case "github":
-		if r.cfg.GitHub.App.AppID == 0 || r.cfg.GitHub.App.PrivateKeyPath == "" {
-			return AuthContext{}, errors.New("github app_id and private_key_path are required")
+		if r.cfg.GitHub.App.AppID == 0 ||
+			(r.cfg.GitHub.App.PrivateKeyPath == "" && r.cfg.GitHub.App.PrivateKeyPEM == "") {
+			return AuthContext{}, errors.New("github app_id and private key are required")
 		}
 		installationID, ok, err := github.InstallationIDFromPayload(event.Payload)
 		if err != nil {

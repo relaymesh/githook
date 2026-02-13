@@ -20,8 +20,15 @@ The CLI reads `endpoint` from the config when `--endpoint` is not provided.
 
 ## Init
 
+The `server` profile disables all providers by default and includes the full
+provider and watermill sections. The `cli` and `worker` profiles use `endpoint`
+for API calls; the worker profile includes the full watermill section, commented
+out, so you can enable it per data-plane deployment.
+
 ```bash
-githook init --config config.yaml
+githook init --config server.yaml --profile server
+githook init --config cli.yaml --profile cli
+githook init --config worker.yaml --profile worker
 ```
 
 ## Environment variables
@@ -31,18 +38,27 @@ githook init --config config.yaml
 
 ## Installations
 
+Use `--state-id` to filter by account; omit it to list all accounts for a provider.
+
 ```bash
-githook --endpoint http://localhost:8080 installations list --state-id <state-id>
+githook --endpoint http://localhost:8080 installations list --provider github
+githook --endpoint http://localhost:8080 installations list --provider github --state-id <state-id>
 githook --endpoint http://localhost:8080 installations get --provider github --installation-id <id>
 ```
 
 ## Namespaces
 
+Use `--state-id` to filter by account; omit it to list or sync all accounts for a provider.
+
 ```bash
-githook --endpoint http://localhost:8080 namespaces list --state-id <state-id>
-githook --endpoint http://localhost:8080 namespaces sync --state-id <state-id> --provider gitlab
-githook --endpoint http://localhost:8080 namespaces webhook get --state-id <state-id> --provider gitlab --repo-id <repo-id>
-githook --endpoint http://localhost:8080 namespaces webhook set --state-id <state-id> --provider gitlab --repo-id <repo-id> --enabled
+githook --endpoint http://localhost:8080 namespaces list --provider github
+githook --endpoint http://localhost:8080 namespaces list --provider github --state-id <state-id>
+githook --endpoint http://localhost:8080 namespaces sync --provider gitlab
+githook --endpoint http://localhost:8080 namespaces sync --provider gitlab --state-id <state-id>
+githook --endpoint http://localhost:8080 namespaces webhook get --provider gitlab --repo-id <repo-id>
+githook --endpoint http://localhost:8080 namespaces webhook get --provider gitlab --repo-id <repo-id> --state-id <state-id>
+githook --endpoint http://localhost:8080 namespaces webhook set --provider gitlab --repo-id <repo-id> --enabled
+githook --endpoint http://localhost:8080 namespaces webhook set --provider gitlab --repo-id <repo-id> --enabled --state-id <state-id>
 ```
 
 ## Rules
