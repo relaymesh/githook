@@ -82,6 +82,7 @@ type EventLogRecord struct {
 	UpdatedAt      time.Time
 	Status         string
 	ErrorMessage   string
+	LatencyMS      int64
 }
 
 // EventLogFilter selects event log rows.
@@ -121,6 +122,60 @@ type EventLogAnalytics struct {
 	ByRule      []EventLogCount
 	ByInstall   []EventLogCount
 	ByNamespace []EventLogCount
+}
+
+// EventLogInterval defines the time-series bucket granularity.
+type EventLogInterval string
+
+const (
+	EventLogIntervalHour EventLogInterval = "hour"
+	EventLogIntervalDay  EventLogInterval = "day"
+	EventLogIntervalWeek EventLogInterval = "week"
+)
+
+// EventLogTimeseriesBucket represents a time-series aggregate bucket.
+type EventLogTimeseriesBucket struct {
+	Start          time.Time
+	End            time.Time
+	EventCount     int64
+	MatchedCount   int64
+	DistinctReq    int64
+	FailureCount   int64
+}
+
+// EventLogBreakdownGroup defines supported breakdown dimensions.
+type EventLogBreakdownGroup string
+
+const (
+	EventLogBreakdownProvider      EventLogBreakdownGroup = "provider"
+	EventLogBreakdownEvent         EventLogBreakdownGroup = "event"
+	EventLogBreakdownRuleID        EventLogBreakdownGroup = "rule_id"
+	EventLogBreakdownRuleWhen      EventLogBreakdownGroup = "rule_when"
+	EventLogBreakdownTopic         EventLogBreakdownGroup = "topic"
+	EventLogBreakdownNamespaceID   EventLogBreakdownGroup = "namespace_id"
+	EventLogBreakdownNamespaceName EventLogBreakdownGroup = "namespace_name"
+	EventLogBreakdownInstallation  EventLogBreakdownGroup = "installation_id"
+)
+
+// EventLogBreakdownSort defines supported sort keys.
+type EventLogBreakdownSort string
+
+const (
+	EventLogBreakdownSortCount       EventLogBreakdownSort = "count"
+	EventLogBreakdownSortMatched     EventLogBreakdownSort = "matched"
+	EventLogBreakdownSortFailed      EventLogBreakdownSort = "failed"
+	EventLogBreakdownSortLatencyP95  EventLogBreakdownSort = "latency_p95"
+)
+
+// EventLogBreakdown represents aggregated counts for a breakdown dimension.
+type EventLogBreakdown struct {
+	Key          string
+	EventCount   int64
+	MatchedCount int64
+	FailureCount int64
+	LatencyP50MS float64
+	LatencyP95MS float64
+	LatencyP99MS float64
 }
 
 // ProviderInstanceRecord stores per-tenant provider instance config.
@@ -200,6 +255,8 @@ type EventLogStore interface {
 	CreateEventLogs(ctx context.Context, records []EventLogRecord) error
 	ListEventLogs(ctx context.Context, filter EventLogFilter) ([]EventLogRecord, error)
 	GetEventLogAnalytics(ctx context.Context, filter EventLogFilter) (EventLogAnalytics, error)
+	GetEventLogTimeseries(ctx context.Context, filter EventLogFilter, interval EventLogInterval) ([]EventLogTimeseriesBucket, error)
+	GetEventLogBreakdown(ctx context.Context, filter EventLogFilter, groupBy EventLogBreakdownGroup, sortBy EventLogBreakdownSort, sortDesc bool, pageSize int, pageToken string, includeLatency bool) ([]EventLogBreakdown, string, error)
 	UpdateEventLogStatus(ctx context.Context, id, status, errorMessage string) error
 	Close() error
 }

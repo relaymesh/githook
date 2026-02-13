@@ -156,14 +156,6 @@ func (h *GitHubHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	eventName := r.Header.Get("X-GitHub-Event")
 	switch payload.(type) {
 	case github.PingPayload:
-		namespaceID, namespaceName := githubNamespaceInfo(rawBody)
-		logEventMatches(r.Context(), h.logs, logger, core.Event{
-			Provider:      "github",
-			Name:          eventName,
-			RequestID:     reqID,
-			NamespaceID:   namespaceID,
-			NamespaceName: namespaceName,
-		}, nil)
 		w.WriteHeader(http.StatusOK)
 		return
 	default:
@@ -172,14 +164,6 @@ func (h *GitHubHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		tenantID, stateID, installationID := h.resolveStateID(r.Context(), rawBody)
 		if installationID == "" {
 			logger.Printf("github webhook ignored: missing installation_id")
-			logEventFailure(r.Context(), h.logs, logger, core.Event{
-				Provider:      "github",
-				Name:          eventName,
-				RequestID:     reqID,
-				StateID:       stateID,
-				NamespaceID:   namespaceID,
-				NamespaceName: namespaceName,
-			}, "missing installation_id")
 			w.WriteHeader(http.StatusOK)
 			return
 		}

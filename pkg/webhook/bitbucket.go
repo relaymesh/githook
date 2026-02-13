@@ -111,14 +111,6 @@ func (h *BitbucketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		stateID, installationID := h.resolveStateID(r.Context(), rawBody)
 		if installationID == "" {
 			logger.Printf("bitbucket webhook ignored: missing installation_id")
-			logEventFailure(r.Context(), h.logs, logger, core.Event{
-				Provider:      "bitbucket",
-				Name:          eventName,
-				RequestID:     reqID,
-				StateID:       stateID,
-				NamespaceID:   namespaceID,
-				NamespaceName: namespaceName,
-			}, "missing installation_id")
 			w.WriteHeader(http.StatusOK)
 			return
 		}

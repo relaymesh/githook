@@ -119,19 +119,7 @@ func logEventMatches(ctx context.Context, store storage.EventLogStore, logger *l
 
 func buildEventLogRecords(event core.Event, rules []core.MatchedRule) ([]storage.EventLogRecord, []storage.EventLogRecord) {
 	if len(rules) == 0 {
-		record := storage.EventLogRecord{
-			ID:             watermill.NewUUID(),
-			Provider:       event.Provider,
-			Name:           event.Name,
-			RequestID:      event.RequestID,
-			StateID:        event.StateID,
-			InstallationID: event.InstallationID,
-			NamespaceID:    event.NamespaceID,
-			NamespaceName:  event.NamespaceName,
-			Status:         eventLogStatusSuccess,
-			Matched:        false,
-		}
-		return []storage.EventLogRecord{record}, nil
+		return nil, nil
 	}
 
 	records := make([]storage.EventLogRecord, 0, len(rules))

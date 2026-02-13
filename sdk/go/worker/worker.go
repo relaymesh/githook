@@ -225,8 +225,6 @@ func (w *Worker) handleMessage(ctx context.Context, topic string, msg *message.M
 		return
 	}
 
-	w.updateEventLogStatus(ctx, logID, EventLogStatusDelivered, nil)
-
 	if w.clientProvider != nil {
 		client, err := w.clientProvider.Client(ctx, evt)
 		if err != nil {

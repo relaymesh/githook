@@ -94,14 +94,6 @@ func (h *GitLabHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		stateID, installationID := h.resolveStateID(r.Context(), rawBody)
 		if installationID == "" {
 			logger.Printf("gitlab webhook ignored: missing installation_id")
-			logEventFailure(r.Context(), h.logs, logger, core.Event{
-				Provider:      "gitlab",
-				Name:          eventName,
-				RequestID:     reqID,
-				StateID:       stateID,
-				NamespaceID:   namespaceID,
-				NamespaceName: namespaceName,
-			}, "missing installation_id")
 			w.WriteHeader(http.StatusOK)
 			return
 		}
