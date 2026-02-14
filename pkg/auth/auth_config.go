@@ -1,5 +1,7 @@
 package auth
 
+// No auth API-key support in this server build.
+
 // AuthConfig holds API authentication configuration.
 type AuthConfig struct {
 	OAuth2 OAuth2Config `yaml:"oauth2"`

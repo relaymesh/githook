@@ -41,11 +41,10 @@ Edit `config.yaml`:
 ```yaml
 server:
   port: 8080
-  public_base_url: https://<your-ngrok-url>
+endpoint: https://<your-ngrok-url>
 
 providers:
   gitlab:
-    enabled: true
     webhook:
       secret: devsecret
     api:
@@ -67,8 +66,7 @@ storage:
   dialect: postgres
   auto_migrate: true
 
-oauth:
-  redirect_base_url: https://app.example.com/success
+redirect_base_url: https://app.example.com/success
 
 rules:
   - when: object_kind == "merge_request" && object_attributes.state == "opened"

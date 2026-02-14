@@ -3,7 +3,6 @@ server:
 
 providers:
   github:
-    enabled: true
     webhook:
       secret: ${GITHUB_WEBHOOK_SECRET}
     app:

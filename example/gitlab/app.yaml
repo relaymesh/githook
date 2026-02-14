@@ -3,7 +3,6 @@ server:
 
 providers:
   gitlab:
-    enabled: true
     webhook:
       secret: ${GITLAB_WEBHOOK_SECRET}
     api:

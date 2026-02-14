@@ -65,7 +65,7 @@ func instanceRecord(provider string, cfg auth.ProviderConfig) (storage.ProviderI
 		Provider:   provider,
 		Key:        "",
 		ConfigJSON: string(raw),
-		Enabled:    cfg.Enabled,
+		Enabled:    true,
 	}, nil
 }
 

@@ -7,10 +7,10 @@ import (
 	"strings"
 )
 
-func callbackURL(r *http.Request, provider, publicBaseURL string) string {
-	publicBaseURL = strings.TrimRight(strings.TrimSpace(publicBaseURL), "/")
-	if publicBaseURL != "" {
-		return fmt.Sprintf("%s/auth/%s/callback", publicBaseURL, provider)
+func callbackURL(r *http.Request, provider, endpoint string) string {
+	endpoint = strings.TrimRight(strings.TrimSpace(endpoint), "/")
+	if endpoint != "" {
+		return fmt.Sprintf("%s/auth/%s/callback", endpoint, provider)
 	}
 	scheme := forwardedProto(r)
 	host := forwardedHost(r)

@@ -32,7 +32,7 @@ type Handler struct {
 	ProviderInstanceCache *providerinstance.Cache
 	Logger                *log.Logger
 	RedirectBase          string
-	PublicBaseURL         string
+	Endpoint              string
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +88,7 @@ func (h *Handler) handleGitHubApp(w http.ResponseWriter, r *http.Request, logger
 			http.Error(w, "oauth client config missing", http.StatusInternalServerError)
 			return
 		}
-		redirectURL := callbackURL(r, "github", h.PublicBaseURL)
+		redirectURL := callbackURL(r, "github", h.Endpoint)
 		token, err = exchangeGitHubToken(r.Context(), cfg, code, redirectURL)
 		if err != nil {
 			logger.Printf("github oauth exchange failed: %v", err)
@@ -161,7 +161,7 @@ func (h *Handler) handleGitLab(w http.ResponseWriter, r *http.Request, logger *l
 		return
 	}
 
-	redirectURL := callbackURL(r, "gitlab", h.PublicBaseURL)
+	redirectURL := callbackURL(r, "gitlab", h.Endpoint)
 	token, err := exchangeGitLabToken(r.Context(), cfg, code, redirectURL)
 	if err != nil {
 		logger.Printf("gitlab token exchange failed: %v", err)
@@ -239,7 +239,7 @@ func (h *Handler) handleBitbucket(w http.ResponseWriter, r *http.Request, logger
 		return
 	}
 
-	redirectURL := callbackURL(r, "bitbucket", h.PublicBaseURL)
+	redirectURL := callbackURL(r, "bitbucket", h.Endpoint)
 	token, err := exchangeBitbucketToken(r.Context(), cfg, code, redirectURL)
 	if err != nil {
 		logger.Printf("bitbucket token exchange failed: %v", err)

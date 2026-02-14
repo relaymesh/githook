@@ -149,7 +149,7 @@ type NamespacesService struct {
 	ProviderInstanceStore storage.ProviderInstanceStore
 	ProviderInstanceCache *providerinstance.Cache
 	Providers             auth.Config
-	PublicBaseURL         string
+	Endpoint              string
 	Logger                *log.Logger
 }
 
@@ -985,7 +985,7 @@ func (s *NamespacesService) SetNamespaceWebhook(
 	if provider == "github" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("github webhooks are always enabled"))
 	}
-	webhookURL, err := webhookURL(s.PublicBaseURL, provider)
+	webhookURL, err := webhookURL(s.Endpoint, provider)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -1605,17 +1605,17 @@ func shouldRefresh(expiresAt *time.Time) bool {
 	return time.Now().UTC().After(expiresAt.Add(-1 * time.Minute))
 }
 
-func webhookURL(publicBaseURL, provider string) (string, error) {
-	publicBaseURL = strings.TrimSpace(publicBaseURL)
-	publicBaseURL = strings.TrimRight(publicBaseURL, "/")
-	if publicBaseURL == "" {
-		return "", errors.New("public_base_url is required for webhook management")
+func webhookURL(endpoint, provider string) (string, error) {
+	endpoint = strings.TrimSpace(endpoint)
+	endpoint = strings.TrimRight(endpoint, "/")
+	if endpoint == "" {
+		return "", errors.New("endpoint is required for webhook management")
 	}
 	switch provider {
 	case "gitlab":
-		return publicBaseURL + "/webhooks/gitlab", nil
+		return endpoint + "/webhooks/gitlab", nil
 	case "bitbucket":
-		return publicBaseURL + "/webhooks/bitbucket", nil
+		return endpoint + "/webhooks/bitbucket", nil
 	default:
 		return "", errors.New("unsupported provider for webhook management")
 	}

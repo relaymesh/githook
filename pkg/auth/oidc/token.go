@@ -60,6 +60,9 @@ func ClientCredentialsToken(ctx context.Context, cfg auth.OAuth2Config) (Token, 
 	values.Set("grant_type", "client_credentials")
 	values.Set("client_id", cfg.ClientID)
 	values.Set("client_secret", cfg.ClientSecret)
+	if strings.TrimSpace(cfg.Audience) != "" {
+		values.Set("audience", strings.TrimSpace(cfg.Audience))
+	}
 	if len(cfg.RequiredScopes) > 0 {
 		values.Set("scope", strings.Join(cfg.RequiredScopes, " "))
 	} else if len(cfg.Scopes) > 0 {

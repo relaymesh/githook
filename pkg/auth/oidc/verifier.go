@@ -2,7 +2,9 @@ package oidc
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 
 	"githook/pkg/auth"
@@ -13,12 +15,39 @@ import (
 type Claims struct {
 	Subject  string   `json:"sub"`
 	Issuer   string   `json:"iss"`
-	Audience []string `json:"aud"`
+	Audience Audience `json:"aud"`
 	Scope    string   `json:"scope"`
 	Scopes   []string `json:"scp"`
 	Roles    []string `json:"roles"`
 	Groups   []string `json:"groups"`
 	TenantID string   `json:"tenant_id"`
+}
+
+type Audience []string
+
+func (a *Audience) UnmarshalJSON(data []byte) error {
+	if a == nil {
+		return errors.New("audience target is nil")
+	}
+	if string(data) == "null" {
+		*a = nil
+		return nil
+	}
+	var single string
+	if err := json.Unmarshal(data, &single); err == nil {
+		if strings.TrimSpace(single) == "" {
+			*a = nil
+			return nil
+		}
+		*a = Audience{single}
+		return nil
+	}
+	var list []string
+	if err := json.Unmarshal(data, &list); err == nil {
+		*a = Audience(list)
+		return nil
+	}
+	return fmt.Errorf("invalid audience value: %s", string(data))
 }
 
 type Verifier struct {

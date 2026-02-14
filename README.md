@@ -196,11 +196,10 @@ Edit `config.yaml` and replace `<your-ngrok-url>` with your actual ngrok URL:
 ```yaml
 server:
   port: 8080
-  public_base_url: https://<your-ngrok-url>
+endpoint: https://<your-ngrok-url>
 
 providers:
   github:
-    enabled: true
     webhook:
       secret: devsecret
     app:
@@ -224,8 +223,7 @@ storage:
   dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
   dialect: postgres
   auto_migrate: true
-oauth:
-  redirect_base_url: https://app.example.com/success  # Optional: Where to redirect users after OAuth completion
+redirect_base_url: https://app.example.com/success  # Optional: Where to redirect users after OAuth completion
 
 rules:
   - when: action == "opened" && pull_request.draft == false
@@ -240,7 +238,7 @@ rules:
     emit: github.commit.created
 ```
 **OAuth Configuration:**
-- `oauth.redirect_base_url`: (Optional) URL where users are redirected after completing OAuth authorization. If not configured, users will see a simple success message. For production, point this to your application's OAuth success page.
+- `redirect_base_url`: (Optional) URL where users are redirected after completing OAuth authorization. If not configured, users will see a simple success message. For production, point this to your application's OAuth success page.
 
 
 ### Step 5: Start the Server
@@ -290,7 +288,7 @@ Now test the integration by performing actions on an installed repository:
 
 **Troubleshooting:**
 - If webhooks aren't being received, check that ngrok is still running
-- Verify your `public_base_url` in `config.yaml` matches your ngrok URL
+- Verify your `endpoint` in `config.yaml` matches your ngrok URL
 - Check GitHub App webhook delivery logs in GitHub App settings → Advanced → Recent Deliveries
 - Ensure OAuth credentials (`client_id` and `client_secret`) are configured in `config.yaml`
 
@@ -311,8 +309,7 @@ OAuth onboarding allows users to connect their GitLab or Bitbucket accounts (or 
 Configure OAuth credentials and redirect URL:
 
 ```yaml
-server:
-  public_base_url: https://your-domain.com  # Your public URL
+endpoint: https://your-domain.com  # Your public URL
 
 providers:
   github:
@@ -320,8 +317,7 @@ providers:
       client_id: your-oauth-client-id
       client_secret: your-oauth-client-secret
 
-oauth:
-  redirect_base_url: https://app.example.com/success  # Where to send users after OAuth
+redirect_base_url: https://app.example.com/success  # Where to send users after OAuth
 ```
 
 **Callback URLs** (configure in provider settings):
@@ -351,14 +347,14 @@ https://your-domain.com/?provider=github&instance=a1b2c3d4
 3. Provider redirects back to githook with authorization code
 4. githook exchanges code for access token
 5. Token stored in PostgreSQL
-6. User redirected to `oauth.redirect_base_url`
+6. User redirected to `redirect_base_url`
 
 **Step 4: Done!**
 
 - ✅ Installation created in database
 - ✅ Webhooks will be processed
 - ✅ Workers get authenticated API clients
-- ✅ User redirected to `oauth.redirect_base_url` (if configured)
+- ✅ User redirected to `redirect_base_url` (if configured)
 
 ### Flow Diagram
 

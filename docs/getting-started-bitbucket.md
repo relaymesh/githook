@@ -41,11 +41,10 @@ Edit `config.yaml`:
 ```yaml
 server:
   port: 8080
-  public_base_url: https://<your-ngrok-url>
+endpoint: https://<your-ngrok-url>
 
 providers:
   bitbucket:
-    enabled: true
     webhook:
       secret: devsecret  # Optional
     api:
@@ -67,8 +66,7 @@ storage:
   dialect: postgres
   auto_migrate: true
 
-oauth:
-  redirect_base_url: https://app.example.com/success
+redirect_base_url: https://app.example.com/success
 
 rules:
   - when: pullrequest.state == "OPEN"

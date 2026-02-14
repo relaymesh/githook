@@ -16,7 +16,7 @@ type AppConfig struct {
 	// Server holds server-specific configuration.
 	Server struct {
 		Port           int    `yaml:"port"`
-		PublicBaseURL  string `yaml:"public_base_url"`
+		PublicBaseURL  string `yaml:"public_base_url"` // Deprecated: use Endpoint.
 		ReadTimeoutMS  int64  `yaml:"read_timeout_ms"`
 		WriteTimeoutMS int64  `yaml:"write_timeout_ms"`
 		IdleTimeoutMS  int64  `yaml:"idle_timeout_ms"`
@@ -30,7 +30,9 @@ type AppConfig struct {
 	Watermill WatermillConfig `yaml:"watermill"`
 	// Storage holds configuration for installation storage.
 	Storage StorageConfig `yaml:"storage"`
-	// OAuth holds callback configuration for provider integrations.
+	// RedirectBaseURL is where users are redirected after OAuth completion.
+	RedirectBaseURL string `yaml:"redirect_base_url"`
+	// OAuth holds legacy callback configuration for provider integrations.
 	OAuth OAuthConfig `yaml:"oauth"`
 	// Auth holds API authentication configuration.
 	Auth auth.AuthConfig `yaml:"auth"`
@@ -227,8 +229,8 @@ func applyDefaults(cfg *AppConfig) {
 	if cfg.Endpoint == "" && cfg.Server.PublicBaseURL != "" {
 		cfg.Endpoint = cfg.Server.PublicBaseURL
 	}
-	if cfg.Server.PublicBaseURL == "" && cfg.Endpoint != "" {
-		cfg.Server.PublicBaseURL = cfg.Endpoint
+	if cfg.RedirectBaseURL == "" && cfg.OAuth.RedirectBaseURL != "" {
+		cfg.RedirectBaseURL = cfg.OAuth.RedirectBaseURL
 	}
 	if cfg.Providers.GitHub.Webhook.Path == "" {
 		cfg.Providers.GitHub.Webhook.Path = "/webhooks/github"
@@ -277,8 +279,8 @@ func applyAuthDefaults(cfg *AppConfig) {
 	if oauth2.Mode == "" {
 		oauth2.Mode = "auto"
 	}
-	if oauth2.RedirectURL == "" && cfg.Server.PublicBaseURL != "" {
-		oauth2.RedirectURL = strings.TrimRight(cfg.Server.PublicBaseURL, "/") + "/auth/callback"
+	if oauth2.RedirectURL == "" && cfg.Endpoint != "" {
+		oauth2.RedirectURL = strings.TrimRight(cfg.Endpoint, "/") + "/auth/callback"
 	}
 	if len(oauth2.Scopes) == 0 {
 		oauth2.Scopes = []string{"openid", "profile", "email"}

@@ -83,6 +83,7 @@ func (h *oauth2Handler) Login(w http.ResponseWriter, r *http.Request) {
 		oauth2.AccessTypeOnline,
 		oauth2.SetAuthURLParam("code_challenge", challenge),
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+		oauth2.SetAuthURLParam("audience", h.cfg.Audience),
 	)
 	http.Redirect(w, r, url, http.StatusFound)
 }
@@ -127,7 +128,12 @@ func (h *oauth2Handler) Callback(w http.ResponseWriter, r *http.Request) {
 			TokenURL: tokenURL,
 		},
 	}
-	token, err := oauthConfig.Exchange(r.Context(), code, oauth2.SetAuthURLParam("code_verifier", verifier))
+	token, err := oauthConfig.Exchange(
+		r.Context(),
+		code,
+		oauth2.SetAuthURLParam("code_verifier", verifier),
+		oauth2.SetAuthURLParam("audience", h.cfg.Audience),
+	)
 	if err != nil {
 		h.logf("auth_code exchange failed: %v", err)
 		http.Error(w, "token exchange failed", http.StatusBadRequest)

@@ -549,21 +549,25 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 	connectOpts := []connect.HandlerOption{
 		connect.WithInterceptors(validationInterceptor),
 	}
+	var verifier *oidchelper.Verifier
 	if config.Auth.OAuth2.Enabled {
-		verifier, err := oidchelper.NewVerifier(ctx, config.Auth.OAuth2)
+		created, err := oidchelper.NewVerifier(ctx, config.Auth.OAuth2)
 		if err != nil {
 			return fmt.Errorf("oauth2 verifier: %w", err)
 		}
-		connectOpts = append(connectOpts, connect.WithInterceptors(newAuthInterceptor(verifier, logger)))
+		verifier = created
 		authHandler := newOAuth2Handler(config.Auth.OAuth2, logger)
 		mux.HandleFunc("/auth/login", authHandler.Login)
 		mux.HandleFunc("/auth/callback", authHandler.Callback)
-		logger.Printf("auth=enabled issuer=%s", config.Auth.OAuth2.Issuer)
+		logger.Printf("auth=oauth2 enabled issuer=%s", config.Auth.OAuth2.Issuer)
+	}
+	if verifier != nil {
+		connectOpts = append(connectOpts, connect.WithInterceptors(newAuthInterceptor(verifier, logger)))
 	}
 	connectOpts = append(connectOpts, connect.WithInterceptors(newTenantInterceptor()))
 	mux.Handle("/", &oauth.StartHandler{
 		Providers:             config.Providers,
-		PublicBaseURL:         config.Server.PublicBaseURL,
+		Endpoint:              config.Endpoint,
 		Logger:                logger,
 		ProviderInstanceStore: instanceStore,
 		ProviderInstanceCache: instanceCache,
@@ -584,7 +588,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 			ProviderInstanceStore: instanceStore,
 			ProviderInstanceCache: instanceCache,
 			Providers:             config.Providers,
-			PublicBaseURL:         config.Server.PublicBaseURL,
+			Endpoint:              config.Endpoint,
 			Logger:                logger,
 		}
 		path, handler := cloudv1connect.NewNamespacesServiceHandler(namespaceSvc, connectOpts...)
@@ -628,72 +632,66 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		mux.Handle(path, handler)
 	}
 
-	if config.Providers.GitHub.Enabled {
-		ghHandler, err := webhook.NewGitHubHandler(
-			config.Providers.GitHub.Webhook.Secret,
-			ruleEngine,
-			publisher,
-			logger,
-			config.Server.MaxBodyBytes,
-			config.Server.DebugEvents,
-			installStore,
-			namespaceStore,
-			logStore,
-		)
-		if err != nil {
-			return fmt.Errorf("github handler: %w", err)
-		}
-		mux.Handle(config.Providers.GitHub.Webhook.Path, ghHandler)
-		logger.Printf(
-			"provider=github webhook=enabled path=%s oauth_callback=/auth/github/callback app_id=%d",
-			config.Providers.GitHub.Webhook.Path,
-			config.Providers.GitHub.App.AppID,
-		)
+	ghHandler, err := webhook.NewGitHubHandler(
+		config.Providers.GitHub.Webhook.Secret,
+		ruleEngine,
+		publisher,
+		logger,
+		config.Server.MaxBodyBytes,
+		config.Server.DebugEvents,
+		installStore,
+		namespaceStore,
+		logStore,
+	)
+	if err != nil {
+		return fmt.Errorf("github handler: %w", err)
 	}
+	mux.Handle(config.Providers.GitHub.Webhook.Path, ghHandler)
+	logger.Printf(
+		"provider=github webhook=enabled path=%s oauth_callback=/auth/github/callback app_id=%d",
+		config.Providers.GitHub.Webhook.Path,
+		config.Providers.GitHub.App.AppID,
+	)
 
-	if config.Providers.GitLab.Enabled {
-		glHandler, err := webhook.NewGitLabHandler(
-			config.Providers.GitLab.Webhook.Secret,
-			ruleEngine,
-			publisher,
-			logger,
-			config.Server.MaxBodyBytes,
-			config.Server.DebugEvents,
-			namespaceStore,
-			logStore,
-		)
-		if err != nil {
-			return fmt.Errorf("gitlab handler: %w", err)
-		}
-		mux.Handle(config.Providers.GitLab.Webhook.Path, glHandler)
-		logger.Printf(
-			"provider=gitlab webhook=enabled path=%s oauth_callback=/auth/gitlab/callback",
-			config.Providers.GitLab.Webhook.Path,
-		)
+	glHandler, err := webhook.NewGitLabHandler(
+		config.Providers.GitLab.Webhook.Secret,
+		ruleEngine,
+		publisher,
+		logger,
+		config.Server.MaxBodyBytes,
+		config.Server.DebugEvents,
+		namespaceStore,
+		logStore,
+	)
+	if err != nil {
+		return fmt.Errorf("gitlab handler: %w", err)
 	}
+	mux.Handle(config.Providers.GitLab.Webhook.Path, glHandler)
+	logger.Printf(
+		"provider=gitlab webhook=enabled path=%s oauth_callback=/auth/gitlab/callback",
+		config.Providers.GitLab.Webhook.Path,
+	)
 
-	if config.Providers.Bitbucket.Enabled {
-		bbHandler, err := webhook.NewBitbucketHandler(
-			config.Providers.Bitbucket.Webhook.Secret,
-			ruleEngine,
-			publisher,
-			logger,
-			config.Server.MaxBodyBytes,
-			config.Server.DebugEvents,
-			namespaceStore,
-			logStore,
-		)
-		if err != nil {
-			return fmt.Errorf("bitbucket handler: %w", err)
-		}
-		mux.Handle(config.Providers.Bitbucket.Webhook.Path, bbHandler)
-		logger.Printf(
-			"provider=bitbucket webhook=enabled path=%s oauth_callback=/auth/bitbucket/callback",
-			config.Providers.Bitbucket.Webhook.Path,
-		)
+	bbHandler, err := webhook.NewBitbucketHandler(
+		config.Providers.Bitbucket.Webhook.Secret,
+		ruleEngine,
+		publisher,
+		logger,
+		config.Server.MaxBodyBytes,
+		config.Server.DebugEvents,
+		namespaceStore,
+		logStore,
+	)
+	if err != nil {
+		return fmt.Errorf("bitbucket handler: %w", err)
 	}
+	mux.Handle(config.Providers.Bitbucket.Webhook.Path, bbHandler)
+	logger.Printf(
+		"provider=bitbucket webhook=enabled path=%s oauth_callback=/auth/bitbucket/callback",
+		config.Providers.Bitbucket.Webhook.Path,
+	)
 
-	redirectBase := config.OAuth.RedirectBaseURL
+	redirectBase := config.RedirectBaseURL
 	oauthHandler := func(provider string, cfg auth.ProviderConfig) *oauth.Handler {
 		return &oauth.Handler{
 			Provider:              provider,
@@ -705,7 +703,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 			ProviderInstanceCache: instanceCache,
 			Logger:                logger,
 			RedirectBase:          redirectBase,
-			PublicBaseURL:         config.Server.PublicBaseURL,
+			Endpoint:              config.Endpoint,
 		}
 	}
 	mux.Handle("/auth/github/callback", oauthHandler("github", config.Providers.GitHub))
@@ -741,8 +739,8 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 	handler := h2c.NewHandler(corsHandler.Handler(mux), &http2.Server{})
 
 	addr := ":" + strconv.Itoa(config.Server.Port)
-	if config.Server.PublicBaseURL != "" {
-		logger.Printf("server public_base_url=%s", config.Server.PublicBaseURL)
+	if config.Endpoint != "" {
+		logger.Printf("server endpoint=%s", config.Endpoint)
 	}
 	server := &http.Server{
 		Addr:              addr,

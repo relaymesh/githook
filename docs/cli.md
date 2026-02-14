@@ -20,8 +20,8 @@ The CLI reads `endpoint` from the config when `--endpoint` is not provided.
 
 ## Init
 
-The `server` profile disables all providers by default and includes the full
-provider and watermill sections. The `cli` and `worker` profiles use `endpoint`
+The `server` profile includes the full provider and watermill sections. The `cli`
+and `worker` profiles use `endpoint`
 for API calls; the worker profile includes the full watermill section, commented
 out, so you can enable it per data-plane deployment.
 
@@ -33,6 +33,7 @@ githook init --config worker.yaml --profile worker
 
 ## Environment variables
 
+- `GITHOOK_API_KEY`: send `x-api-key` if your server expects API-key auth
 - `GITHOOK_AUTH_TOKEN`: override the cached auth token
 - `GITHOOK_TOKEN_CACHE`: override the token cache path
 

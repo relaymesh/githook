@@ -3,7 +3,6 @@ server:
 
 providers:
   bitbucket:
-    enabled: true
     webhook:
       secret: ${BITBUCKET_WEBHOOK_SECRET}
     api:

@@ -16,7 +16,26 @@ func TestInstallationsBaseURLFromEnv(t *testing.T) {
 	}
 }
 
-func TestInstallationsBaseURLFromConfigPublicBaseURL(t *testing.T) {
+func TestInstallationsBaseURLFromConfigEndpoint(t *testing.T) {
+	t.Setenv("GITHOOK_API_BASE_URL", "")
+	t.Setenv("GITHOOK_CONFIG", "")
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	content := `
+endpoint: https://api.example.com/base/
+`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	t.Setenv("GITHOOK_CONFIG_PATH", path)
+
+	if got := installationsBaseURL(); got != "https://api.example.com/base" {
+		t.Fatalf("expected endpoint base url, got %q", got)
+	}
+}
+
+func TestInstallationsBaseURLFromConfigPublicBaseURLFallback(t *testing.T) {
 	t.Setenv("GITHOOK_API_BASE_URL", "")
 	t.Setenv("GITHOOK_CONFIG", "")
 
@@ -32,11 +51,11 @@ server:
 	t.Setenv("GITHOOK_CONFIG_PATH", path)
 
 	if got := installationsBaseURL(); got != "https://example.com/base" {
-		t.Fatalf("expected public base url, got %q", got)
+		t.Fatalf("expected public base url fallback, got %q", got)
 	}
 }
 
-func TestInstallationsBaseURLFromConfigEndpoint(t *testing.T) {
+func TestInstallationsBaseURLFromConfigEndpointOverridesPublicBaseURL(t *testing.T) {
 	t.Setenv("GITHOOK_API_BASE_URL", "")
 	t.Setenv("GITHOOK_CONFIG", "")
 

@@ -23,6 +23,10 @@ func AuthClaimsFromContext(ctx context.Context) (*oidchelper.Claims, bool) {
 func newAuthInterceptor(verifier *oidchelper.Verifier, logger *log.Logger) connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			if verifier == nil {
+				return next(ctx, req)
+			}
+
 			token, err := bearerToken(req.Header())
 			if err != nil {
 				logAuthError(logger, err)

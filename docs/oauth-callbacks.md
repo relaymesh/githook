@@ -21,11 +21,9 @@ Configure these callback URLs in your provider OAuth applications:
 ## Configuration
 
 ```yaml
-server:
-  public_base_url: https://your-domain.com  # Your public URL
+endpoint: https://your-domain.com  # Your public URL
 
-oauth:
-  redirect_base_url: https://app.example.com/oauth/complete  # Where to send users after OAuth
+redirect_base_url: https://app.example.com/oauth/complete  # Where to send users after OAuth
 ```
 
 ## Initiating OAuth
@@ -54,7 +52,7 @@ githook --endpoint https://your-domain.com providers list --provider github
 4. Provider redirects to githook callback (`/auth/{provider}/callback`)
 5. githook exchanges authorization code for access token
 6. Token stored in PostgreSQL
-7. User redirected to `oauth.redirect_base_url` with query parameters:
+7. User redirected to `redirect_base_url` with query parameters:
    - `provider` - The provider name
    - `state` - CSRF token
    - `installation_id` - GitHub installation ID (GitHub only)
@@ -91,7 +89,6 @@ For organizations using both public and self-hosted platforms:
 ```yaml
 providers:
   github:
-    enabled: true
     api:
       base_url: https://api.github.com
     oauth:
@@ -99,7 +96,6 @@ providers:
       client_secret: your-oauth-client-secret
 
   github_enterprise:
-    enabled: true
     api:
       base_url: https://ghe.company.com/api/v3
     oauth:
@@ -138,4 +134,4 @@ https://your-domain.com/?provider=github&instance=<ghe-hash>
 
 **404 on callback:**
 - Callback path must be `/auth/{provider}/callback`
-- Verify `server.public_base_url` is set correctly
+- Verify `endpoint` is set correctly

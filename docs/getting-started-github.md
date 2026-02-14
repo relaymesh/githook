@@ -46,11 +46,10 @@ Edit `config.yaml`:
 ```yaml
 server:
   port: 8080
-  public_base_url: https://<your-ngrok-url>
+endpoint: https://<your-ngrok-url>
 
 providers:
   github:
-    enabled: true
     webhook:
       secret: devsecret
     app:
@@ -75,8 +74,7 @@ storage:
   dialect: postgres
   auto_migrate: true
 
-oauth:
-  redirect_base_url: https://app.example.com/success
+redirect_base_url: https://app.example.com/success
 
 rules:
   - when: action == "opened" && pull_request.draft == false
@@ -121,7 +119,7 @@ Create a pull request or push a commit to an installed repository. The worker wi
 
 ## Troubleshooting
 
-- **Webhooks not received**: Check ngrok is still running, verify `public_base_url` matches ngrok URL
+- **Webhooks not received**: Check ngrok is still running, verify `endpoint` matches ngrok URL
 - **404 on callback**: Callback URL must be `/auth/github/callback`
 - **Missing signature**: Webhook secret doesn't match configuration
 - **No matching rules**: Rules in config don't match the webhook payload
@@ -135,13 +133,11 @@ For GitHub.com + GitHub Enterprise setups, configure multiple instances:
 ```yaml
 providers:
   github:
-    enabled: true
     api:
       base_url: https://api.github.com
     # ... other config
 
   github_enterprise:
-    enabled: true
     api:
       base_url: https://ghe.company.com/api/v3
     # ... other config

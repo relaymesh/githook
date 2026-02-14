@@ -15,6 +15,7 @@ auth:
 
 The server discovers JWKS/authorize/token endpoints from the issuer.
 
+
 ## CLI (machine)
 
 ```yaml
@@ -33,8 +34,7 @@ The CLI uses client credentials automatically and injects `Authorization: Bearer
 ## Human login (browser)
 
 ```yaml
-server:
-  public_base_url: https://app.example.com
+endpoint: https://app.example.com
 
 auth:
   oauth2:

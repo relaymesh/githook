@@ -16,7 +16,6 @@ endpoint: http://localhost:8080
 
 providers:
   github:
-    enabled: false
     # key: ""
     webhook:
       # path: "/webhooks/github"
@@ -33,7 +32,6 @@ providers:
       # base_url: "https://api.github.com"
       # web_base_url: "https://github.com"
   gitlab:
-    enabled: false
     # key: ""
     webhook:
       # path: "/webhooks/gitlab"
@@ -50,7 +48,6 @@ providers:
       # base_url: "https://gitlab.com/api/v4"
       # web_base_url: "https://gitlab.com"
   bitbucket:
-    enabled: false
     # key: ""
     webhook:
       # path: "/webhooks/bitbucket"
@@ -72,8 +69,7 @@ storage:
   dsn: postgres://user:pass@localhost:5432/githook?sslmode=disable
   auto_migrate: true
 
-oauth:
-  redirect_base_url: http://localhost:8080
+redirect_base_url: http://localhost:8080
 
 auth:
   oauth2:

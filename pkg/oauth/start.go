@@ -18,7 +18,7 @@ import (
 // StartHandler redirects users into provider install/authorize flows.
 type StartHandler struct {
 	Providers             auth.Config
-	PublicBaseURL         string
+	Endpoint              string
 	Logger                *log.Logger
 	ProviderInstanceStore storage.ProviderInstanceStore
 	ProviderInstanceCache *providerinstance.Cache
@@ -66,7 +66,7 @@ func (h *StartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Redirect(w, r, target, http.StatusFound)
 	case "gitlab":
-		redirectURL := callbackURL(r, "gitlab", h.PublicBaseURL)
+		redirectURL := callbackURL(r, "gitlab", h.Endpoint)
 		target, err := gitlabAuthorizeURL(providerCfg, state, redirectURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -74,7 +74,7 @@ func (h *StartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Redirect(w, r, target, http.StatusFound)
 	case "bitbucket":
-		redirectURL := callbackURL(r, "bitbucket", h.PublicBaseURL)
+		redirectURL := callbackURL(r, "bitbucket", h.Endpoint)
 		target, err := bitbucketAuthorizeURL(providerCfg, state, redirectURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)

@@ -77,9 +77,6 @@ func resolveEndpoint(cfg core.AppConfig) string {
 	if strings.TrimSpace(cfg.Endpoint) != "" {
 		return strings.TrimSpace(cfg.Endpoint)
 	}
-	if strings.TrimSpace(cfg.Server.PublicBaseURL) != "" {
-		return strings.TrimSpace(cfg.Server.PublicBaseURL)
-	}
 	return "http://localhost:8080"
 }
 

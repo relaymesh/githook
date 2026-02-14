@@ -22,6 +22,7 @@ type AppConfig struct {
 // ServerConfig is a partial representation of the server config for client resolution.
 type ServerConfig struct {
 	Port          int    `yaml:"port"`
+	Endpoint      string `yaml:"endpoint"`
 	PublicBaseURL string `yaml:"public_base_url"`
 }
 
@@ -97,6 +98,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	if err := yaml.Unmarshal([]byte(expanded), &cfg); err != nil {
 		return cfg.Server, err
 	}
+	cfg.Server.Endpoint = strings.TrimSpace(cfg.Endpoint)
 	return cfg.Server, nil
 }
 

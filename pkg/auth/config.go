@@ -9,7 +9,7 @@ type Config struct {
 
 // ProviderConfig contains webhook and auth configuration for a provider.
 type ProviderConfig struct {
-	Enabled bool   `yaml:"enabled"`
+	Enabled bool   `yaml:"enabled"` // Deprecated: webhooks are always enabled.
 	Key     string `yaml:"key"`
 
 	Webhook WebhookConfig `yaml:"webhook"`

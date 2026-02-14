@@ -60,6 +60,9 @@ func ResolveProviderClientWithClient(ctx context.Context, evt *Event, client *In
 }
 
 func serverBaseURL(cfg ServerConfig) string {
+	if strings.TrimSpace(cfg.Endpoint) != "" {
+		return strings.TrimRight(strings.TrimSpace(cfg.Endpoint), "/")
+	}
 	if strings.TrimSpace(cfg.PublicBaseURL) != "" {
 		return strings.TrimRight(strings.TrimSpace(cfg.PublicBaseURL), "/")
 	}
