@@ -224,7 +224,7 @@ func driverListFromMatch(match core.RuleMatch) []string {
 	return []string{driverName}
 }
 
-func publishMatchesWithFallback(ctx context.Context, event core.Event, matches []core.RuleMatch, logs []storage.EventLogRecord, dynamic *drivers.DynamicPublisherCache, fallback core.Publisher, logger *log.Logger, statusUpdater func(string, string, string), driverStore storage.DriverStore) {
+func publishMatchesWithFallback(ctx context.Context, event core.Event, matches []core.RuleMatch, logs []storage.EventLogRecord, dynamic *drivers.DynamicPublisherCache, fallback core.Publisher, logger *log.Logger, statusUpdater func(string, string, string)) {
 	if len(matches) == 0 {
 		return
 	}
@@ -234,7 +234,6 @@ func publishMatchesWithFallback(ctx context.Context, event core.Event, matches [
 		} else {
 			event.LogID = ""
 		}
-		match = ensureMatchDriver(ctx, match, driverStore, logger)
 		ok, err := publishDynamicMatch(ctx, event, match, dynamic, logger)
 		if err != nil && statusUpdater != nil && idx < len(logs) {
 			statusUpdater(logs[idx].ID, eventLogStatusFailed, err.Error())
@@ -394,7 +393,6 @@ func loadRulesForTenant(ctx context.Context, store storage.RuleStore, driverStor
 	}
 	rules := make([]core.Rule, 0, len(records))
 	for _, record := range records {
-		record = ensureRuleDriverDetails(ctx, record, driverStore, logger)
 		if logger != nil {
 			logger.Printf("rule record raw id=%s tenant=%s when=%q emit=%v driver_id=%s driver_name=%s enabled=%t config=%s",
 				record.ID,
@@ -471,74 +469,4 @@ func driverNameForID(ctx context.Context, store storage.DriverStore, driverID st
 		return "", fmt.Errorf("driver %s has empty name", driverID)
 	}
 	return name, nil
-}
-
-func ensureRuleDriverDetails(ctx context.Context, record storage.RuleRecord, driverStore storage.DriverStore, logger *log.Logger) storage.RuleRecord {
-	driverName := strings.TrimSpace(record.DriverName)
-	driverConfig := strings.TrimSpace(record.DriverConfigJSON)
-	driverEnabled := record.DriverEnabled
-	if driverStore != nil && record.DriverID != "" && (driverName == "" || driverConfig == "") {
-		driver, err := driverStore.GetDriverByID(ctx, record.DriverID)
-		if err != nil {
-			if logger != nil {
-				logger.Printf("rule driver lookup failed id=%s: %v", record.DriverID, err)
-			}
-		} else if driver != nil {
-			if driverName == "" {
-				driverName = driver.Name
-			}
-			if driverConfig == "" {
-				driverConfig = driver.ConfigJSON
-			}
-			driverEnabled = driver.Enabled
-			if logger != nil {
-				logger.Printf("rule driver resolved id=%s name=%s enabled=%t", record.DriverID, driverName, driverEnabled)
-			}
-		} else if logger != nil {
-			logger.Printf("rule driver missing id=%s", record.DriverID)
-		}
-	}
-	record.DriverName = strings.TrimSpace(driverName)
-	record.DriverConfigJSON = strings.TrimSpace(driverConfig)
-	record.DriverEnabled = driverEnabled
-	return record
-}
-
-func ensureMatchDriver(ctx context.Context, match core.RuleMatch, driverStore storage.DriverStore, logger *log.Logger) core.RuleMatch {
-	if driverStore == nil {
-		return match
-	}
-	driverID := strings.TrimSpace(match.DriverID)
-	if driverID == "" {
-		return match
-	}
-	needName := strings.TrimSpace(match.DriverName) == ""
-	needConfig := strings.TrimSpace(match.DriverConfigJSON) == ""
-	if !needName && !needConfig {
-		return match
-	}
-	driver, err := driverStore.GetDriverByID(ctx, driverID)
-	if err != nil {
-		if logger != nil {
-			logger.Printf("rule driver lookup failed id=%s: %v", driverID, err)
-		}
-		return match
-	}
-	if driver == nil {
-		if logger != nil {
-			logger.Printf("rule driver missing id=%s", driverID)
-		}
-		return match
-	}
-	if needName {
-		match.DriverName = driver.Name
-	}
-	if needConfig {
-		match.DriverConfigJSON = driver.ConfigJSON
-	}
-	match.DriverEnabled = driver.Enabled
-	if logger != nil {
-		logger.Printf("rule match jitted driver id=%s name=%s", driverID, match.DriverName)
-	}
-	return match
 }
