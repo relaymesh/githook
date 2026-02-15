@@ -17,37 +17,33 @@ All SDKs are expected to:
 
 ## Go Worker Quick Start
 
-Create a worker from config and optionally override the subscriber driver:
+Use the API-driven worker so you only need the endpoint and API key:
 
 ```go
-wk, err := worker.NewFromConfigPathWithDriver("worker.yaml", "nats")
-if err != nil {
-  return err
+package main
+
+import (
+  "context"
+  "os"
+
+  "githook/sdk/go/worker"
+)
+
+func main() {
+  wk := worker.New(
+    worker.WithEndpoint(os.Getenv("GITHOOK_ENDPOINT")),
+    worker.WithAPIKey(os.Getenv("GITHOOK_API_KEY")),
+    worker.WithDefaultDriver("driver-id"),
+    worker.WithTopics("pr.opened.ready"),
+  )
+
+  wk.HandleTopic("pr.opened.ready", "driver-id", func(ctx context.Context, evt *worker.Event) error {
+    return nil
+  })
+
+  _ = wk.Run(context.Background())
 }
-
-wk.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) error {
-  return nil
-})
-
-return wk.Run(ctx)
 ```
-
-Fetch driver details from the server API and only provide the driver name:
-
-```go
-wk, err := worker.NewFromConfigPathWithDriverFromAPI("worker.yaml", "nats")
-if err != nil {
-  return err
-}
-
-wk.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) error {
-  return nil
-})
-
-return wk.Run(ctx)
-```
-
-See `docs/sdk-dsl.md` for the proposed portable worker spec.
 
 ## Language Support Note
 

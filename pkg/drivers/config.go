@@ -103,6 +103,22 @@ func applyDriverConfig(cfg *core.WatermillConfig, name, raw string) error {
 	}
 }
 
+// ConfigFromDriver builds a Watermill config for a single driver from its JSON payload.
+func ConfigFromDriver(driverName, configJSON string) (core.WatermillConfig, error) {
+	name := strings.ToLower(strings.TrimSpace(driverName))
+	if name == "" {
+		return core.WatermillConfig{}, errors.New("driver name is required")
+	}
+	cfg := core.WatermillConfig{
+		Driver:  name,
+		Drivers: []string{name},
+	}
+	if err := applyDriverConfig(&cfg, name, configJSON); err != nil {
+		return core.WatermillConfig{}, err
+	}
+	return cfg, nil
+}
+
 func marshalJSON(value interface{}) (string, error) {
 	raw, err := json.Marshal(value)
 	if err != nil {

@@ -62,7 +62,7 @@ func main() {
 		worker.WithTopics("pr.opened.ready"),
 		worker.WithLogger(core.NewLogger("worker-preview")),
 	)
-	previewWorker.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) error {
+	previewWorker.HandleTopic("pr.opened.ready", "", func(ctx context.Context, evt *worker.Event) error {
 		log.Printf("intent: preview worker received topic=%s provider=%s type=%s", evt.Topic, evt.Provider, evt.Type)
 		return nil
 	})
@@ -72,7 +72,7 @@ func main() {
 		worker.WithTopics("pr.merged"),
 		worker.WithLogger(core.NewLogger("worker-merge")),
 	)
-	mergeWorker.HandleTopic("pr.merged", func(ctx context.Context, evt *worker.Event) error {
+	mergeWorker.HandleTopic("pr.merged", "", func(ctx context.Context, evt *worker.Event) error {
 		log.Printf("intent: merge worker received topic=%s provider=%s type=%s", evt.Topic, evt.Provider, evt.Type)
 		return nil
 	})

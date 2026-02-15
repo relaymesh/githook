@@ -27,20 +27,28 @@ type Rule struct {
 	When string `yaml:"when"`
 	// Emit is the topic to publish the event to if the 'When' expression is true.
 	Emit EmitList `yaml:"emit"`
-	// Drivers is a list of publisher drivers to use for this rule.
-	// If empty, the default drivers are used.
-	Drivers []string `yaml:"drivers"`
+	// DriverID is the identifier of the driver in storage.
+	DriverID string `yaml:"driver_id"`
+	// DriverName is used internally to track the driver name resolved from storage.
+	DriverName string `yaml:"-"`
+	// DriverConfigJSON stores the Watermill driver configuration (optional).
+	DriverConfigJSON string `yaml:"driver_config_json"`
+	// DriverEnabled indicates whether the associated driver is enabled.
+	DriverEnabled bool `yaml:"driver_enabled"`
 }
 
 // compiledRule is a pre-processed version of a Rule.
 type compiledRule struct {
-	id      string
-	when    string
-	emit    []string
-	drivers []string
-	vars    []string
-	varMap  map[string]string
-	expr    *govaluate.EvaluableExpression
+	id               string
+	when             string
+	emit             []string
+	driverID         string
+	driverName       string
+	driverConfigJSON string
+	driverEnabled    bool
+	vars             []string
+	varMap           map[string]string
+	expr             *govaluate.EvaluableExpression
 }
 
 // RuleEngine evaluates events against a set of rules.
@@ -59,16 +67,24 @@ type ruleSet struct {
 
 // RuleMatch represents a successful rule evaluation.
 type RuleMatch struct {
-	Topic   string
-	Drivers []string
+	Topic            string
+	DriverID         string
+	DriverName       string
+	RuleID           string
+	RuleWhen         string
+	DriverConfigJSON string
+	DriverEnabled    bool
 }
 
 // MatchedRule represents a successful rule evaluation with the original rule data.
 type MatchedRule struct {
-	ID      string
-	When    string
-	Emit    []string
-	Drivers []string
+	ID               string
+	When             string
+	Emit             []string
+	DriverID         string
+	DriverName       string
+	DriverConfigJSON string
+	DriverEnabled    bool
 }
 
 // NewRuleEngine creates a new RuleEngine from a set of rules.
@@ -101,16 +117,19 @@ func (r *RuleEngine) Update(cfg RulesConfig) error {
 		emit := rule.Emit.Values()
 		ruleID := strings.TrimSpace(rule.ID)
 		if ruleID == "" {
-			ruleID = ruleIDFromParts(rule.When, emit, rule.Drivers)
+			ruleID = ruleIDFromParts(rule.When, emit, rule.DriverID)
 		}
 		rules = append(rules, compiledRule{
-			id:      ruleID,
-			when:    rule.When,
-			emit:    emit,
-			drivers: rule.Drivers,
-			vars:    expr.Vars(),
-			varMap:  varMap,
-			expr:    expr,
+			id:               ruleID,
+			when:             rule.When,
+			emit:             emit,
+			driverID:         strings.TrimSpace(rule.DriverID),
+			driverName:       strings.TrimSpace(rule.DriverName),
+			driverConfigJSON: strings.TrimSpace(rule.DriverConfigJSON),
+			driverEnabled:    rule.DriverEnabled,
+			vars:             expr.Vars(),
+			varMap:           varMap,
+			expr:             expr,
 		})
 	}
 	r.mu.Lock()
@@ -344,7 +363,15 @@ func (r *RuleEngine) evaluateWithLoggerForTenant(event Event, tenantID string, l
 		ok, _ := result.(bool)
 		if ok {
 			for _, topic := range rule.emit {
-				matches = append(matches, RuleMatch{Topic: topic, Drivers: rule.drivers})
+				matches = append(matches, RuleMatch{
+					Topic:            topic,
+					DriverID:         rule.driverID,
+					DriverName:       rule.driverName,
+					RuleID:           rule.id,
+					RuleWhen:         rule.when,
+					DriverConfigJSON: rule.driverConfigJSON,
+					DriverEnabled:    rule.driverEnabled,
+				})
 			}
 		}
 	}
@@ -414,10 +441,13 @@ func (r *RuleEngine) evaluateRulesWithLoggerForTenant(event Event, tenantID stri
 		ok, _ := result.(bool)
 		if ok {
 			matches = append(matches, MatchedRule{
-				ID:      rule.id,
-				When:    rule.when,
-				Emit:    append([]string(nil), rule.emit...),
-				Drivers: append([]string(nil), rule.drivers...),
+				ID:               rule.id,
+				When:             rule.when,
+				Emit:             append([]string(nil), rule.emit...),
+				DriverID:         rule.driverID,
+				DriverName:       rule.driverName,
+				DriverConfigJSON: rule.driverConfigJSON,
+				DriverEnabled:    rule.driverEnabled,
 			})
 		}
 	}
@@ -492,8 +522,9 @@ func resolveJSONPath(event Event, path string) (interface{}, error) {
 	return normalizeJSONPathResult(value), nil
 }
 
-func ruleIDFromParts(when string, emit []string, drivers []string) string {
-	key := strings.TrimSpace(when) + "|" + strings.Join(normalizeRuleParts(emit), ",") + "|" + strings.Join(normalizeRuleParts(drivers), ",")
+func ruleIDFromParts(when string, emit []string, driverID string) string {
+	driverKey := strings.TrimSpace(driverID)
+	key := strings.TrimSpace(when) + "|" + strings.Join(normalizeRuleParts(emit), ",") + "|" + driverKey
 	sum := sha1.Sum([]byte(key))
 	return "rule_" + hex.EncodeToString(sum[:])
 }

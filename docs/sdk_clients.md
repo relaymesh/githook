@@ -4,22 +4,27 @@ Use the SDK to attach provider-specific clients to each event. You can either in
 
 ## Pattern
 
-```go
-githubClient := newGitHubAppClient(appID, installationID, privateKeyPEM)
-gitlabClient := newGitLabClient(token)
-bitbucketClient := newBitbucketClient(username, appPassword)
+Use a `ClientProviderFunc` to supply your own client resolution logic:
 
+```go
 wk := worker.New(
   worker.WithSubscriber(sub),
   worker.WithTopics("pr.opened.ready", "pr.merged"),
-  worker.WithClientProvider(worker.ProviderClients{
-    GitHub: func(ctx context.Context, evt *worker.Event) (interface{}, error) { return githubClient, nil },
-    GitLab: func(ctx context.Context, evt *worker.Event) (interface{}, error) { return gitlabClient, nil },
-    Bitbucket: func(ctx context.Context, evt *worker.Event) (interface{}, error) { return bitbucketClient, nil },
-  }),
+  worker.WithClientProvider(worker.ClientProviderFunc(func(ctx context.Context, evt *worker.Event) (interface{}, error) {
+    switch evt.Provider {
+    case "github":
+      return newGitHubAppClient(appID, installationID, privateKeyPEM), nil
+    case "gitlab":
+      return newGitLabClient(token), nil
+    case "bitbucket":
+      return newBitbucketClient(username, appPassword), nil
+    default:
+      return nil, nil
+    }
+  })),
 )
 
-wk.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) error {
+wk.HandleTopic("pr.opened.ready", "driver-id", func(ctx context.Context, evt *worker.Event) error {
   switch evt.Provider {
   case "github":
     gh, _ := worker.GitHubClient(evt)
@@ -35,37 +40,9 @@ wk.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) e
 })
 ```
 
-## Resolve tokens in workers
-
-Use the server API to map `installation_id` → stored tokens:
-
-```go
-providerClient, err := worker.ResolveProviderClient(ctx, evt)
-if err != nil {
-  return err
-}
-
-switch evt.Provider {
-case "github":
-  gh := providerClient.(*github.Client)
-  _ = gh
-case "gitlab":
-  gl := providerClient.(*gitlab.Client)
-  _ = gl
-case "bitbucket":
-  bb := providerClient.(*bitbucket.Client)
-  _ = bb
-}
-```
-
-By default it uses `GITHOOK_API_BASE_URL`. If not set, it will read
-`GITHOOK_CONFIG_PATH` (or `GITHOOK_CONFIG`) and use `endpoint`
-or `server.port` to build the URL. Otherwise it falls back to
-`http://localhost:8080`.
-
-This keeps webhook payloads normalized in `evt.Normalized`, while the SDK gives you the correct provider client for API calls.
-
 ## Auto-resolve clients from config
+
+Use `SCMClientProvider` to resolve clients automatically from your providers config:
 
 ```go
 wk := worker.New(
@@ -76,6 +53,8 @@ wk := worker.New(
 ```
 
 The `providers` section in your config includes the SCM auth settings (`app.app_id`, `app.private_key_path`, OAuth client credentials, and API base URLs). For GitLab and Bitbucket, the worker resolves access tokens via the Installations API using the `installation_id` in event metadata.
+
+By default the endpoint is resolved from `GITHOOK_ENDPOINT` (falling back to `GITHOOK_API_BASE_URL`). When neither environment variable is set it falls back to `http://localhost:8080`.
 
 ## Multi-provider worker example
 
@@ -89,7 +68,7 @@ wk := worker.New(
   worker.WithClientProvider(worker.NewSCMClientProvider(cfg.Providers)),
 )
 
-wk.HandleTopic("vercel.preview", func(ctx context.Context, evt *worker.Event) error {
+wk.HandleTopic("vercel.preview", "driver-id", func(ctx context.Context, evt *worker.Event) error {
   switch evt.Provider {
   case "github":
     gh, ok := worker.GitHubClient(evt)

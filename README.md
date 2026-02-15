@@ -707,30 +707,20 @@ package main
 import (
     "context"
     "log"
+    "os"
 
     "githook/sdk/go/worker"
 )
 
 func main() {
-    // Load subscriber config from the same file the server uses
-    subCfg, err := worker.LoadSubscriberConfig("config.yaml")
-    if err != nil {
-        log.Fatalf("Failed to load config: %v", err)
-    }
-
-    sub, err := worker.BuildSubscriber(subCfg)
-    if err != nil {
-        log.Fatalf("Failed to build subscriber: %v", err)
-    }
-    defer sub.Close()
-
     wk := worker.New(
-        worker.WithSubscriber(sub),
+        worker.WithEndpoint(os.Getenv("GITHOOK_ENDPOINT")),
+        worker.WithAPIKey(os.Getenv("GITHOOK_API_KEY")),
+        worker.WithDefaultDriver("driver-id"),
         worker.WithTopics("pr.opened.ready", "pr.merged"),
-        worker.WithConcurrency(10),
     )
 
-    wk.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) error {
+    wk.HandleTopic("pr.opened.ready", "driver-id", func(ctx context.Context, evt *worker.Event) error {
         log.Printf("PR opened: %s/%s", evt.Provider, evt.Type)
         return nil
     })
@@ -761,7 +751,7 @@ The SDK automatically injects authenticated API clients:
 
 **GitHub:**
 ```go
-wk.HandleTopic("pr.merged", func(ctx context.Context, evt *worker.Event) error {
+wk.HandleTopic("pr.merged", "driver-id", func(ctx context.Context, evt *worker.Event) error {
     if evt.Provider != "github" {
         return nil
     }
@@ -784,7 +774,7 @@ wk.HandleTopic("pr.merged", func(ctx context.Context, evt *worker.Event) error {
 
 **GitLab:**
 ```go
-wk.HandleTopic("gitlab.mr.opened", func(ctx context.Context, evt *worker.Event) error {
+wk.HandleTopic("gitlab.mr.opened", "driver-id", func(ctx context.Context, evt *worker.Event) error {
     if evt.Client != nil {
         glClient := evt.Client.(*gitlab.Client)
         // Use GitLab SDK
@@ -795,7 +785,7 @@ wk.HandleTopic("gitlab.mr.opened", func(ctx context.Context, evt *worker.Event) 
 
 **Bitbucket:**
 ```go
-wk.HandleTopic("bitbucket.pr.opened", func(ctx context.Context, evt *worker.Event) error {
+wk.HandleTopic("bitbucket.pr.opened", "driver-id", func(ctx context.Context, evt *worker.Event) error {
     if evt.Client != nil {
         bbClient := evt.Client.(*bitbucket.Client)
         // Use Bitbucket SDK

@@ -10,31 +10,53 @@ import (
 
 // SCMClientProvider resolves SCM clients from webhook events.
 type SCMClientProvider struct {
-	resolver            auth.Resolver
-	factory             *scm.Factory
-	installationsClient *InstallationsClient
+	resolver               auth.Resolver
+	factory                *scm.Factory
+	installationsClient    *InstallationsClient
+	installationsClientSet bool // true when explicitly provided via WithSCMInstallationsClient
+}
+
+// SCMClientProviderOption configures an SCMClientProvider.
+type SCMClientProviderOption func(*SCMClientProvider)
+
+// WithSCMResolver sets a custom resolver and factory on the provider.
+func WithSCMResolver(r auth.Resolver, f *scm.Factory) SCMClientProviderOption {
+	return func(p *SCMClientProvider) {
+		p.resolver = r
+		p.factory = f
+	}
+}
+
+// WithSCMInstallationsClient sets a custom installations client on the provider.
+func WithSCMInstallationsClient(c *InstallationsClient) SCMClientProviderOption {
+	return func(p *SCMClientProvider) {
+		p.installationsClient = c
+		p.installationsClientSet = true
+	}
 }
 
 // NewSCMClientProvider creates a provider that resolves auth and builds SCM clients.
-func NewSCMClientProvider(cfg auth.Config) *SCMClientProvider {
-	return &SCMClientProvider{
+// The installations client is not created here — it is bound automatically by the
+// worker (via bindInstallationsClient) so that WithEndpoint / WithAPIKey /
+// WithOAuth2Config are respected without duplication.
+func NewSCMClientProvider(cfg auth.Config, opts ...SCMClientProviderOption) *SCMClientProvider {
+	p := &SCMClientProvider{
 		resolver: auth.NewResolver(cfg),
 		factory:  scm.NewFactory(cfg),
-		installationsClient: &InstallationsClient{
-			BaseURL: installationsBaseURL(),
-		},
 	}
+	for _, opt := range opts {
+		opt(p)
+	}
+	return p
 }
 
-// NewSCMClientProviderWithResolver creates a provider with custom resolver/factory.
-func NewSCMClientProviderWithResolver(resolver auth.Resolver, factory *scm.Factory) *SCMClientProvider {
-	return &SCMClientProvider{
-		resolver: resolver,
-		factory:  factory,
-		installationsClient: &InstallationsClient{
-			BaseURL: installationsBaseURL(),
-		},
+// bindInstallationsClient sets the installations client unless one was
+// explicitly provided via WithSCMInstallationsClient.
+func (p *SCMClientProvider) bindInstallationsClient(c *InstallationsClient) {
+	if p == nil || p.installationsClientSet {
+		return
 	}
+	p.installationsClient = c
 }
 
 // Client resolves a provider-specific SCM client for the given event.
@@ -49,7 +71,10 @@ func (p *SCMClientProvider) Client(ctx context.Context, evt *Event) (interface{}
 	case "gitlab", "bitbucket":
 		client := p.installationsClient
 		if client == nil || client.BaseURL == "" {
-			client = &InstallationsClient{BaseURL: installationsBaseURL()}
+			client = &InstallationsClient{
+				BaseURL: resolveEndpoint(""),
+				APIKey:  apiKeyFromEnv(),
+			}
 		}
 		record, err := ResolveInstallation(ctx, evt, client)
 		if err != nil {

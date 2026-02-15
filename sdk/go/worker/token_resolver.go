@@ -15,7 +15,7 @@ func ResolveInstallation(ctx context.Context, evt *Event, client *InstallationsC
 	}
 	installationID := ""
 	if evt.Metadata != nil {
-		installationID = evt.Metadata["installation_id"]
+		installationID = evt.Metadata[MetadataKeyInstallationID]
 	}
 	if installationID == "" {
 		return nil, errors.New("installation_id missing from metadata")

@@ -293,18 +293,12 @@ func normalizeRules(rules []Rule) ([]Rule, error) {
 		rule := rules[i]
 		rule.When = strings.TrimSpace(rule.When)
 		rule.Emit = EmitList(rule.Emit.Values())
+		rule.DriverID = strings.TrimSpace(rule.DriverID)
+		if rule.DriverID == "" {
+			return nil, fmt.Errorf("rule %d is missing driver_id", i)
+		}
 		if rule.When == "" || len(rule.Emit) == 0 {
 			return nil, fmt.Errorf("rule %d is missing when or emit", i)
-		}
-		if len(rule.Drivers) > 0 {
-			drivers := make([]string, 0, len(rule.Drivers))
-			for _, driver := range rule.Drivers {
-				trimmed := strings.TrimSpace(driver)
-				if trimmed != "" {
-					drivers = append(drivers, trimmed)
-				}
-			}
-			rule.Drivers = drivers
 		}
 		out = append(out, rule)
 	}

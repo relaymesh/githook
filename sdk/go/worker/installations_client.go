@@ -11,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/validate"
 
+	"githook/pkg/auth"
 	cloudv1 "githook/pkg/gen/cloud/v1"
 	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
 )
@@ -30,6 +31,8 @@ type InstallationRecord struct {
 type InstallationsClient struct {
 	BaseURL    string
 	HTTPClient *http.Client
+	APIKey     string
+	OAuth2     *auth.OAuth2Config
 }
 
 // GetByInstallationID fetches the latest installation record by provider + installation_id.
@@ -60,9 +63,7 @@ func (c *InstallationsClient) GetByInstallationID(ctx context.Context, provider,
 		Provider:       provider,
 		InstallationId: installationID,
 	})
-	if token, err := oauth2Token(ctx); err == nil && token != "" {
-		req.Header().Set("Authorization", "Bearer "+token)
-	}
+	setAuthHeaders(ctx, req.Header(), c.APIKey, c.OAuth2)
 	if tenantID := TenantIDFromContext(ctx); tenantID != "" {
 		req.Header().Set("X-Tenant-ID", tenantID)
 	}

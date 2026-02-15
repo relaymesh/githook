@@ -228,24 +228,24 @@ func (s *riverQueueSubscriber) handleJob(ctx context.Context, job *river.Job[riv
 
 	msg := message.NewMessageWithContext(ctx, watermill.NewUUID(), message.Payload(payload))
 	if provider != "" {
-		msg.Metadata.Set("provider", provider)
+		msg.Metadata.Set(MetadataKeyProvider, provider)
 	}
 	if eventName != "" {
-		msg.Metadata.Set("event", eventName)
+		msg.Metadata.Set(MetadataKeyEvent, eventName)
 	}
 	if topic != "" {
-		msg.Metadata.Set("topic", topic)
+		msg.Metadata.Set(MetadataKeyTopic, topic)
 	}
 	if logID != "" {
-		msg.Metadata.Set("log_id", logID)
+		msg.Metadata.Set(MetadataKeyLogID, logID)
 	}
-	msg.Metadata.Set("driver", "riverqueue")
-	msg.Metadata.Set("job_id", strconv.FormatInt(job.ID, 10))
+	msg.Metadata.Set(MetadataKeyDriver, "riverqueue")
+	msg.Metadata.Set(MetadataKeyJobID, strconv.FormatInt(job.ID, 10))
 	if job.Queue != "" {
-		msg.Metadata.Set("queue", job.Queue)
+		msg.Metadata.Set(MetadataKeyQueue, job.Queue)
 	}
 	if job.Kind != "" {
-		msg.Metadata.Set("kind", job.Kind)
+		msg.Metadata.Set(MetadataKeyKind, job.Kind)
 	}
 
 	ch := s.topicChannel(topic)

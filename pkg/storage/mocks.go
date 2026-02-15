@@ -289,6 +289,7 @@ func (m *MockRuleStore) CreateRule(ctx context.Context, record RuleRecord) (*Rul
 	if record.TenantID == "" {
 		record.TenantID = TenantFromContext(ctx)
 	}
+	record.DriverID = strings.TrimSpace(record.DriverID)
 	if record.ID == "" {
 		record.ID = time.Now().UTC().Format("20060102150405.000000000")
 	}
@@ -307,6 +308,7 @@ func (m *MockRuleStore) UpdateRule(ctx context.Context, record RuleRecord) (*Rul
 	if record.TenantID == "" {
 		record.TenantID = TenantFromContext(ctx)
 	}
+	record.DriverID = strings.TrimSpace(record.DriverID)
 	if record.CreatedAt.IsZero() {
 		record.CreatedAt = time.Now().UTC()
 	}

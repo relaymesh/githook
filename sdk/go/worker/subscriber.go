@@ -104,7 +104,7 @@ func buildSingleSubscriber(cfg SubscriberConfig, logger watermill.LoggerAdapter,
 		if err != nil {
 			return nil, err
 		}
-		return retrySubscriber(func() (message.Subscriber, error) {
+		return retrySubscriberBuild(func() (message.Subscriber, error) {
 			return wmamaqp.NewSubscriber(amqpCfg, logger)
 		})
 	case "nats":
@@ -124,7 +124,7 @@ func buildSingleSubscriber(cfg SubscriberConfig, logger watermill.LoggerAdapter,
 		if cfg.NATS.URL != "" {
 			natsCfg.StanOptions = append(natsCfg.StanOptions, stan.NatsURL(cfg.NATS.URL))
 		}
-		return retrySubscriber(func() (message.Subscriber, error) {
+		return retrySubscriberBuild(func() (message.Subscriber, error) {
 			return wmnats.NewStreamingSubscriber(natsCfg, logger)
 		})
 	case "kafka":
@@ -144,7 +144,7 @@ func buildSingleSubscriber(cfg SubscriberConfig, logger watermill.LoggerAdapter,
 			return nil, err
 		}
 		initialize := cfg.SQL.InitializeSchema || cfg.SQL.AutoInitializeSchema
-		sub, err := retrySubscriber(func() (message.Subscriber, error) {
+		sub, err := retrySubscriberBuild(func() (message.Subscriber, error) {
 			db, err := sql.Open(cfg.SQL.Driver, cfg.SQL.DSN)
 			if err != nil {
 				return nil, err
@@ -170,22 +170,6 @@ func buildSingleSubscriber(cfg SubscriberConfig, logger watermill.LoggerAdapter,
 	default:
 		return nil, fmt.Errorf("unsupported subscriber driver: %s", driver)
 	}
-}
-
-func retrySubscriber(build func() (message.Subscriber, error)) (message.Subscriber, error) {
-	const attempts = 10
-	const delay = 2 * time.Second
-
-	var lastErr error
-	for i := 0; i < attempts; i++ {
-		sub, err := build()
-		if err == nil {
-			return sub, nil
-		}
-		lastErr = err
-		time.Sleep(delay)
-	}
-	return nil, lastErr
 }
 
 func retrySubscriberBuild(build func() (message.Subscriber, error)) (message.Subscriber, error) {
@@ -268,7 +252,7 @@ func (m *multiSubscriber) Subscribe(ctx context.Context, topic string) (<-chan *
 					if msg.Metadata == nil {
 						msg.Metadata = message.Metadata{}
 					}
-					msg.Metadata.Set("driver", driver)
+					msg.Metadata.Set(MetadataKeyDriver, driver)
 					out <- msg
 				}
 			}

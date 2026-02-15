@@ -59,10 +59,10 @@ func (DefaultCodec) Decode(topic string, msg *message.Message) (*Event, error) {
 	}
 
 	if provider == "" {
-		provider = msg.Metadata.Get("provider")
+		provider = msg.Metadata.Get(MetadataKeyProvider)
 	}
 	if eventName == "" {
-		eventName = msg.Metadata.Get("event")
+		eventName = msg.Metadata.Get(MetadataKeyEvent)
 	}
 
 	if normalized == nil {

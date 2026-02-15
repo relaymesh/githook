@@ -33,13 +33,28 @@ type Store struct {
 }
 
 type row struct {
-	ID          string    `gorm:"column:id;size:64;primaryKey"`
-	TenantID    string    `gorm:"column:tenant_id;size:64;not null;default:'';index"`
-	When        string    `gorm:"column:when;type:text;not null"`
-	EmitJSON    string    `gorm:"column:emit_json;type:text"`
-	DriversJSON string    `gorm:"column:drivers_json;type:text"`
-	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime"`
+	ID        string    `gorm:"column:id;size:64;primaryKey"`
+	TenantID  string    `gorm:"column:tenant_id;size:64;not null;default:'';index"`
+	When      string    `gorm:"column:when;type:text;not null"`
+	EmitJSON  string    `gorm:"column:emit_json;type:text"`
+	Emit      string    `gorm:"column:emit;type:text"`
+	DriverID  string    `gorm:"column:driver_id;size:64"`
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
+}
+
+type ruleWithDriver struct {
+	ID            string    `gorm:"column:id;size:64;primaryKey"`
+	TenantID      string    `gorm:"column:tenant_id;size:64;not null;default:'';index"`
+	When          string    `gorm:"column:when;type:text;not null"`
+	EmitJSON      string    `gorm:"column:emit_json;type:text"`
+	Emit          string    `gorm:"column:emit;type:text"`
+	DriverID      string    `gorm:"column:driver_id;size:64"`
+	CreatedAt     time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt     time.Time `gorm:"column:updated_at;autoUpdateTime"`
+	DriverName    string    `gorm:"column:driver_name"`
+	DriverConfig  string    `gorm:"column:driver_config_json"`
+	DriverEnabled bool      `gorm:"column:driver_enabled"`
 }
 
 // Open creates a GORM-backed rules store.
@@ -91,17 +106,21 @@ func (s *Store) ListRules(ctx context.Context) ([]storage.RuleRecord, error) {
 	if s == nil || s.db == nil {
 		return nil, errors.New("store is not initialized")
 	}
-	var data []row
-	query := s.tableDB().WithContext(ctx).Order("created_at asc")
+	var data []ruleWithDriver
+	join := "LEFT JOIN githook_drivers ON githook_rules.driver_id = githook_drivers.id AND githook_rules.tenant_id = githook_drivers.tenant_id"
+	query := s.tableDB().WithContext(ctx).
+		Select("githook_rules.*, githook_drivers.name as driver_name, githook_drivers.config_json as driver_config_json, githook_drivers.enabled as driver_enabled").
+		Joins(join).
+		Order("githook_rules.created_at asc")
 	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
+		query = query.Where("githook_rules.tenant_id = ?", tenantID)
 	}
 	if err := query.Find(&data).Error; err != nil {
 		return nil, err
 	}
 	out := make([]storage.RuleRecord, 0, len(data))
 	for _, item := range data {
-		out = append(out, fromRow(item))
+		out = append(out, fromJoinedRow(item))
 	}
 	return out, nil
 }
@@ -111,10 +130,14 @@ func (s *Store) GetRule(ctx context.Context, id string) (*storage.RuleRecord, er
 	if s == nil || s.db == nil {
 		return nil, errors.New("store is not initialized")
 	}
-	var data row
-	query := s.tableDB().WithContext(ctx).Where("id = ?", id)
+	var data ruleWithDriver
+	join := "LEFT JOIN githook_drivers ON githook_rules.driver_id = githook_drivers.id AND githook_rules.tenant_id = githook_drivers.tenant_id"
+	query := s.tableDB().WithContext(ctx).
+		Select("githook_rules.*, githook_drivers.name as driver_name, githook_drivers.config_json as driver_config_json, githook_drivers.enabled as driver_enabled").
+		Joins(join).
+		Where("githook_rules.id = ?", id)
 	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
+		query = query.Where("githook_rules.tenant_id = ?", tenantID)
 	}
 	err := query.Take(&data).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -123,7 +146,7 @@ func (s *Store) GetRule(ctx context.Context, id string) (*storage.RuleRecord, er
 	if err != nil {
 		return nil, err
 	}
-	record := fromRow(data)
+	record := fromJoinedRow(data)
 	return &record, nil
 }
 
@@ -212,18 +235,14 @@ func toRow(record storage.RuleRecord) (row, error) {
 	if err != nil {
 		return row{}, err
 	}
-	driversJSON, err := json.Marshal(record.Drivers)
-	if err != nil {
-		return row{}, err
-	}
 	return row{
-		ID:          record.ID,
-		TenantID:    record.TenantID,
-		When:        record.When,
-		EmitJSON:    string(emitJSON),
-		DriversJSON: string(driversJSON),
-		CreatedAt:   record.CreatedAt,
-		UpdatedAt:   record.UpdatedAt,
+		ID:        record.ID,
+		TenantID:  record.TenantID,
+		When:      record.When,
+		EmitJSON:  string(emitJSON),
+		DriverID:  strings.TrimSpace(record.DriverID),
+		CreatedAt: record.CreatedAt,
+		UpdatedAt: record.UpdatedAt,
 	}, nil
 }
 
@@ -232,16 +251,50 @@ func fromRow(data row) storage.RuleRecord {
 		ID:        data.ID,
 		TenantID:  data.TenantID,
 		When:      data.When,
+		DriverID:  strings.TrimSpace(data.DriverID),
 		CreatedAt: data.CreatedAt,
 		UpdatedAt: data.UpdatedAt,
 	}
-	if data.EmitJSON != "" {
-		_ = json.Unmarshal([]byte(data.EmitJSON), &record.Emit)
-	}
-	if data.DriversJSON != "" {
-		_ = json.Unmarshal([]byte(data.DriversJSON), &record.Drivers)
-	}
+	record.Emit = parseEmit(data.EmitJSON, data.Emit)
 	return record
+}
+
+func fromJoinedRow(data ruleWithDriver) storage.RuleRecord {
+	base := row{
+		ID:        data.ID,
+		TenantID:  data.TenantID,
+		When:      data.When,
+		EmitJSON:  data.EmitJSON,
+		Emit:      data.Emit,
+		DriverID:  data.DriverID,
+		CreatedAt: data.CreatedAt,
+		UpdatedAt: data.UpdatedAt,
+	}
+	record := fromRow(base)
+	record.DriverName = strings.TrimSpace(data.DriverName)
+	record.DriverConfigJSON = strings.TrimSpace(data.DriverConfig)
+	record.DriverEnabled = data.DriverEnabled
+	return record
+}
+
+func parseEmit(jsonSource, legacy string) []string {
+	switch {
+	case jsonSource != "":
+		var emit []string
+		if err := json.Unmarshal([]byte(jsonSource), &emit); err == nil {
+			return emit
+		}
+		trimmed := strings.TrimSpace(jsonSource)
+		if trimmed != "" {
+			return []string{trimmed}
+		}
+	case legacy != "":
+		trimmed := strings.TrimSpace(legacy)
+		if trimmed != "" {
+			return []string{trimmed}
+		}
+	}
+	return nil
 }
 
 func normalizeDriver(value string) string {

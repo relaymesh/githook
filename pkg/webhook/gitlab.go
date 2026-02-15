@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"githook/pkg/core"
+	"githook/pkg/drivers"
 	"githook/pkg/storage"
 
 	"github.com/go-playground/webhooks/v6/gitlab"
@@ -18,14 +20,18 @@ import (
 
 // GitLabHandler handles incoming webhooks from GitLab.
 type GitLabHandler struct {
-	hook        *gitlab.Webhook
-	rules       *core.RuleEngine
-	publisher   core.Publisher
-	logger      *log.Logger
-	maxBody     int64
-	debugEvents bool
-	namespaces  storage.NamespaceStore
-	logs        storage.EventLogStore
+	hook           *gitlab.Webhook
+	rules          *core.RuleEngine
+	publisher      core.Publisher
+	logger         *log.Logger
+	maxBody        int64
+	debugEvents    bool
+	namespaces     storage.NamespaceStore
+	logs           storage.EventLogStore
+	ruleStore      storage.RuleStore
+	driverStore    storage.DriverStore
+	rulesStrict    bool
+	dynamicDrivers *drivers.DynamicPublisherCache
 }
 
 var gitlabEvents = []gitlab.Event{
@@ -45,7 +51,7 @@ var gitlabEvents = []gitlab.Event{
 }
 
 // NewGitLabHandler creates a new GitLabHandler.
-func NewGitLabHandler(secret string, rules *core.RuleEngine, publisher core.Publisher, logger *log.Logger, maxBody int64, debugEvents bool, namespaces storage.NamespaceStore, logs storage.EventLogStore) (*GitLabHandler, error) {
+func NewGitLabHandler(secret string, rules *core.RuleEngine, publisher core.Publisher, logger *log.Logger, maxBody int64, debugEvents bool, namespaces storage.NamespaceStore, logs storage.EventLogStore, ruleStore storage.RuleStore, driverStore storage.DriverStore, rulesStrict bool, dynamicDrivers *drivers.DynamicPublisherCache) (*GitLabHandler, error) {
 	options := make([]gitlab.Option, 0, 1)
 	if secret != "" {
 		options = append(options, gitlab.Options.Secret(secret))
@@ -57,7 +63,20 @@ func NewGitLabHandler(secret string, rules *core.RuleEngine, publisher core.Publ
 	if logger == nil {
 		logger = log.Default()
 	}
-	return &GitLabHandler{hook: hook, rules: rules, publisher: publisher, logger: logger, maxBody: maxBody, debugEvents: debugEvents, namespaces: namespaces, logs: logs}, nil
+	return &GitLabHandler{
+		hook:           hook,
+		rules:          rules,
+		publisher:      publisher,
+		logger:         logger,
+		maxBody:        maxBody,
+		debugEvents:    debugEvents,
+		namespaces:     namespaces,
+		logs:           logs,
+		ruleStore:      ruleStore,
+		driverStore:    driverStore,
+		rulesStrict:    rulesStrict,
+		dynamicDrivers: dynamicDrivers,
+	}, nil
 }
 
 // ServeHTTP handles an incoming HTTP request.
@@ -75,28 +94,37 @@ func (h *GitLabHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body = io.NopCloser(bytes.NewReader(rawBody))
 
+	eventName := r.Header.Get("X-Gitlab-Event")
 	if h.debugEvents {
-		logDebugEvent(logger, "gitlab", r.Header.Get("X-Gitlab-Event"), rawBody)
+		logDebugEvent(logger, "gitlab", eventName, rawBody)
 	}
 
 	payload, err := h.hook.Parse(r, gitlabEvents...)
 	if err != nil {
-		logger.Printf("gitlab parse failed: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		if errors.Is(err, gitlab.ErrEventNotFound) {
+			logger.Printf("gitlab webhook accepted unknown event %s", eventName)
+			payload = nil
+		} else {
+			logger.Printf("gitlab parse failed: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
-
-	eventName := r.Header.Get("X-Gitlab-Event")
 	switch payload.(type) {
 	default:
 		rawObject, data := rawObjectAndFlatten(rawBody)
 		rawObject = annotatePayload(rawObject, data, "gitlab", eventName)
 		namespaceID, namespaceName := gitlabNamespaceInfo(rawBody)
-		stateID, installationID := h.resolveStateID(r.Context(), rawBody)
+		tenantID, stateID, installationID := h.resolveStateID(r.Context(), rawBody)
 		if installationID == "" {
 			logger.Printf("gitlab webhook ignored: missing installation_id")
 			w.WriteHeader(http.StatusOK)
 			return
+		}
+		ctx := r.Context()
+		if tenantID != "" {
+			ctx = storage.WithTenant(ctx, tenantID)
+			r = r.WithContext(ctx)
 		}
 		h.emit(r, logger, core.Event{
 			Provider:       "gitlab",
@@ -115,9 +143,9 @@ func (h *GitLabHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *GitLabHandler) resolveStateID(ctx context.Context, raw []byte) (string, string) {
+func (h *GitLabHandler) resolveStateID(ctx context.Context, raw []byte) (string, string, string) {
 	if h.namespaces == nil {
-		return "", ""
+		return "", "", ""
 	}
 	var payload struct {
 		Project struct {
@@ -126,20 +154,20 @@ func (h *GitLabHandler) resolveStateID(ctx context.Context, raw []byte) (string,
 		ProjectID int64 `json:"project_id"`
 	}
 	if err := json.Unmarshal(raw, &payload); err != nil {
-		return "", ""
+		return "", "", ""
 	}
 	repoID := payload.Project.ID
 	if repoID == 0 {
 		repoID = payload.ProjectID
 	}
 	if repoID == 0 {
-		return "", ""
+		return "", "", ""
 	}
 	record, err := h.namespaces.GetNamespace(ctx, "gitlab", strconv.FormatInt(repoID, 10), "")
 	if err != nil || record == nil {
-		return "", ""
+		return "", "", ""
 	}
-	return record.AccountID, record.InstallationID
+	return record.TenantID, record.AccountID, record.InstallationID
 }
 
 func (h *GitLabHandler) emit(r *http.Request, logger *log.Logger, event core.Event) {
@@ -147,29 +175,36 @@ func (h *GitLabHandler) emit(r *http.Request, logger *log.Logger, event core.Eve
 		logger.Printf("event received provider=%s name=%s installation_id=%s namespace=%s request_id=%s", event.Provider, event.Name, event.InstallationID, event.NamespaceName, event.RequestID)
 	}
 	tenantID := storage.TenantFromContext(r.Context())
-	rules := h.rules.EvaluateRulesForTenantWithLogger(event, tenantID, logger)
+	matches := h.matchRules(r.Context(), event, tenantID, logger)
 	if h.logs == nil {
-		matches := ruleMatchesFromRules(rules)
-		logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromMatches(matches))
-		for _, match := range matches {
-			if err := h.publisher.PublishForDrivers(r.Context(), match.Topic, event, match.Drivers); err != nil {
-				logger.Printf("publish %s failed: %v", match.Topic, err)
-			}
-		}
+		matchRules := ruleMatchesFromRules(matches)
+		logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromMatches(matchRules))
+		publishMatchesWithFallback(r.Context(), event, matchRules, nil, h.dynamicDrivers, h.publisher, logger, nil, h.driverStore)
 		return
 	}
 
-	matchLogs := logEventMatches(r.Context(), h.logs, logger, event, rules)
+	matchLogs := logEventMatches(r.Context(), h.logs, logger, event, matches)
 	logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromLogRecords(matchLogs))
-	for _, record := range matchLogs {
-		event.LogID = record.ID
-		if err := h.publisher.PublishForDrivers(r.Context(), record.Topic, event, record.Drivers); err != nil {
-			logger.Printf("publish %s failed: %v", record.Topic, err)
-			if err := h.logs.UpdateEventLogStatus(r.Context(), record.ID, eventLogStatusFailed, err.Error()); err != nil {
-				logger.Printf("event log update failed: %v", err)
-			}
+	matchRules := ruleMatchesFromRules(matches)
+	statusUpdater := func(recordID, status, message string) {
+		if recordID == "" {
+			return
+		}
+		if err := h.logs.UpdateEventLogStatus(r.Context(), recordID, status, message); err != nil {
+			logger.Printf("event log update failed: %v", err)
 		}
 	}
+	publishMatchesWithFallback(r.Context(), event, matchRules, matchLogs, h.dynamicDrivers, h.publisher, logger, statusUpdater, h.driverStore)
+}
+
+func (h *GitLabHandler) matchRules(ctx context.Context, event core.Event, tenantID string, logger *log.Logger) []core.MatchedRule {
+	if h.ruleStore != nil {
+		return matchRulesFromStore(ctx, event, tenantID, h.ruleStore, h.driverStore, h.rulesStrict, logger)
+	}
+	if h.rules == nil {
+		return nil
+	}
+	return h.rules.EvaluateRulesForTenantWithLogger(event, tenantID, logger)
 }
 
 func gitlabNamespaceInfo(raw []byte) (string, string) {

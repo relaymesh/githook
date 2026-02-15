@@ -11,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/validate"
 
+	"githook/pkg/auth"
 	cloudv1 "githook/pkg/gen/cloud/v1"
 	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
 )
@@ -19,6 +20,8 @@ import (
 type EventLogsClient struct {
 	BaseURL    string
 	HTTPClient *http.Client
+	APIKey     string
+	OAuth2     *auth.OAuth2Config
 }
 
 // UpdateStatus updates the status for a single event log entry.
@@ -51,9 +54,7 @@ func (c *EventLogsClient) UpdateStatus(ctx context.Context, logID, status, error
 		Status:       status,
 		ErrorMessage: strings.TrimSpace(errorMessage),
 	})
-	if token, err := oauth2Token(ctx); err == nil && token != "" {
-		req.Header().Set("Authorization", "Bearer "+token)
-	}
+	setAuthHeaders(ctx, req.Header(), c.APIKey, c.OAuth2)
 	if tenantID := TenantIDFromContext(ctx); tenantID != "" {
 		req.Header().Set("X-Tenant-ID", tenantID)
 	}

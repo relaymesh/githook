@@ -1,6 +1,12 @@
 package worker
 
-import "github.com/ThreeDotsLabs/watermill/message"
+import (
+	"strings"
+
+	"github.com/ThreeDotsLabs/watermill/message"
+
+	"githook/pkg/auth"
+)
 
 // Option is a function that configures a Worker.
 type Option func(*Worker)
@@ -79,5 +85,34 @@ func WithClientProvider(provider ClientProvider) Option {
 func WithListener(listener Listener) Option {
 	return func(w *Worker) {
 		w.listeners = append(w.listeners, listener)
+	}
+}
+
+// WithEndpoint sets the API endpoint for driver/rules lookups.
+func WithEndpoint(endpoint string) Option {
+	return func(w *Worker) {
+		w.endpoint = strings.TrimSpace(endpoint)
+	}
+}
+
+// WithAPIKey sets the API key used for API calls.
+func WithAPIKey(key string) Option {
+	return func(w *Worker) {
+		w.apiKey = strings.TrimSpace(key)
+	}
+}
+
+// WithOAuth2Config sets OAuth2 client credentials for API calls.
+func WithOAuth2Config(cfg auth.OAuth2Config) Option {
+	return func(w *Worker) {
+		copyCfg := cfg
+		w.oauth2Config = &copyCfg
+	}
+}
+
+// WithDefaultDriver configures a fallback driver ID when topics omit a driver.
+func WithDefaultDriver(driver string) Option {
+	return func(w *Worker) {
+		w.defaultDriverID = strings.TrimSpace(driver)
 	}
 }

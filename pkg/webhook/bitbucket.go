@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"githook/pkg/core"
+	"githook/pkg/drivers"
 	"githook/pkg/storage"
 
 	"github.com/go-playground/webhooks/v6/bitbucket"
@@ -18,14 +19,18 @@ import (
 
 // BitbucketHandler handles incoming webhooks from Bitbucket.
 type BitbucketHandler struct {
-	hook        *bitbucket.Webhook
-	rules       *core.RuleEngine
-	publisher   core.Publisher
-	logger      *log.Logger
-	maxBody     int64
-	debugEvents bool
-	namespaces  storage.NamespaceStore
-	logs        storage.EventLogStore
+	hook           *bitbucket.Webhook
+	rules          *core.RuleEngine
+	publisher      core.Publisher
+	logger         *log.Logger
+	maxBody        int64
+	debugEvents    bool
+	namespaces     storage.NamespaceStore
+	logs           storage.EventLogStore
+	ruleStore      storage.RuleStore
+	driverStore    storage.DriverStore
+	rulesStrict    bool
+	dynamicDrivers *drivers.DynamicPublisherCache
 }
 
 var bitbucketEvents = []bitbucket.Event{
@@ -50,7 +55,7 @@ var bitbucketEvents = []bitbucket.Event{
 }
 
 // NewBitbucketHandler creates a new BitbucketHandler.
-func NewBitbucketHandler(secret string, rules *core.RuleEngine, publisher core.Publisher, logger *log.Logger, maxBody int64, debugEvents bool, namespaces storage.NamespaceStore, logs storage.EventLogStore) (*BitbucketHandler, error) {
+func NewBitbucketHandler(secret string, rules *core.RuleEngine, publisher core.Publisher, logger *log.Logger, maxBody int64, debugEvents bool, namespaces storage.NamespaceStore, logs storage.EventLogStore, ruleStore storage.RuleStore, driverStore storage.DriverStore, rulesStrict bool, dynamicDrivers *drivers.DynamicPublisherCache) (*BitbucketHandler, error) {
 	options := make([]bitbucket.Option, 0, 1)
 	if secret != "" {
 		options = append(options, bitbucket.Options.UUID(secret))
@@ -62,7 +67,20 @@ func NewBitbucketHandler(secret string, rules *core.RuleEngine, publisher core.P
 	if logger == nil {
 		logger = log.Default()
 	}
-	return &BitbucketHandler{hook: hook, rules: rules, publisher: publisher, logger: logger, maxBody: maxBody, debugEvents: debugEvents, namespaces: namespaces, logs: logs}, nil
+	return &BitbucketHandler{
+		hook:           hook,
+		rules:          rules,
+		publisher:      publisher,
+		logger:         logger,
+		maxBody:        maxBody,
+		debugEvents:    debugEvents,
+		namespaces:     namespaces,
+		logs:           logs,
+		ruleStore:      ruleStore,
+		driverStore:    driverStore,
+		rulesStrict:    rulesStrict,
+		dynamicDrivers: dynamicDrivers,
+	}, nil
 }
 
 // ServeHTTP handles an incoming HTTP request.
@@ -80,36 +98,46 @@ func (h *BitbucketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body = io.NopCloser(bytes.NewReader(rawBody))
 
+	eventName := r.Header.Get("X-Event-Key")
 	if h.debugEvents {
-		logDebugEvent(logger, "bitbucket", r.Header.Get("X-Event-Key"), rawBody)
+		logDebugEvent(logger, "bitbucket", eventName, rawBody)
 	}
 
 	payload, err := h.hook.Parse(r, bitbucketEvents...)
 	if err != nil {
-		if errors.Is(err, bitbucket.ErrMissingHookUUIDHeader) {
-			logger.Printf("bitbucket parse warning: %v; skipping UUID verification", err)
-			r.Body = io.NopCloser(bytes.NewReader(rawBody))
-			unverified, fallbackErr := bitbucket.New()
-			if fallbackErr == nil {
-				payload, err = unverified.Parse(r, bitbucketEvents...)
-			} else {
-				err = fallbackErr
+		if errors.Is(err, bitbucket.ErrEventNotFound) {
+			logger.Printf("bitbucket webhook accepted unknown event %s", eventName)
+			payload = nil
+		} else {
+			if errors.Is(err, bitbucket.ErrMissingHookUUIDHeader) {
+				logger.Printf("bitbucket parse warning: %v; skipping UUID verification", err)
+				r.Body = io.NopCloser(bytes.NewReader(rawBody))
+				unverified, fallbackErr := bitbucket.New()
+				if fallbackErr == nil {
+					payload, err = unverified.Parse(r, bitbucketEvents...)
+				} else {
+					err = fallbackErr
+				}
 			}
-		}
-		if err != nil {
-			logger.Printf("bitbucket parse failed: %v", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
+			if err != nil {
+				logger.Printf("bitbucket parse failed: %v", err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 		}
 	}
 
-	eventName := r.Header.Get("X-Event-Key")
 	switch payload.(type) {
 	default:
 		rawObject, data := rawObjectAndFlatten(rawBody)
 		rawObject = annotatePayload(rawObject, data, "bitbucket", eventName)
 		namespaceID, namespaceName := bitbucketNamespaceInfo(rawBody)
-		stateID, installationID := h.resolveStateID(r.Context(), rawBody)
+		tenantID, stateID, installationID := h.resolveStateID(r.Context(), rawBody)
+		ctx := r.Context()
+		if tenantID != "" {
+			ctx = storage.WithTenant(ctx, tenantID)
+			r = r.WithContext(ctx)
+		}
 		if installationID == "" {
 			logger.Printf("bitbucket webhook ignored: missing installation_id")
 			w.WriteHeader(http.StatusOK)
@@ -132,9 +160,9 @@ func (h *BitbucketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *BitbucketHandler) resolveStateID(ctx context.Context, raw []byte) (string, string) {
+func (h *BitbucketHandler) resolveStateID(ctx context.Context, raw []byte) (string, string, string) {
 	if h.namespaces == nil {
-		return "", ""
+		return "", "", ""
 	}
 	var payload struct {
 		Repository struct {
@@ -142,17 +170,27 @@ func (h *BitbucketHandler) resolveStateID(ctx context.Context, raw []byte) (stri
 		} `json:"repository"`
 	}
 	if err := json.Unmarshal(raw, &payload); err != nil {
-		return "", ""
+		return "", "", ""
 	}
 	repoID := strings.TrimSpace(payload.Repository.UUID)
 	if repoID == "" {
-		return "", ""
+		return "", "", ""
 	}
 	record, err := h.namespaces.GetNamespace(ctx, "bitbucket", repoID, "")
 	if err != nil || record == nil {
-		return "", ""
+		return "", "", ""
 	}
-	return record.AccountID, record.InstallationID
+	return record.TenantID, record.AccountID, record.InstallationID
+}
+
+func (h *BitbucketHandler) matchRules(ctx context.Context, event core.Event, tenantID string, logger *log.Logger) []core.MatchedRule {
+	if h.ruleStore != nil {
+		return matchRulesFromStore(ctx, event, tenantID, h.ruleStore, h.driverStore, h.rulesStrict, logger)
+	}
+	if h.rules == nil {
+		return nil
+	}
+	return h.rules.EvaluateRulesForTenantWithLogger(event, tenantID, logger)
 }
 
 func (h *BitbucketHandler) emit(r *http.Request, logger *log.Logger, event core.Event) {
@@ -160,29 +198,26 @@ func (h *BitbucketHandler) emit(r *http.Request, logger *log.Logger, event core.
 		logger.Printf("event received provider=%s name=%s installation_id=%s namespace=%s request_id=%s", event.Provider, event.Name, event.InstallationID, event.NamespaceName, event.RequestID)
 	}
 	tenantID := storage.TenantFromContext(r.Context())
-	rules := h.rules.EvaluateRulesForTenantWithLogger(event, tenantID, logger)
+	matches := h.matchRules(r.Context(), event, tenantID, logger)
 	if h.logs == nil {
-		matches := ruleMatchesFromRules(rules)
-		logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromMatches(matches))
-		for _, match := range matches {
-			if err := h.publisher.PublishForDrivers(r.Context(), match.Topic, event, match.Drivers); err != nil {
-				logger.Printf("publish %s failed: %v", match.Topic, err)
-			}
-		}
+		matchRules := ruleMatchesFromRules(matches)
+		logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromMatches(matchRules))
+		publishMatchesWithFallback(r.Context(), event, matchRules, nil, h.dynamicDrivers, h.publisher, logger, nil, h.driverStore)
 		return
 	}
 
-	matchLogs := logEventMatches(r.Context(), h.logs, logger, event, rules)
+	matchLogs := logEventMatches(r.Context(), h.logs, logger, event, matches)
 	logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromLogRecords(matchLogs))
-	for _, record := range matchLogs {
-		event.LogID = record.ID
-		if err := h.publisher.PublishForDrivers(r.Context(), record.Topic, event, record.Drivers); err != nil {
-			logger.Printf("publish %s failed: %v", record.Topic, err)
-			if err := h.logs.UpdateEventLogStatus(r.Context(), record.ID, eventLogStatusFailed, err.Error()); err != nil {
-				logger.Printf("event log update failed: %v", err)
-			}
+	matchRules := ruleMatchesFromRules(matches)
+	statusUpdater := func(recordID, status, message string) {
+		if recordID == "" {
+			return
+		}
+		if err := h.logs.UpdateEventLogStatus(r.Context(), recordID, status, message); err != nil {
+			logger.Printf("event log update failed: %v", err)
 		}
 	}
+	publishMatchesWithFallback(r.Context(), event, matchRules, matchLogs, h.dynamicDrivers, h.publisher, logger, statusUpdater, h.driverStore)
 }
 
 func bitbucketNamespaceInfo(raw []byte) (string, string) {

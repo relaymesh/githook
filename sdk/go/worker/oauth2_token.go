@@ -25,6 +25,10 @@ func oauth2Token(ctx context.Context) (string, error) {
 	if err != nil || !ok {
 		return "", err
 	}
+	return oauth2TokenFromConfig(ctx, cfg)
+}
+
+func oauth2TokenFromConfig(ctx context.Context, cfg auth.OAuth2Config) (string, error) {
 	if !cfg.Enabled {
 		return "", nil
 	}
@@ -84,4 +88,11 @@ func tokenCachePath() string {
 		return ""
 	}
 	return path
+}
+
+func configPathFromEnv() string {
+	if path := strings.TrimSpace(os.Getenv("GITHOOK_CONFIG_PATH")); path != "" {
+		return path
+	}
+	return strings.TrimSpace(os.Getenv("GITHOOK_CONFIG"))
 }

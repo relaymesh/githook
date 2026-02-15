@@ -43,3 +43,13 @@ func (c *TenantCache[T]) Range(fn func(string, T)) {
 		fn(key, val)
 	}
 }
+
+func (c *TenantCache[T]) Keys() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	keys := make([]string, 0, len(c.items))
+	for key := range c.items {
+		keys = append(keys, key)
+	}
+	return keys
+}

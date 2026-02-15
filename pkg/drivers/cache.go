@@ -86,10 +86,16 @@ func (c *Cache) PublisherFor(ctx context.Context) (core.Publisher, error) {
 		return nil, errors.New("driver store not configured")
 	}
 	if err := c.Refresh(ctx); err != nil {
+		if c.logger != nil {
+			c.logger.Printf("driver cache refresh failed tenant=%s err=%v", tenantKey, err)
+		}
 		return nil, err
 	}
 	pub, _ := c.pub.Get(tenantKey)
 	if pub == nil {
+		if c.logger != nil {
+			c.logger.Printf("driver cache missing publisher tenant=%s drivers=%v", tenantKey, c.pub.Keys())
+		}
 		return nil, errors.New("no publisher available")
 	}
 	return pub, nil

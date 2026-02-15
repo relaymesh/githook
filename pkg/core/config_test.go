@@ -63,7 +63,7 @@ func TestLoadConfigInvalidRule(t *testing.T) {
 func TestLoadConfigTrimsFields(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")
-	content := "rules:\n  - when: \"  action == \\\"opened\\\"  \"\n    emit: \"  pr.opened.ready  \"\n"
+	content := "rules:\n  - when: \"  action == \\\"opened\\\"  \"\n    emit: \"  pr.opened.ready  \"\n    driver_id: amqp\n"
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatalf("write rules config: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestLoadConfigTrimsFields(t *testing.T) {
 func TestLoadConfigEmitList(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")
-	content := "rules:\n  - when: action == \"opened\"\n    emit: [\"pr.opened\", \"audit.pr.opened\"]\n"
+	content := "rules:\n  - when: action == \"opened\"\n    emit: [\"pr.opened\", \"audit.pr.opened\"]\n    driver_id: http\n"
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatalf("write rules config: %v", err)
 	}

@@ -55,11 +55,15 @@ func newRulesMatchCmd() *cobra.Command {
 				return err
 			}
 			ruleMessages := make([]*cloudv1.Rule, 0, len(rulesCfg.Rules))
-			for _, rule := range rulesCfg.Rules {
+			for idx, rule := range rulesCfg.Rules {
+				ruleDriverID := strings.TrimSpace(rule.DriverID)
+				if ruleDriverID == "" {
+					return fmt.Errorf("rule %d is missing driver_id", idx)
+				}
 				ruleMessages = append(ruleMessages, &cloudv1.Rule{
-					When:    rule.When,
-					Emit:    rule.Emit.Values(),
-					Drivers: append([]string(nil), rule.Drivers...),
+					When:     rule.When,
+					Emit:     rule.Emit.Values(),
+					DriverId: ruleDriverID,
 				})
 			}
 			opts, err := connectClientOptions()
@@ -143,7 +147,7 @@ func newRulesGetCmd() *cobra.Command {
 func newRulesCreateCmd() *cobra.Command {
 	var when string
 	var emits []string
-	var drivers []string
+	var driverID string
 	cmd := &cobra.Command{
 		Use:     "create",
 		Short:   "Create a new rule",
@@ -152,6 +156,9 @@ func newRulesCreateCmd() *cobra.Command {
 			if when == "" || len(emits) == 0 {
 				return fmt.Errorf("when and at least one emit are required")
 			}
+			if strings.TrimSpace(driverID) == "" {
+				return fmt.Errorf("driver-id is required")
+			}
 			opts, err := connectClientOptions()
 			if err != nil {
 				return err
@@ -159,9 +166,9 @@ func newRulesCreateCmd() *cobra.Command {
 			client := cloudv1connect.NewRulesServiceClient(http.DefaultClient, apiBaseURL, opts...)
 			req := connect.NewRequest(&cloudv1.CreateRuleRequest{
 				Rule: &cloudv1.Rule{
-					When:    strings.TrimSpace(when),
-					Emit:    emits,
-					Drivers: drivers,
+					When:     strings.TrimSpace(when),
+					Emit:     emits,
+					DriverId: strings.TrimSpace(driverID),
 				},
 			})
 			resp, err := client.CreateRule(context.Background(), req)
@@ -173,7 +180,7 @@ func newRulesCreateCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&when, "when", "", "Rule expression")
 	cmd.Flags().StringSliceVar(&emits, "emit", nil, "Emit topic (repeatable)")
-	cmd.Flags().StringSliceVar(&drivers, "driver", nil, "Driver override (repeatable)")
+	cmd.Flags().StringVar(&driverID, "driver-id", "", "Driver ID override")
 	return cmd
 }
 
@@ -181,7 +188,7 @@ func newRulesUpdateCmd() *cobra.Command {
 	var id string
 	var when string
 	var emits []string
-	var drivers []string
+	var driverID string
 	cmd := &cobra.Command{
 		Use:     "update",
 		Short:   "Update an existing rule",
@@ -189,6 +196,9 @@ func newRulesUpdateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if id == "" || when == "" || len(emits) == 0 {
 				return fmt.Errorf("id, when, and at least one emit are required")
+			}
+			if strings.TrimSpace(driverID) == "" {
+				return fmt.Errorf("driver-id is required")
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -198,9 +208,9 @@ func newRulesUpdateCmd() *cobra.Command {
 			req := connect.NewRequest(&cloudv1.UpdateRuleRequest{
 				Id: id,
 				Rule: &cloudv1.Rule{
-					When:    strings.TrimSpace(when),
-					Emit:    emits,
-					Drivers: drivers,
+					When:     strings.TrimSpace(when),
+					Emit:     emits,
+					DriverId: strings.TrimSpace(driverID),
 				},
 			})
 			resp, err := client.UpdateRule(context.Background(), req)
@@ -213,7 +223,7 @@ func newRulesUpdateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&id, "id", "", "Rule ID")
 	cmd.Flags().StringVar(&when, "when", "", "Rule expression")
 	cmd.Flags().StringSliceVar(&emits, "emit", nil, "Emit topic (repeatable)")
-	cmd.Flags().StringSliceVar(&drivers, "driver", nil, "Driver override (repeatable)")
+	cmd.Flags().StringVar(&driverID, "driver-id", "", "Driver ID override")
 	return cmd
 }
 

@@ -206,10 +206,7 @@ message Rule {
     (buf.validate.field).repeated.min_items = 1,
     (buf.validate.field).repeated.items.string.min_len = 1
   ];
-  repeated string drivers = 3 [
-    (buf.validate.field).repeated.min_items = 1,
-    (buf.validate.field).repeated.items.string.min_len = 1
-  ];
+  string driver_id = 4 [(buf.validate.field).string.min_len = 1];
 }
 
 message RuleRecord {
@@ -219,9 +216,9 @@ message RuleRecord {
     (buf.validate.field).repeated.min_items = 1,
     (buf.validate.field).repeated.items.string.min_len = 1
   ];
-  repeated string drivers = 4 [(buf.validate.field).repeated.items.string.min_len = 1];
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
+  string driver_id = 7 [(buf.validate.field).string.min_len = 1];
 }
 
 message DriverRecord {
@@ -348,7 +345,7 @@ message EventPayload {
 message RuleMatch {
   string when = 1;
   repeated string emit = 2;
-  repeated string drivers = 3;
+  string driver_id = 4;
 }
 
 message MatchRulesRequest {

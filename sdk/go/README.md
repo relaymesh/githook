@@ -8,18 +8,16 @@ import "githook/sdk/go/worker"
 
 This is the core Go worker SDK. Use it when you want a stable SDK boundary that can mirror future language SDKs.
 
-## Minimal example
+## Minimal example (API-driven drivers)
 
 ```go
-subCfg, _ := worker.LoadSubscriberConfig("config.yaml")
-sub, _ := worker.BuildSubscriber(subCfg)
-
 wk := worker.New(
-  worker.WithSubscriber(sub),
+  worker.WithEndpoint(os.Getenv("GITHOOK_ENDPOINT")),
+  worker.WithAPIKey(os.Getenv("GITHOOK_API_KEY")),
   worker.WithTopics("pr.opened.ready", "pr.merged"),
 )
 
-wk.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) error {
+wk.HandleTopic("pr.opened.ready", "driver-id", func(ctx context.Context, evt *worker.Event) error {
   // custom logic
   return nil
 })
@@ -30,12 +28,12 @@ _ = wk.Run(context.Background())
 ## Driver config from API
 
 When you want the worker to use driver configuration stored on the server (Drivers API),
-use the driver name only:
+pass the driver ID for each topic:
 
 ```go
-wk, _ := worker.NewFromConfigPathWithDriverFromAPI("config.yaml", "riverqueue")
+wk, _ := worker.NewFromConfigPathWithDriverFromAPI("config.yaml", "")
 
-wk.HandleTopic("pr.opened.ready", func(ctx context.Context, evt *worker.Event) error {
+wk.HandleTopic("pr.opened.ready", "driver-id", func(ctx context.Context, evt *worker.Event) error {
   return nil
 })
 

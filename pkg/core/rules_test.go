@@ -60,7 +60,7 @@ func TestRuleEngineEvaluateMissingField(t *testing.T) {
 func TestRuleEngineWithDrivers(t *testing.T) {
 	cfg := RulesConfig{
 		Rules: []Rule{
-			{When: "action == \"opened\"", Emit: EmitList{"pr.opened"}, Drivers: []string{"amqp", "http"}},
+			{When: "action == \"opened\"", Emit: EmitList{"pr.opened"}, DriverID: "amqp"},
 		},
 	}
 
@@ -79,8 +79,8 @@ func TestRuleEngineWithDrivers(t *testing.T) {
 	if len(matches) != 1 {
 		t.Fatalf("expected 1 match, got %d", len(matches))
 	}
-	if len(matches[0].Drivers) != 2 {
-		t.Fatalf("expected 2 drivers, got %d", len(matches[0].Drivers))
+	if matches[0].DriverID != "amqp" {
+		t.Fatalf("expected driver id amqp, got %q", matches[0].DriverID)
 	}
 }
 

@@ -193,9 +193,9 @@ func (s *RulesService) MatchRules(
 			continue
 		}
 		rules = append(rules, core.Rule{
-			When:    rule.GetWhen(),
-			Emit:    core.EmitList(rule.GetEmit()),
-			Drivers: rule.GetDrivers(),
+			When:     rule.GetWhen(),
+			Emit:     core.EmitList(rule.GetEmit()),
+			DriverID: strings.TrimSpace(rule.GetDriverId()),
 		})
 	}
 
@@ -359,22 +359,22 @@ func (s *RulesService) CreateRule(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
 	incoming := req.Msg.GetRule()
-	when, emit, driverIDs, err := parseRuleInput(incoming)
+	when, emit, driverID, err := parseRuleInput(incoming)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	driverNames, err := s.resolveDriverNames(ctx, driverIDs)
+	driverName, err := s.resolveDriverName(ctx, driverID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	normalized, err := normalizeCoreRule(when, emit, driverNames)
+	normalized, err := normalizeCoreRule(when, emit, driverName, driverID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	record, err := s.Store.CreateRule(ctx, storage.RuleRecord{
-		When:    normalized.When,
-		Emit:    normalized.Emit.Values(),
-		Drivers: driverIDs,
+		When:     normalized.When,
+		Emit:     normalized.Emit.Values(),
+		DriverID: driverID,
 	})
 	if err != nil {
 		logError(s.Logger, "create rule failed", err)
@@ -406,15 +406,15 @@ func (s *RulesService) UpdateRule(
 	if existing == nil {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("rule not found"))
 	}
-	when, emit, driverIDs, err := parseRuleInput(incoming)
+	when, emit, driverID, err := parseRuleInput(incoming)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	driverNames, err := s.resolveDriverNames(ctx, driverIDs)
+	driverName, err := s.resolveDriverName(ctx, driverID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	normalized, err := normalizeCoreRule(when, emit, driverNames)
+	normalized, err := normalizeCoreRule(when, emit, driverName, driverID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -422,7 +422,7 @@ func (s *RulesService) UpdateRule(
 		ID:        id,
 		When:      normalized.When,
 		Emit:      normalized.Emit.Values(),
-		Drivers:   driverIDs,
+		DriverID:  driverID,
 		CreatedAt: existing.CreatedAt,
 	})
 	if err != nil {
@@ -1232,9 +1232,9 @@ func toProtoRuleMatches(matches []core.MatchedRule) []*cloudv1.RuleMatch {
 	out := make([]*cloudv1.RuleMatch, 0, len(matches))
 	for _, match := range matches {
 		out = append(out, &cloudv1.RuleMatch{
-			When:    match.When,
-			Emit:    append([]string(nil), match.Emit...),
-			Drivers: append([]string(nil), match.Drivers...),
+			When:     match.When,
+			Emit:     append([]string(nil), match.Emit...),
+			DriverId: match.DriverID,
 		})
 	}
 	return out
@@ -1317,7 +1317,7 @@ func toProtoRuleRecord(record storage.RuleRecord) *cloudv1.RuleRecord {
 		Id:        record.ID,
 		When:      record.When,
 		Emit:      append([]string(nil), record.Emit...),
-		Drivers:   append([]string(nil), record.Drivers...),
+		DriverId:  record.DriverID,
 		CreatedAt: toProtoTimestamp(record.CreatedAt),
 		UpdatedAt: toProtoTimestamp(record.UpdatedAt),
 	}
@@ -1409,27 +1409,25 @@ func toProtoEventLogBreakdowns(breakdowns []storage.EventLogBreakdown) []*cloudv
 	return out
 }
 
-func parseRuleInput(rule *cloudv1.Rule) (string, []string, []string, error) {
+func parseRuleInput(rule *cloudv1.Rule) (string, []string, string, error) {
 	if rule == nil {
-		return "", nil, nil, errors.New("missing rule")
+		return "", nil, "", errors.New("missing rule")
 	}
 	when := strings.TrimSpace(rule.GetWhen())
 	emit := rule.GetEmit()
-	driverIDs := make([]string, 0, len(rule.GetDrivers()))
-	for _, value := range rule.GetDrivers() {
-		trimmed := strings.TrimSpace(value)
-		if trimmed != "" {
-			driverIDs = append(driverIDs, trimmed)
-		}
+	driverID := strings.TrimSpace(rule.GetDriverId())
+	if driverID == "" {
+		return "", nil, "", errors.New("driver_id is required")
 	}
-	return when, emit, driverIDs, nil
+	return when, emit, driverID, nil
 }
 
-func normalizeCoreRule(when string, emit []string, drivers []string) (core.Rule, error) {
+func normalizeCoreRule(when string, emit []string, driverName string, driverID string) (core.Rule, error) {
 	coreRule := core.Rule{
-		When:    strings.TrimSpace(when),
-		Emit:    core.EmitList(emit),
-		Drivers: drivers,
+		When:       strings.TrimSpace(when),
+		Emit:       core.EmitList(emit),
+		DriverID:   driverID,
+		DriverName: driverName,
 	}
 	normalized, err := core.NormalizeRules([]core.Rule{coreRule})
 	if err != nil {
@@ -1441,41 +1439,29 @@ func normalizeCoreRule(when string, emit []string, drivers []string) (core.Rule,
 	return normalized[0], nil
 }
 
-func (s *RulesService) resolveDriverNames(ctx context.Context, driverIDs []string) ([]string, error) {
-	if len(driverIDs) == 0 {
-		return nil, errors.New("drivers are required")
+func (s *RulesService) resolveDriverName(ctx context.Context, driverID string) (string, error) {
+	if driverID == "" {
+		return "", errors.New("driver_id is required")
 	}
 	if s.DriverStore == nil {
-		return nil, errors.New("driver store not configured")
+		return "", errors.New("driver store not configured")
 	}
-	seen := make(map[string]struct{}, len(driverIDs))
-	drivers := make([]string, 0, len(driverIDs))
-	for _, id := range driverIDs {
-		trimmed := strings.TrimSpace(id)
-		if trimmed == "" {
-			continue
-		}
-		if _, ok := seen[trimmed]; ok {
-			continue
-		}
-		seen[trimmed] = struct{}{}
-		record, err := s.DriverStore.GetDriverByID(ctx, trimmed)
-		if err != nil {
-			return nil, err
-		}
-		if record == nil {
-			return nil, fmt.Errorf("driver not found: %s", trimmed)
-		}
-		name := strings.TrimSpace(record.Name)
-		if name == "" {
-			return nil, fmt.Errorf("driver %s has empty name", trimmed)
-		}
-		drivers = append(drivers, name)
+	trimmed := strings.TrimSpace(driverID)
+	if trimmed == "" {
+		return "", errors.New("driver_id is required")
 	}
-	if len(drivers) == 0 {
-		return nil, errors.New("drivers are required")
+	record, err := s.DriverStore.GetDriverByID(ctx, trimmed)
+	if err != nil {
+		return "", err
 	}
-	return drivers, nil
+	if record == nil {
+		return "", fmt.Errorf("driver not found: %s", trimmed)
+	}
+	name := strings.TrimSpace(record.Name)
+	if name == "" {
+		return "", fmt.Errorf("driver %s has empty name", trimmed)
+	}
+	return name, nil
 }
 
 func (s *RulesService) refreshEngine(ctx context.Context) error {
@@ -1490,16 +1476,17 @@ func (s *RulesService) refreshEngine(ctx context.Context) error {
 	if tenantID != "" {
 		loaded := make([]core.Rule, 0, len(records))
 		for _, record := range records {
-			drivers, err := s.resolveDriverNames(ctx, record.Drivers)
+			driverName, err := s.resolveDriverName(ctx, record.DriverID)
 			if err != nil {
 				logError(s.Logger, "rule driver resolve failed", err)
 				continue
 			}
 			loaded = append(loaded, core.Rule{
-				ID:      record.ID,
-				When:    record.When,
-				Emit:    core.EmitList(record.Emit),
-				Drivers: drivers,
+				ID:         record.ID,
+				When:       record.When,
+				Emit:       core.EmitList(record.Emit),
+				DriverID:   record.DriverID,
+				DriverName: driverName,
 			})
 		}
 		normalized, err := core.NormalizeRules(loaded)
@@ -1517,16 +1504,17 @@ func (s *RulesService) refreshEngine(ctx context.Context) error {
 	grouped := make(map[string][]core.Rule)
 	for _, record := range records {
 		tenantCtx := storage.WithTenant(ctx, record.TenantID)
-		drivers, err := s.resolveDriverNames(tenantCtx, record.Drivers)
+		driverName, err := s.resolveDriverName(tenantCtx, record.DriverID)
 		if err != nil {
 			logError(s.Logger, "rule driver resolve failed", err)
 			continue
 		}
 		grouped[record.TenantID] = append(grouped[record.TenantID], core.Rule{
-			ID:      record.ID,
-			When:    record.When,
-			Emit:    core.EmitList(record.Emit),
-			Drivers: drivers,
+			ID:         record.ID,
+			When:       record.When,
+			Emit:       core.EmitList(record.Emit),
+			DriverID:   record.DriverID,
+			DriverName: driverName,
 		})
 	}
 	for id, rules := range grouped {

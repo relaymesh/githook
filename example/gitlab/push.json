@@ -1,8 +1,0 @@
-{
-  "object_kind": "push",
-  "event_type": "push",
-  "ref": "refs/heads/main",
-  "before": "0000000000000000000000000000000000000000",
-  "after": "1111111111111111111111111111111111111111",
-  "project": {"path_with_namespace": "org/repo"}
-}

@@ -1291,7 +1291,7 @@ type Rule struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	When          string                 `protobuf:"bytes,1,opt,name=when,proto3" json:"when,omitempty"`
 	Emit          []string               `protobuf:"bytes,2,rep,name=emit,proto3" json:"emit,omitempty"`
-	Drivers       []string               `protobuf:"bytes,3,rep,name=drivers,proto3" json:"drivers,omitempty"`
+	DriverId      string                 `protobuf:"bytes,4,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1340,11 +1340,11 @@ func (x *Rule) GetEmit() []string {
 	return nil
 }
 
-func (x *Rule) GetDrivers() []string {
+func (x *Rule) GetDriverId() string {
 	if x != nil {
-		return x.Drivers
+		return x.DriverId
 	}
-	return nil
+	return ""
 }
 
 type RuleRecord struct {
@@ -1352,9 +1352,9 @@ type RuleRecord struct {
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	When          string                 `protobuf:"bytes,2,opt,name=when,proto3" json:"when,omitempty"`
 	Emit          []string               `protobuf:"bytes,3,rep,name=emit,proto3" json:"emit,omitempty"`
-	Drivers       []string               `protobuf:"bytes,4,rep,name=drivers,proto3" json:"drivers,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	DriverId      string                 `protobuf:"bytes,7,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1410,13 +1410,6 @@ func (x *RuleRecord) GetEmit() []string {
 	return nil
 }
 
-func (x *RuleRecord) GetDrivers() []string {
-	if x != nil {
-		return x.Drivers
-	}
-	return nil
-}
-
 func (x *RuleRecord) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
@@ -1429,6 +1422,13 @@ func (x *RuleRecord) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *RuleRecord) GetDriverId() string {
+	if x != nil {
+		return x.DriverId
+	}
+	return ""
 }
 
 type DriverRecord struct {
@@ -2172,7 +2172,7 @@ type RuleMatch struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	When          string                 `protobuf:"bytes,1,opt,name=when,proto3" json:"when,omitempty"`
 	Emit          []string               `protobuf:"bytes,2,rep,name=emit,proto3" json:"emit,omitempty"`
-	Drivers       []string               `protobuf:"bytes,3,rep,name=drivers,proto3" json:"drivers,omitempty"`
+	DriverId      string                 `protobuf:"bytes,4,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2221,11 +2221,11 @@ func (x *RuleMatch) GetEmit() []string {
 	return nil
 }
 
-func (x *RuleMatch) GetDrivers() []string {
+func (x *RuleMatch) GetDriverId() string {
 	if x != nil {
-		return x.Drivers
+		return x.DriverId
 	}
-	return nil
+	return ""
 }
 
 type MatchRulesRequest struct {
@@ -4473,21 +4473,21 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\x1bGetNamespaceWebhookResponse\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\"7\n" +
 	"\x1bSetNamespaceWebhookResponse\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\"q\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\"m\n" +
 	"\x04Rule\x12\x1b\n" +
 	"\x04when\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04when\x12\"\n" +
-	"\x04emit\x18\x02 \x03(\tB\x0e\xbaH\v\x92\x01\b\b\x01\"\x04r\x02\x10\x01R\x04emit\x12(\n" +
-	"\adrivers\x18\x03 \x03(\tB\x0e\xbaH\v\x92\x01\b\b\x01\"\x04r\x02\x10\x01R\adrivers\"\x84\x02\n" +
+	"\x04emit\x18\x02 \x03(\tB\x0e\xbaH\v\x92\x01\b\b\x01\"\x04r\x02\x10\x01R\x04emit\x12$\n" +
+	"\tdriver_id\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bdriverId\"\x82\x02\n" +
 	"\n" +
 	"RuleRecord\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x1b\n" +
 	"\x04when\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04when\x12\"\n" +
-	"\x04emit\x18\x03 \x03(\tB\x0e\xbaH\v\x92\x01\b\b\x01\"\x04r\x02\x10\x01R\x04emit\x12&\n" +
-	"\adrivers\x18\x04 \x03(\tB\f\xbaH\t\x92\x01\x06\"\x04r\x02\x10\x01R\adrivers\x129\n" +
+	"\x04emit\x18\x03 \x03(\tB\x0e\xbaH\v\x92\x01\b\b\x01\"\x04r\x02\x10\x01R\x04emit\x129\n" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xec\x01\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12$\n" +
+	"\tdriver_id\x18\a \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bdriverId\"\xec\x01\n" +
 	"\fDriverRecord\x12\x1b\n" +
 	"\x04name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12\x1f\n" +
 	"\vconfig_json\x18\x02 \x01(\tR\n" +
@@ -4565,11 +4565,11 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\fEventPayload\x12>\n" +
 	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x1b\n" +
 	"\x04name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12!\n" +
-	"\apayload\x18\x03 \x01(\fB\a\xbaH\x04z\x02\x10\x01R\apayload\"M\n" +
+	"\apayload\x18\x03 \x01(\fB\a\xbaH\x04z\x02\x10\x01R\apayload\"P\n" +
 	"\tRuleMatch\x12\x12\n" +
 	"\x04when\x18\x01 \x01(\tR\x04when\x12\x12\n" +
-	"\x04emit\x18\x02 \x03(\tR\x04emit\x12\x18\n" +
-	"\adrivers\x18\x03 \x03(\tR\adrivers\"\x91\x01\n" +
+	"\x04emit\x18\x02 \x03(\tR\x04emit\x12\x1b\n" +
+	"\tdriver_id\x18\x04 \x01(\tR\bdriverId\"\x91\x01\n" +
 	"\x11MatchRulesRequest\x124\n" +
 	"\x05event\x18\x01 \x01(\v2\x16.cloud.v1.EventPayloadB\x06\xbaH\x03\xc8\x01\x01R\x05event\x12.\n" +
 	"\x05rules\x18\x02 \x03(\v2\x0e.cloud.v1.RuleB\b\xbaH\x05\x92\x01\x02\b\x01R\x05rules\x12\x16\n" +

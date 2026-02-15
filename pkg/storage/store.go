@@ -43,13 +43,16 @@ type NamespaceRecord struct {
 
 // RuleRecord stores rule metadata.
 type RuleRecord struct {
-	TenantID  string
-	ID        string
-	When      string
-	Emit      []string
-	Drivers   []string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	TenantID         string
+	ID               string
+	When             string
+	Emit             []string
+	DriverID         string
+	DriverName       string
+	DriverConfigJSON string
+	DriverEnabled    bool
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 // DriverRecord stores Watermill driver config (per-tenant).

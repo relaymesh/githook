@@ -5,10 +5,12 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"log"
 	"net/http"
@@ -17,6 +19,7 @@ import (
 	"time"
 
 	"githook/pkg/core"
+	"githook/pkg/drivers"
 	"githook/pkg/storage"
 
 	ghprovider "githook/pkg/providers/github"
@@ -26,17 +29,21 @@ import (
 
 // GitHubHandler handles incoming webhooks from GitHub.
 type GitHubHandler struct {
-	hook         *github.Webhook
-	fallbackHook *github.Webhook
-	secret       string
-	rules        *core.RuleEngine
-	publisher    core.Publisher
-	logger       *log.Logger
-	maxBody      int64
-	debugEvents  bool
-	store        storage.Store
-	namespaces   storage.NamespaceStore
-	logs         storage.EventLogStore
+	hook           *github.Webhook
+	fallbackHook   *github.Webhook
+	secret         string
+	rules          *core.RuleEngine
+	publisher      core.Publisher
+	logger         *log.Logger
+	maxBody        int64
+	debugEvents    bool
+	store          storage.Store
+	namespaces     storage.NamespaceStore
+	logs           storage.EventLogStore
+	ruleStore      storage.RuleStore
+	driverStore    storage.DriverStore
+	rulesStrict    bool
+	dynamicDrivers *drivers.DynamicPublisherCache
 }
 
 var githubEvents = []github.Event{
@@ -89,7 +96,7 @@ var githubEvents = []github.Event{
 }
 
 // NewGitHubHandler creates a new GitHubHandler.
-func NewGitHubHandler(secret string, rules *core.RuleEngine, publisher core.Publisher, logger *log.Logger, maxBody int64, debugEvents bool, store storage.Store, namespaces storage.NamespaceStore, logs storage.EventLogStore) (*GitHubHandler, error) {
+func NewGitHubHandler(secret string, rules *core.RuleEngine, publisher core.Publisher, logger *log.Logger, maxBody int64, debugEvents bool, store storage.Store, namespaces storage.NamespaceStore, logs storage.EventLogStore, ruleStore storage.RuleStore, driverStore storage.DriverStore, rulesStrict bool, dynamicDrivers *drivers.DynamicPublisherCache) (*GitHubHandler, error) {
 	hook, err := github.New(github.Options.Secret(secret))
 	if err != nil {
 		return nil, err
@@ -103,17 +110,21 @@ func NewGitHubHandler(secret string, rules *core.RuleEngine, publisher core.Publ
 		logger = log.Default()
 	}
 	return &GitHubHandler{
-		hook:         hook,
-		fallbackHook: fallbackHook,
-		secret:       secret,
-		rules:        rules,
-		publisher:    publisher,
-		logger:       logger,
-		maxBody:      maxBody,
-		debugEvents:  debugEvents,
-		store:        store,
-		namespaces:   namespaces,
-		logs:         logs,
+		hook:           hook,
+		fallbackHook:   fallbackHook,
+		secret:         secret,
+		rules:          rules,
+		publisher:      publisher,
+		logger:         logger,
+		maxBody:        maxBody,
+		debugEvents:    debugEvents,
+		store:          store,
+		namespaces:     namespaces,
+		logs:           logs,
+		ruleStore:      ruleStore,
+		driverStore:    driverStore,
+		rulesStrict:    rulesStrict,
+		dynamicDrivers: dynamicDrivers,
 	}, nil
 }
 
@@ -138,18 +149,31 @@ func (h *GitHubHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	payload, err := h.hook.Parse(r, githubEvents...)
 	if err != nil {
-		if errors.Is(err, github.ErrMissingHubSignatureHeader) && h.secret != "" {
-			sha1Header := r.Header.Get("X-Hub-Signature")
-			if sha1Header != "" && verifyGitHubSHA1(h.secret, rawBody, sha1Header) {
-				logger.Printf("github parse warning: %v; accepted sha1 signature", err)
-				r.Body = io.NopCloser(bytes.NewReader(rawBody))
-				payload, err = h.fallbackHook.Parse(r, githubEvents...)
+		if errors.Is(err, github.ErrEventNotFound) {
+			if h.secret != "" {
+				if !verifyGitHubSignature(h.secret, rawBody, r.Header.Get("X-Hub-Signature-256")) &&
+					!verifyGitHubSignature(h.secret, rawBody, r.Header.Get("X-Hub-Signature")) {
+					logger.Printf("github webhook signature invalid for unknown event %s", r.Header.Get("X-GitHub-Event"))
+					w.WriteHeader(http.StatusUnauthorized)
+					return
+				}
 			}
-		}
-		if err != nil {
-			logger.Printf("github parse failed: %v", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
+			logger.Printf("github webhook accepted unknown event %s", r.Header.Get("X-GitHub-Event"))
+			payload = nil
+		} else {
+			if errors.Is(err, github.ErrMissingHubSignatureHeader) && h.secret != "" {
+				sha1Header := r.Header.Get("X-Hub-Signature")
+				if sha1Header != "" && verifyGitHubSHA1(h.secret, rawBody, sha1Header) {
+					logger.Printf("github parse warning: %v; accepted sha1 signature", err)
+					r.Body = io.NopCloser(bytes.NewReader(rawBody))
+					payload, err = h.fallbackHook.Parse(r, githubEvents...)
+				}
+			}
+			if err != nil {
+				logger.Printf("github parse failed: %v", err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 		}
 	}
 
@@ -350,6 +374,16 @@ func (h *GitHubHandler) applyInstallSystemRules(ctx context.Context, eventName s
 	return nil
 }
 
+func (h *GitHubHandler) matchRules(ctx context.Context, event core.Event, tenantID string, logger *log.Logger) []core.MatchedRule {
+	if h.ruleStore != nil {
+		return matchRulesFromStore(ctx, event, tenantID, h.ruleStore, h.driverStore, h.rulesStrict, logger)
+	}
+	if h.rules == nil {
+		return nil
+	}
+	return h.rules.EvaluateRulesForTenantWithLogger(event, tenantID, logger)
+}
+
 type githubRepo struct {
 	ID            string
 	Owner         string
@@ -465,40 +499,54 @@ func (h *GitHubHandler) emit(r *http.Request, logger *log.Logger, event core.Eve
 		logger.Printf("event received provider=%s name=%s installation_id=%s namespace=%s request_id=%s", event.Provider, event.Name, event.InstallationID, event.NamespaceName, event.RequestID)
 	}
 	tenantID := storage.TenantFromContext(r.Context())
-	rules := h.rules.EvaluateRulesForTenantWithLogger(event, tenantID, logger)
+	matches := h.matchRules(r.Context(), event, tenantID, logger)
 	if h.logs == nil {
-		matches := ruleMatchesFromRules(rules)
-		logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromMatches(matches))
-		for _, match := range matches {
-			if err := h.publisher.PublishForDrivers(r.Context(), match.Topic, event, match.Drivers); err != nil {
-				logger.Printf("publish %s failed: %v", match.Topic, err)
-			}
-		}
+		matchRules := ruleMatchesFromRules(matches)
+		logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromMatches(matchRules))
+		publishMatchesWithFallback(r.Context(), event, matchRules, nil, h.dynamicDrivers, h.publisher, logger, nil, h.driverStore)
 		return
 	}
 
-	matchLogs := logEventMatches(r.Context(), h.logs, logger, event, rules)
+	matchLogs := logEventMatches(r.Context(), h.logs, logger, event, matches)
 	logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromLogRecords(matchLogs))
-	for _, record := range matchLogs {
-		event.LogID = record.ID
-		if err := h.publisher.PublishForDrivers(r.Context(), record.Topic, event, record.Drivers); err != nil {
-			logger.Printf("publish %s failed: %v", record.Topic, err)
-			if err := h.logs.UpdateEventLogStatus(r.Context(), record.ID, eventLogStatusFailed, err.Error()); err != nil {
-				logger.Printf("event log update failed: %v", err)
-			}
+	matchRules := ruleMatchesFromRules(matches)
+	statusUpdater := func(recordID, status, message string) {
+		if recordID == "" {
+			return
+		}
+		if err := h.logs.UpdateEventLogStatus(r.Context(), recordID, status, message); err != nil {
+			logger.Printf("event log update failed: %v", err)
 		}
 	}
+	publishMatchesWithFallback(r.Context(), event, matchRules, matchLogs, h.dynamicDrivers, h.publisher, logger, statusUpdater, h.driverStore)
 }
 
 func verifyGitHubSHA1(secret string, body []byte, signature string) bool {
+	return verifyGitHubSignature(secret, body, signature)
+}
+
+func verifyGitHubSignature(secret string, body []byte, signature string) bool {
 	if secret == "" || len(body) == 0 || signature == "" {
 		return false
 	}
-	signature = strings.TrimPrefix(signature, "sha1=")
-	mac := hmac.New(sha1.New, []byte(secret))
+	value := strings.TrimSpace(signature)
+	var hashFunc func() hash.Hash
+	var prefix string
+	switch {
+	case strings.HasPrefix(value, "sha256="):
+		prefix = "sha256="
+		hashFunc = sha256.New
+	case strings.HasPrefix(value, "sha1="):
+		prefix = "sha1="
+		hashFunc = sha1.New
+	default:
+		return false
+	}
+	value = strings.TrimPrefix(value, prefix)
+	mac := hmac.New(hashFunc, []byte(secret))
 	_, _ = mac.Write(body)
 	expected := hex.EncodeToString(mac.Sum(nil))
-	return hmac.Equal([]byte(signature), []byte(expected))
+	return hmac.Equal([]byte(value), []byte(expected))
 }
 
 func githubNamespaceInfo(raw []byte) (string, string) {
