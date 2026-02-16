@@ -52,126 +52,6 @@ func RunConfig(configPath string) error {
 	return Run(ctx, config, logger)
 }
 
-func bootstrapRules(ctx context.Context, store storage.RuleStore, driverStore storage.DriverStore, engine *core.RuleEngine, configRules []core.Rule, strict bool, logger *log.Logger) error {
-	if store == nil {
-		return nil
-	}
-	tenantID := storage.TenantFromContext(ctx)
-	records, err := store.ListRules(ctx)
-	if err != nil {
-		return err
-	}
-	if len(configRules) > 0 {
-		normalizedConfig, err := core.NormalizeRules(configRules)
-		if err != nil {
-			return err
-		}
-		existing := make(map[string]struct{}, len(records))
-		for _, record := range records {
-			existing[ruleKey(record.When, record.Emit, record.DriverID)] = struct{}{}
-		}
-		added := 0
-		for _, rule := range normalizedConfig {
-			driverID := strings.TrimSpace(rule.DriverID)
-			if driverID == "" {
-				continue
-			}
-			key := ruleKey(rule.When, rule.Emit.Values(), driverID)
-			if _, ok := existing[key]; ok {
-				continue
-			}
-			_, err := store.CreateRule(ctx, storage.RuleRecord{
-				When:     rule.When,
-				Emit:     rule.Emit.Values(),
-				DriverID: driverID,
-			})
-			if err != nil {
-				return err
-			}
-			added++
-		}
-		if logger != nil && added > 0 {
-			logger.Printf("rules bootstrap: inserted %d rules from config", added)
-		}
-		records, err = store.ListRules(ctx)
-		if err != nil {
-			return err
-		}
-	}
-	if len(records) == 0 {
-		return nil
-	}
-	if tenantID != "" {
-		loaded := make([]core.Rule, 0, len(records))
-		for _, record := range records {
-			driverName, err := resolveRuleDriverName(ctx, driverStore, record.DriverID)
-			if err != nil {
-				if logger != nil {
-					logger.Printf("rule driver resolve failed: %v", err)
-				}
-				continue
-			}
-			loaded = append(loaded, core.Rule{
-				ID:         record.ID,
-				When:       record.When,
-				Emit:       core.EmitList(record.Emit),
-				DriverID:   record.DriverID,
-				DriverName: driverName,
-			})
-		}
-		normalized, err := core.NormalizeRules(loaded)
-		if err != nil {
-			return err
-		}
-		if logger != nil {
-			logger.Printf("rules bootstrap: loaded %d rules from storage", len(normalized))
-		}
-		return engine.Update(core.RulesConfig{
-			Rules:    normalized,
-			Strict:   strict,
-			TenantID: tenantID,
-			Logger:   logger,
-		})
-	}
-
-	grouped := make(map[string][]core.Rule)
-	for _, record := range records {
-		tenantCtx := storage.WithTenant(ctx, record.TenantID)
-		driverName, err := resolveRuleDriverName(tenantCtx, driverStore, record.DriverID)
-		if err != nil {
-			if logger != nil {
-				logger.Printf("rule driver resolve failed: %v", err)
-			}
-			continue
-		}
-		grouped[record.TenantID] = append(grouped[record.TenantID], core.Rule{
-			ID:         record.ID,
-			When:       record.When,
-			Emit:       core.EmitList(record.Emit),
-			DriverID:   record.DriverID,
-			DriverName: driverName,
-		})
-	}
-	for id, rules := range grouped {
-		normalized, err := core.NormalizeRules(rules)
-		if err != nil {
-			return err
-		}
-		if logger != nil {
-			logger.Printf("rules bootstrap: loaded %d rules from storage tenant=%s", len(normalized), id)
-		}
-		if err := engine.Update(core.RulesConfig{
-			Rules:    normalized,
-			Strict:   strict,
-			TenantID: id,
-			Logger:   logger,
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func resolveRuleDriverName(ctx context.Context, store storage.DriverStore, driverID string) (string, error) {
 	if driverID == "" {
 		return "", errors.New("driver_id is required")
@@ -195,71 +75,6 @@ func resolveRuleDriverName(ctx context.Context, store storage.DriverStore, drive
 		return "", fmt.Errorf("driver %s has empty name", trimmed)
 	}
 	return name, nil
-}
-
-func bootstrapDrivers(ctx context.Context, store storage.DriverStore, cfg core.WatermillConfig, logger *log.Logger) error {
-	if store == nil {
-		return nil
-	}
-	records, err := driverspkg.RecordsFromConfig(cfg)
-	if err != nil {
-		return err
-	}
-	if len(records) == 0 {
-		return nil
-	}
-	upserted := 0
-	for _, record := range records {
-		if _, err := store.UpsertDriver(ctx, record); err != nil {
-			return err
-		}
-		upserted++
-	}
-	if logger != nil && upserted > 0 {
-		logger.Printf("drivers bootstrap: upserted %d drivers from config", upserted)
-	}
-	return nil
-}
-
-func bootstrapProviderInstances(
-	ctx context.Context,
-	store *providerinstancestore.Store,
-	installStore *installations.Store,
-	namespaceStore *namespaces.Store,
-	cfg auth.Config,
-	logger *log.Logger,
-) error {
-	if store == nil {
-		return nil
-	}
-	records, err := providerinstance.RecordsFromConfig(cfg)
-	if err != nil {
-		return err
-	}
-	if len(records) == 0 {
-		return nil
-	}
-	upserted := 0
-	for _, record := range records {
-		hash, legacyKey, err := resolveProviderInstanceHash(ctx, store, record)
-		if err != nil {
-			return err
-		}
-		if legacyKey != "" {
-			if err := migrateProviderInstanceKey(ctx, store, installStore, namespaceStore, record.Provider, legacyKey, hash, record.TenantID); err != nil {
-				return err
-			}
-		}
-		record.Key = hash
-		if _, err := store.UpsertProviderInstance(ctx, record); err != nil {
-			return err
-		}
-		upserted++
-	}
-	if logger != nil && upserted > 0 {
-		logger.Printf("provider instances bootstrap: upserted %d instances from config", upserted)
-	}
-	return nil
 }
 
 func resolveProviderInstanceHash(
@@ -503,19 +318,10 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		logger.Printf("storage disabled (missing storage.driver or storage.dsn)")
 	}
 
-	if ruleStore != nil {
-		if err := bootstrapRules(ctx, ruleStore, driverStore, ruleEngine, config.Rules, config.RulesStrict, logger); err != nil {
-			return fmt.Errorf("rules bootstrap: %w", err)
-		}
-	}
-
 	dynamicDriverCache = driverspkg.NewDynamicPublisherCache()
 	defer dynamicDriverCache.Close()
 
 	if driverStore != nil {
-		if err := bootstrapDrivers(ctx, driverStore, config.Watermill, logger); err != nil {
-			return fmt.Errorf("drivers bootstrap: %w", err)
-		}
 		driverCache = driverspkg.NewCache(driverStore, config.Watermill, logger)
 		if err := driverCache.Refresh(ctx); err != nil {
 			return fmt.Errorf("drivers cache: %w", err)
@@ -523,9 +329,6 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 	}
 
 	if instanceStore != nil {
-		if err := bootstrapProviderInstances(ctx, instanceStore, installStore, namespaceStore, config.Providers, logger); err != nil {
-			return fmt.Errorf("provider instances bootstrap: %w", err)
-		}
 		instanceCache = providerinstance.NewCache(instanceStore, logger)
 		if err := instanceCache.Refresh(ctx); err != nil {
 			return fmt.Errorf("provider instances cache: %w", err)

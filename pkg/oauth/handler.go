@@ -714,7 +714,7 @@ func exchangeGitHubToken(ctx context.Context, cfg auth.ProviderConfig, code, red
 	}
 	token.ExpiresAt = expiryFromToken(token)
 	if token.AccessToken == "" {
-		return oauthToken{}, errors.New("github access token missing")
+		return oauthToken{}, fmt.Errorf("github access token missing response=%+v", token)
 	}
 	return token, nil
 }

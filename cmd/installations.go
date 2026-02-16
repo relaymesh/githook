@@ -44,6 +44,7 @@ func newInstallationsListCmd() *cobra.Command {
 				StateId:  stateID,
 				Provider: strings.TrimSpace(provider),
 			})
+			applyTenantHeader(req)
 			resp, err := client.ListInstallations(context.Background(), req)
 			if err != nil {
 				return err
@@ -76,6 +77,7 @@ func newInstallationsGetCmd() *cobra.Command {
 				Provider:       provider,
 				InstallationId: installationID,
 			})
+			applyTenantHeader(req)
 			resp, err := client.GetInstallationByID(context.Background(), req)
 			if err != nil {
 				return err

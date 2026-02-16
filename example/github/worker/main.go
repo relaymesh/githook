@@ -14,8 +14,9 @@ import (
 func main() {
 	endpoint := flag.String("endpoint", os.Getenv("GITHOOK_ENDPOINT"), "Githook API endpoint (required)")
 	apiKey := flag.String("api-key", os.Getenv("GITHOOK_API_KEY"), "Githook API key (required)")
-	topic := flag.String("topic", "github.commit.created", "topic to subscribe")
-	driverID := flag.String("driver-id", "", "Driver ID to use for the topic (required)")
+	topic := flag.String("topic", "github.dev", "topic to subscribe")
+	driverID := flag.String("driver-id", "default:amqp", "Driver ID to use for the topic (required)")
+	tenantID := flag.String("tenant-id", os.Getenv("GITHOOK_TENANT_ID"), "Tenant ID for driver lookups (default \"default\")")
 	flag.Parse()
 
 	if *endpoint == "" {
@@ -34,6 +35,7 @@ func main() {
 	wk := worker.New(
 		worker.WithEndpoint(*endpoint),
 		worker.WithAPIKey(*apiKey),
+		worker.WithTenant(*tenantID),
 		worker.WithDefaultDriver(*driverID),
 	)
 

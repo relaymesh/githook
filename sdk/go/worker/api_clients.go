@@ -9,7 +9,10 @@ import (
 	"githook/pkg/auth"
 )
 
-const defaultAPIEndpoint = "http://localhost:8080"
+const (
+	defaultAPIEndpoint = "http://localhost:8080"
+	defaultTenantID    = "default"
+)
 
 func resolveEndpoint(explicit string) string {
 	if trimmed := strings.TrimSpace(explicit); trimmed != "" {
@@ -33,6 +36,10 @@ func envEndpoint(key string) string {
 
 func apiKeyFromEnv() string {
 	return strings.TrimSpace(os.Getenv("GITHOOK_API_KEY"))
+}
+
+func envTenantID() string {
+	return strings.TrimSpace(os.Getenv("GITHOOK_TENANT_ID"))
 }
 
 func (w *Worker) apiBaseURL() string {
@@ -112,4 +119,16 @@ func (w *Worker) installationsClient() *InstallationsClient {
 		APIKey:  w.apiKeyValue(),
 		OAuth2:  w.oauth2Value(),
 	}
+}
+
+func (w *Worker) tenantIDValue() string {
+	if w != nil {
+		if trimmed := strings.TrimSpace(w.tenantID); trimmed != "" {
+			return trimmed
+		}
+	}
+	if env := envTenantID(); env != "" {
+		return env
+	}
+	return defaultTenantID
 }

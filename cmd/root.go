@@ -20,6 +20,7 @@ func NewRootCmd() *cobra.Command {
 	}
 	root.PersistentFlags().StringVar(&apiBaseURL, "endpoint", apiBaseURL, "Connect RPC endpoint base URL")
 	root.PersistentFlags().StringVar(&configPath, "config", configPath, "Path to config file")
+	root.PersistentFlags().StringVar(&tenantID, "tenant-id", tenantID, "Tenant ID to scope API requests (default \"default\")")
 	root.AddCommand(newServeCmd())
 	root.AddCommand(newInstallationsCmd())
 	root.AddCommand(newNamespacesCmd())
@@ -33,3 +34,5 @@ func NewRootCmd() *cobra.Command {
 
 var apiBaseURL string
 var configPath string
+
+// tenantID is set via the persistent --tenant-id flag defined in cmd/tenant.go.

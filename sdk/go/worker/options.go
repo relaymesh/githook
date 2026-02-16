@@ -116,3 +116,10 @@ func WithDefaultDriver(driver string) Option {
 		w.defaultDriverID = strings.TrimSpace(driver)
 	}
 }
+
+// WithTenant sets the tenant ID used by the worker when calling control-plane APIs.
+func WithTenant(tenant string) Option {
+	return func(w *Worker) {
+		w.tenantID = strings.TrimSpace(tenant)
+	}
+}

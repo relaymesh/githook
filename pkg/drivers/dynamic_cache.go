@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -34,6 +35,7 @@ func (d *DynamicPublisherCache) Publisher(driverName, configJSON string) (core.P
 		return pub, nil
 	}
 	cfg, err := ConfigFromDriver(driverName, configJSON)
+	fmt.Println(cfg)
 	if err != nil {
 		return nil, err
 	}

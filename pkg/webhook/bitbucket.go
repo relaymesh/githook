@@ -202,7 +202,7 @@ func (h *BitbucketHandler) emit(r *http.Request, logger *log.Logger, event core.
 	if h.logs == nil {
 		matchRules := ruleMatchesFromRules(matches)
 		logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromMatches(matchRules))
-		publishMatchesWithFallback(r.Context(), event, matchRules, nil, h.dynamicDrivers, h.publisher, logger, nil, h.driverStore)
+		publishMatchesWithFallback(r.Context(), event, matchRules, nil, h.dynamicDrivers, h.publisher, logger, nil)
 		return
 	}
 
@@ -217,7 +217,7 @@ func (h *BitbucketHandler) emit(r *http.Request, logger *log.Logger, event core.
 			logger.Printf("event log update failed: %v", err)
 		}
 	}
-	publishMatchesWithFallback(r.Context(), event, matchRules, matchLogs, h.dynamicDrivers, h.publisher, logger, statusUpdater, h.driverStore)
+	publishMatchesWithFallback(r.Context(), event, matchRules, matchLogs, h.dynamicDrivers, h.publisher, logger, statusUpdater)
 }
 
 func bitbucketNamespaceInfo(raw []byte) (string, string) {

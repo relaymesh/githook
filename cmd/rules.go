@@ -80,6 +80,7 @@ func newRulesMatchCmd() *cobra.Command {
 				Rules:  ruleMessages,
 				Strict: strict,
 			})
+			applyTenantHeader(req)
 			resp, err := client.MatchRules(context.Background(), req)
 			if err != nil {
 				return err
@@ -107,6 +108,7 @@ func newRulesListCmd() *cobra.Command {
 			}
 			client := cloudv1connect.NewRulesServiceClient(http.DefaultClient, apiBaseURL, opts...)
 			req := connect.NewRequest(&cloudv1.ListRulesRequest{})
+			applyTenantHeader(req)
 			resp, err := client.ListRules(context.Background(), req)
 			if err != nil {
 				return err
@@ -133,6 +135,7 @@ func newRulesGetCmd() *cobra.Command {
 			}
 			client := cloudv1connect.NewRulesServiceClient(http.DefaultClient, apiBaseURL, opts...)
 			req := connect.NewRequest(&cloudv1.GetRuleRequest{Id: id})
+			applyTenantHeader(req)
 			resp, err := client.GetRule(context.Background(), req)
 			if err != nil {
 				return err
@@ -171,6 +174,7 @@ func newRulesCreateCmd() *cobra.Command {
 					DriverId: strings.TrimSpace(driverID),
 				},
 			})
+			applyTenantHeader(req)
 			resp, err := client.CreateRule(context.Background(), req)
 			if err != nil {
 				return err
@@ -213,6 +217,7 @@ func newRulesUpdateCmd() *cobra.Command {
 					DriverId: strings.TrimSpace(driverID),
 				},
 			})
+			applyTenantHeader(req)
 			resp, err := client.UpdateRule(context.Background(), req)
 			if err != nil {
 				return err
@@ -243,6 +248,7 @@ func newRulesDeleteCmd() *cobra.Command {
 			}
 			client := cloudv1connect.NewRulesServiceClient(http.DefaultClient, apiBaseURL, opts...)
 			req := connect.NewRequest(&cloudv1.DeleteRuleRequest{Id: id})
+			applyTenantHeader(req)
 			resp, err := client.DeleteRule(context.Background(), req)
 			if err != nil {
 				return err

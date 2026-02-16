@@ -87,6 +87,7 @@ func NewPublisher(cfg WatermillConfig) (Publisher, error) {
 	if len(pubs) == 0 {
 		return nil, errors.New("no publishers available")
 	}
+	fmt.Println(pubs)
 	return &publisherMux{
 		publishers:     pubs,
 		defaultDrivers: builtDrivers,
@@ -98,7 +99,7 @@ func NewPublisher(cfg WatermillConfig) (Publisher, error) {
 
 func newSinglePublisher(cfg WatermillConfig, driver string) (Publisher, error) {
 	logger := watermill.NewStdLogger(false, false)
-
+	fmt.Println(strings.ToLower(driver), "=========>>")
 	switch strings.ToLower(driver) {
 	case "http":
 		targetMode := strings.ToLower(cfg.HTTP.Mode)
@@ -157,6 +158,7 @@ func newSinglePublisher(cfg WatermillConfig, driver string) (Publisher, error) {
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println(amqpCfg)
 		pub, err := wmamaqp.NewPublisher(amqpCfg, logger)
 		if err != nil {
 			return nil, err

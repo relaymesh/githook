@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"githook/pkg/auth"
 	cloudv1 "githook/pkg/gen/cloud/v1"
 	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
+	"githook/pkg/storage"
 )
 
 // DriverRecord mirrors the server driver response.
@@ -52,9 +54,10 @@ func (c *DriversClient) ListDrivers(ctx context.Context) ([]DriverRecord, error)
 	)
 	req := connect.NewRequest(&cloudv1.ListDriversRequest{})
 	setAuthHeaders(ctx, req.Header(), c.APIKey, c.OAuth2)
-	if tenantID := TenantIDFromContext(ctx); tenantID != "" {
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
 		req.Header().Set("X-Tenant-ID", tenantID)
 	}
+	log.Printf("drivers api request ListDrivers base=%s tenant=%s body=%#v", base, storage.TenantFromContext(ctx), req.Msg)
 	resp, err := connectClient.ListDrivers(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("drivers api failed: %w", err)
@@ -101,9 +104,10 @@ func (c *DriversClient) GetDriver(ctx context.Context, name string) (*DriverReco
 		Name: name,
 	})
 	setAuthHeaders(ctx, req.Header(), c.APIKey, c.OAuth2)
-	if tenantID := TenantIDFromContext(ctx); tenantID != "" {
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
 		req.Header().Set("X-Tenant-ID", tenantID)
 	}
+	log.Printf("drivers api request GetDriver base=%s tenant=%s name=%s body=%#v", base, storage.TenantFromContext(ctx), name, req.Msg)
 	resp, err := connectClient.GetDriver(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("drivers api failed: %w", err)

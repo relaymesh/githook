@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"githook/pkg/auth"
+	"githook/pkg/storage"
 )
 
 // Worker is a message-processing worker that subscribes to topics, decodes
@@ -34,6 +36,7 @@ type Worker struct {
 	apiKey          string
 	oauth2Config    *auth.OAuth2Config
 	defaultDriverID string
+	tenantID        string
 }
 
 // New creates a new Worker with the given options.
@@ -48,10 +51,12 @@ func New(opts ...Option) *Worker {
 		typeHandlers:  make(map[string]Handler),
 		allowedTopics: make(map[string]struct{}),
 		driverSubs:    make(map[string]message.Subscriber),
+		tenantID:      envTenantID(),
 	}
 	for _, opt := range opts {
 		opt(w)
 	}
+	log.Printf("worker tenant context=%q", w.tenantIDValue())
 	w.bindClientProvider()
 	return w
 }
@@ -241,7 +246,10 @@ func (w *Worker) buildDriverSubscribers(ctx context.Context, driverTopics map[st
 		if _, ok := w.driverSubs[driverID]; ok {
 			continue
 		}
-		record, err := w.driversClient().GetDriverByID(ctx, driverID)
+		tenantID := w.tenantIDValue()
+		log.Printf("worker building driver subscriber driver=%s tenant=%s", driverID, tenantID)
+		tenantCtx := storage.WithTenant(ctx, tenantID)
+		record, err := w.driversClient().GetDriverByID(tenantCtx, driverID)
 		if err != nil {
 			return err
 		}

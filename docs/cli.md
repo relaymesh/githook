@@ -12,6 +12,7 @@ githook serve --config config.yaml
 
 - `--endpoint`: Base URL for Connect RPC calls (overrides `endpoint` in config)
 - `--config`: Path to config file (default: `config.yaml`)
+- `--tenant-id`: Tenant ID to send in `X-Tenant-ID` (default: `default`) when hitting the API
 
 When OAuth2 auth is enabled, the CLI uses `auth.oauth2` from the config to fetch a
 client-credentials token and attaches `Authorization: Bearer <token>` to requests.
@@ -39,7 +40,7 @@ githook init --config worker.yaml --profile worker
 
 ## Installations
 
-Use `--state-id` to filter by account; omit it to list all accounts for a provider.
+Use `--state-id` to filter by account; omit it to list all accounts for a provider. Add `--tenant-id` when you need to scope the CLI to a specific tenant (default: `default`).
 
 ```bash
 githook --endpoint http://localhost:8080 installations list --provider github
@@ -49,7 +50,7 @@ githook --endpoint http://localhost:8080 installations get --provider github --i
 
 ## Namespaces
 
-Use `--state-id` to filter by account; omit it to list or sync all accounts for a provider.
+Use `--state-id` to filter by account; omit it to list or sync all accounts for a provider. Use `--tenant-id` to scope the request to a specific tenant (default: `default`).
 
 ```bash
 githook --endpoint http://localhost:8080 namespaces list --provider github
@@ -73,29 +74,33 @@ githook --endpoint http://localhost:8080 rules update --id <rule-id> --when 'act
 githook --endpoint http://localhost:8080 rules delete --id <rule-id>
 ```
 
+Throw `--tenant-id` on these commands when targeting a different tenant (default `default`).
+
 ## Providers
 
 ```bash
 githook --endpoint http://localhost:8080 providers list
 githook --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>
-githook --endpoint http://localhost:8080 providers set --provider github --config-file github.json
+githook --endpoint http://localhost:8080 --tenant-id acme providers set --provider github --config-file github.yaml
 githook --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>
 ```
 
-When creating a provider instance with `providers set`, the server always generates the instance hash. The response includes the generated hash, which you must pass to `providers get`/`providers delete` and `instance=` query parameters.
+`providers set` reads the provided YAML (or JSON) and stores it as the provider instance configuration. Because the CLI automatically sends `X-Tenant-ID`, you can also override the tenant via `--tenant-id` so the new provider lands in the right workspace. The API generates the instance hash on creation; store it for later use with `providers get`, `providers delete`, and the OAuth onboarding `instance=` query parameter.
 
 ## Drivers
 
 ```bash
 githook --endpoint http://localhost:8080 drivers list
 githook --endpoint http://localhost:8080 drivers get --name amqp
-githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.json
+githook --endpoint http://localhost:8080 --tenant-id acme drivers set --name amqp --config-file amqp.yaml
 githook --endpoint http://localhost:8080 drivers delete --name amqp
 ```
 
+The driver config file can be written in YAML (or JSON) and the CLI converts it to the JSON payload required by the API. `--tenant-id` decides which tenant owns the driver.
+
 ## Rules (curl)
 
-Connect RPC endpoints accept JSON payloads over HTTP.
+Connect RPC endpoints accept JSON payloads over HTTP. Include `X-Tenant-ID` when targeting a specific tenant (default: `default`).
 
 ```bash
 curl -X POST http://localhost:8080/cloud.v1.RulesService/ListRules \

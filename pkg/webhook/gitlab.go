@@ -179,7 +179,7 @@ func (h *GitLabHandler) emit(r *http.Request, logger *log.Logger, event core.Eve
 	if h.logs == nil {
 		matchRules := ruleMatchesFromRules(matches)
 		logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromMatches(matchRules))
-		publishMatchesWithFallback(r.Context(), event, matchRules, nil, h.dynamicDrivers, h.publisher, logger, nil, h.driverStore)
+		publishMatchesWithFallback(r.Context(), event, matchRules, nil, h.dynamicDrivers, h.publisher, logger, nil)
 		return
 	}
 
@@ -194,7 +194,7 @@ func (h *GitLabHandler) emit(r *http.Request, logger *log.Logger, event core.Eve
 			logger.Printf("event log update failed: %v", err)
 		}
 	}
-	publishMatchesWithFallback(r.Context(), event, matchRules, matchLogs, h.dynamicDrivers, h.publisher, logger, statusUpdater, h.driverStore)
+	publishMatchesWithFallback(r.Context(), event, matchRules, matchLogs, h.dynamicDrivers, h.publisher, logger, statusUpdater)
 }
 
 func (h *GitLabHandler) matchRules(ctx context.Context, event core.Event, tenantID string, logger *log.Logger) []core.MatchedRule {

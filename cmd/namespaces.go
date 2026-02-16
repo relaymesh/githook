@@ -50,6 +50,7 @@ func newNamespacesListCmd() *cobra.Command {
 				Repo:     strings.TrimSpace(repo),
 				FullName: strings.TrimSpace(fullName),
 			})
+			applyTenantHeader(req)
 			resp, err := client.ListNamespaces(context.Background(), req)
 			if err != nil {
 				return err
@@ -85,6 +86,7 @@ func newNamespacesSyncCmd() *cobra.Command {
 				StateId:  stateID,
 				Provider: provider,
 			})
+			applyTenantHeader(req)
 			resp, err := client.SyncNamespaces(context.Background(), req)
 			if err != nil {
 				return err
@@ -130,6 +132,7 @@ func newNamespacesWebhookGetCmd() *cobra.Command {
 				Provider: provider,
 				RepoId:   repoID,
 			})
+			applyTenantHeader(req)
 			resp, err := client.GetNamespaceWebhook(context.Background(), req)
 			if err != nil {
 				return err
@@ -167,6 +170,7 @@ func newNamespacesWebhookSetCmd() *cobra.Command {
 				RepoId:   repoID,
 				Enabled:  enabled,
 			})
+			applyTenantHeader(req)
 			resp, err := client.SetNamespaceWebhook(context.Background(), req)
 			if err != nil {
 				return err

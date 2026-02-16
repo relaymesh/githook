@@ -183,12 +183,6 @@ func (s *Store) UpsertDriver(ctx context.Context, record storage.DriverRecord) (
 	record.UpdatedAt = now
 	data := toRow(record)
 	if err := s.tableDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.
-			Where("tenant_id = ?", tenantID).
-			Where("name <> ?", record.Name).
-			Delete(&row{}).Error; err != nil {
-			return err
-		}
 		return tx.
 			Clauses(clause.OnConflict{
 				Columns:   []clause.Column{{Name: "tenant_id"}, {Name: "name"}},
