@@ -902,28 +902,6 @@ go run ./worker/main.go --rule-id RULE_ID --endpoint https://your-domain.com
 ```
 
 Use `subCfg.RuleID` or custom handler wiring when building reusable worker logic, and consult [docs/sdk_clients.md](docs/sdk_clients.md) for advanced SDK helpers (HTTP clients, middleware, API clients, etc.).
-
----
-
-## Examples
-
-Working examples in the `example/` directory:
-
-- **`example/github`** - GitHub webhooks, PR/commit events, GitHub API client
-- **`example/gitlab`** - GitLab merge requests, push events, GitLab API client
-- **`example/bitbucket`** - Bitbucket pull requests, Bitbucket API client
-- **`example/riverqueue`** - River job queue integration (Postgres-based)
-- **`example/realworld`** - Production patterns: multiple workers, error handling, retries
-- **`example/vercel`** - Vercel deployment hooks integration
-- **`example/inprocess`** - Single-binary deployment with GoChannel driver
-
-**Run GitHub example:**
-```bash
-go run ./example/github/worker/main.go --rule-id RULE_ID --endpoint=https://<your-ngrok-url>
-```
-
----
-
 ## Documentation
 
 ## Architecture: Control Plane vs Data Plane
