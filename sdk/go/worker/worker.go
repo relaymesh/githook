@@ -37,6 +37,7 @@ type Worker struct {
 	oauth2Config    *auth.OAuth2Config
 	defaultDriverID string
 	tenantID        string
+	ruleHandlers    map[string]Handler
 }
 
 // New creates a new Worker with the given options.
@@ -52,6 +53,7 @@ func New(opts ...Option) *Worker {
 		allowedTopics: make(map[string]struct{}),
 		driverSubs:    make(map[string]message.Subscriber),
 		tenantID:      envTenantID(),
+		ruleHandlers:  make(map[string]Handler),
 	}
 	for _, opt := range opts {
 		opt(w)
@@ -96,6 +98,18 @@ func (w *Worker) HandleTopic(topic, driverID string, h Handler) {
 	w.topics = append(w.topics, topic)
 }
 
+// HandleRule registers a handler for the specified rule id.
+func (w *Worker) HandleRule(ruleID string, h Handler) {
+	if h == nil {
+		return
+	}
+	ruleID = strings.TrimSpace(ruleID)
+	if ruleID == "" {
+		return
+	}
+	w.ruleHandlers[ruleID] = h
+}
+
 // HandleType registers a handler for a specific event type.
 func (w *Worker) HandleType(eventType string, h Handler) {
 	if h == nil || eventType == "" {
@@ -107,6 +121,9 @@ func (w *Worker) HandleType(eventType string, h Handler) {
 // Run starts the worker, subscribing to topics and processing messages.
 // It blocks until the context is canceled.
 func (w *Worker) Run(ctx context.Context) error {
+	if err := w.prepareRuleSubscriptions(ctx); err != nil {
+		return err
+	}
 	if len(w.topics) == 0 {
 		return errors.New("at least one topic is required")
 	}
@@ -439,6 +456,40 @@ func (w *Worker) validateTopics(ctx context.Context) error {
 		if _, ok := allowed[topic]; !ok {
 			return fmt.Errorf("topic %s not configured for driver %s", topic, driverID)
 		}
+	}
+	return nil
+}
+
+func (w *Worker) prepareRuleSubscriptions(ctx context.Context) error {
+	if len(w.ruleHandlers) == 0 {
+		return nil
+	}
+	client := w.rulesClient()
+	for ruleID, handler := range w.ruleHandlers {
+		if handler == nil {
+			continue
+		}
+		record, err := client.GetRule(ctx, ruleID)
+		if err != nil {
+			return err
+		}
+		if len(record.Emit) == 0 {
+			return fmt.Errorf("rule %s has no emit topic", ruleID)
+		}
+		topic := strings.TrimSpace(record.Emit[0])
+		if topic == "" {
+			return fmt.Errorf("rule %s emit topic empty", ruleID)
+		}
+		driverID := strings.TrimSpace(record.DriverID)
+		if driverID == "" {
+			return fmt.Errorf("rule %s driver_id is required", ruleID)
+		}
+		if _, ok := w.topicDrivers[topic]; ok {
+			w.logger.Printf("overwriting handler for topic=%s due to rule=%s", topic, ruleID)
+		}
+		w.topicHandlers[topic] = handler
+		w.topicDrivers[topic] = driverID
+		w.topics = append(w.topics, topic)
 	}
 	return nil
 }

@@ -2,11 +2,13 @@ package storage
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
 // InstallRecord stores SCM installation or token metadata.
 type InstallRecord struct {
+	ID                  string
 	TenantID            string
 	Provider            string
 	AccountID           string
@@ -23,6 +25,7 @@ type InstallRecord struct {
 
 // NamespaceRecord stores provider repository metadata.
 type NamespaceRecord struct {
+	ID                  string
 	TenantID            string
 	Provider            string
 	AccountID           string
@@ -184,6 +187,7 @@ type EventLogBreakdown struct {
 
 // ProviderInstanceRecord stores per-tenant provider instance config.
 type ProviderInstanceRecord struct {
+	ID         string
 	TenantID   string
 	Provider   string
 	Key        string
@@ -191,6 +195,38 @@ type ProviderInstanceRecord struct {
 	Enabled    bool
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+}
+
+// NamespaceRecordID returns a deterministic identifier for a namespace.
+func NamespaceRecordID(record NamespaceRecord) string {
+	parts := []string{
+		strings.TrimSpace(record.TenantID),
+		strings.TrimSpace(record.Provider),
+		strings.TrimSpace(record.ProviderInstanceKey),
+		strings.TrimSpace(record.RepoID),
+	}
+	return strings.Join(parts, ":")
+}
+
+// InstallRecordID returns a deterministic identifier for an installation.
+func InstallRecordID(record InstallRecord) string {
+	parts := []string{
+		strings.TrimSpace(record.TenantID),
+		strings.TrimSpace(record.Provider),
+		strings.TrimSpace(record.AccountID),
+		strings.TrimSpace(record.InstallationID),
+	}
+	return strings.Join(parts, ":")
+}
+
+// ProviderInstanceRecordID returns a deterministic identifier for a provider instance.
+func ProviderInstanceRecordID(record ProviderInstanceRecord) string {
+	parts := []string{
+		strings.TrimSpace(record.TenantID),
+		strings.TrimSpace(record.Provider),
+		strings.TrimSpace(record.Key),
+	}
+	return strings.Join(parts, ":")
 }
 
 // NamespaceFilter selects namespace rows.

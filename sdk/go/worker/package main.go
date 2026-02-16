@@ -1,0 +1,18 @@
+//go:build ignore
+// +build ignore
+
+package main
+
+import (
+    "fmt"
+    "os"
+
+    "githook/cmd"
+)
+
+func main() {
+    if err := cmd.NewRootCmd().Execute(); err != nil {
+        fmt.Fprintf(os.Stderr, "error: %v\n", err)
+        os.Exit(1)
+    }
+}

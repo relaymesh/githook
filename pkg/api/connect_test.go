@@ -284,4 +284,11 @@ func TestRuleHelpersAndPagination(t *testing.T) {
 	if token := encodePageTokenFromRaw("5"); token == "" {
 		t.Fatalf("expected encoded token")
 	}
+	if _, _, _, err := parseRuleInput(&cloudv1.Rule{
+		When:     "when",
+		Emit:     []string{"one", "two"},
+		DriverId: "driver",
+	}); err == nil {
+		t.Fatalf("expected emit count validation error")
+	}
 }

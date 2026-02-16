@@ -29,6 +29,9 @@ func (m *MockStore) UpsertInstallation(ctx context.Context, record InstallRecord
 	if record.TenantID == "" {
 		record.TenantID = TenantFromContext(ctx)
 	}
+	if record.ID == "" {
+		record.ID = InstallRecordID(record)
+	}
 	if record.CreatedAt.IsZero() {
 		record.CreatedAt = time.Now().UTC()
 	}
@@ -154,6 +157,9 @@ func (m *MockNamespaceStore) UpsertNamespace(ctx context.Context, record Namespa
 	defer m.mu.Unlock()
 	if record.TenantID == "" {
 		record.TenantID = TenantFromContext(ctx)
+	}
+	if record.ID == "" {
+		record.ID = NamespaceRecordID(record)
 	}
 	if record.CreatedAt.IsZero() {
 		record.CreatedAt = time.Now().UTC()
@@ -374,6 +380,9 @@ func (m *MockProviderInstanceStore) UpsertProviderInstance(ctx context.Context, 
 	defer m.mu.Unlock()
 	if record.TenantID == "" {
 		record.TenantID = TenantFromContext(ctx)
+	}
+	if record.ID == "" {
+		record.ID = ProviderInstanceRecordID(record)
 	}
 	if record.CreatedAt.IsZero() {
 		record.CreatedAt = time.Now().UTC()

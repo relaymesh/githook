@@ -204,6 +204,7 @@ message Rule {
   string when = 1 [(buf.validate.field).string.min_len = 1];
   repeated string emit = 2 [
     (buf.validate.field).repeated.min_items = 1,
+    (buf.validate.field).repeated.max_items = 1,
     (buf.validate.field).repeated.items.string.min_len = 1
   ];
   string driver_id = 4 [(buf.validate.field).string.min_len = 1];

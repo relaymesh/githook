@@ -96,3 +96,45 @@ func (c *RulesClient) ListRuleTopics(ctx context.Context) ([]string, error) {
 	}
 	return out, nil
 }
+
+// GetRule returns a single rule record by id.
+func (c *RulesClient) GetRule(ctx context.Context, id string) (*RuleRecord, error) {
+	if strings.TrimSpace(id) == "" {
+		return nil, errors.New("rule id is required")
+	}
+	base := strings.TrimRight(strings.TrimSpace(c.BaseURL), "/")
+	if base == "" {
+		return nil, errors.New("base url is required")
+	}
+
+	client := c.HTTPClient
+	if client == nil {
+		client = &http.Client{Timeout: 10 * time.Second}
+	}
+
+	interceptor := validate.NewInterceptor()
+	connectClient := cloudv1connect.NewRulesServiceClient(
+		client,
+		base,
+		connect.WithInterceptors(interceptor),
+	)
+	req := connect.NewRequest(&cloudv1.GetRuleRequest{Id: strings.TrimSpace(id)})
+	setAuthHeaders(ctx, req.Header(), c.APIKey, c.OAuth2)
+	if tenantID := TenantIDFromContext(ctx); tenantID != "" {
+		req.Header().Set("X-Tenant-ID", tenantID)
+	}
+	resp, err := connectClient.GetRule(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("rules api failed: %w", err)
+	}
+	record := resp.Msg.GetRule()
+	if record == nil {
+		return nil, fmt.Errorf("rule not found: %s", id)
+	}
+	return &RuleRecord{
+		ID:       record.GetId(),
+		When:     record.GetWhen(),
+		Emit:     record.GetEmit(),
+		DriverID: record.GetDriverId(),
+	}, nil
+}

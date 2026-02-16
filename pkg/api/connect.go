@@ -1438,12 +1438,19 @@ func parseRuleInput(rule *cloudv1.Rule) (string, []string, string, error) {
 		return "", nil, "", errors.New("missing rule")
 	}
 	when := strings.TrimSpace(rule.GetWhen())
-	emit := rule.GetEmit()
+	rawEmit := rule.GetEmit()
 	driverID := strings.TrimSpace(rule.GetDriverId())
 	if driverID == "" {
 		return "", nil, "", errors.New("driver_id is required")
 	}
-	return when, emit, driverID, nil
+	if len(rawEmit) != 1 {
+		return "", nil, "", errors.New("emit must contain exactly one topic")
+	}
+	topic := strings.TrimSpace(rawEmit[0])
+	if topic == "" {
+		return "", nil, "", errors.New("emit topic is required")
+	}
+	return when, []string{topic}, driverID, nil
 }
 
 func normalizeCoreRule(when string, emit []string, driverName string, driverID string) (core.Rule, error) {

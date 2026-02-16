@@ -32,6 +32,7 @@ type Store struct {
 }
 
 type row struct {
+	ID         string    `gorm:"column:id;size:128;primaryKey"`
 	TenantID   string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_provider_instance,priority:1"`
 	Provider   string    `gorm:"column:provider;size:32;not null;uniqueIndex:idx_provider_instance,priority:2"`
 	Key        string    `gorm:"column:instance_key;size:64;not null;uniqueIndex:idx_provider_instance,priority:3"`
@@ -151,6 +152,9 @@ func (s *Store) UpsertProviderInstance(ctx context.Context, record storage.Provi
 		record.CreatedAt = now
 	}
 	record.UpdatedAt = now
+	if record.ID == "" {
+		record.ID = storage.ProviderInstanceRecordID(record)
+	}
 	data := toRow(record)
 	err := s.tableDB().
 		WithContext(ctx).
@@ -261,6 +265,7 @@ func openGorm(driver, dsn string) (*gorm.DB, error) {
 
 func toRow(record storage.ProviderInstanceRecord) row {
 	return row{
+		ID:         record.ID,
 		TenantID:   record.TenantID,
 		Provider:   record.Provider,
 		Key:        record.Key,
@@ -273,6 +278,7 @@ func toRow(record storage.ProviderInstanceRecord) row {
 
 func fromRow(data row) storage.ProviderInstanceRecord {
 	return storage.ProviderInstanceRecord{
+		ID:         data.ID,
 		TenantID:   data.TenantID,
 		Provider:   data.Provider,
 		Key:        data.Key,

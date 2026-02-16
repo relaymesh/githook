@@ -26,6 +26,13 @@ func TestRulesClientValidation(t *testing.T) {
 	if _, err := client.ListRuleTopics(context.Background()); err == nil {
 		t.Fatalf("expected base url error")
 	}
+	if _, err := client.GetRule(context.Background(), ""); err == nil {
+		t.Fatalf("expected rule id error")
+	}
+	client.BaseURL = ""
+	if _, err := client.GetRule(context.Background(), "id"); err == nil {
+		t.Fatalf("expected base url error")
+	}
 }
 
 func TestEventLogsClientValidation(t *testing.T) {

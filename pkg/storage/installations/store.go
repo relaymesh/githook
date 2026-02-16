@@ -32,6 +32,7 @@ type Store struct {
 }
 
 type row struct {
+	ID             string     `gorm:"column:id;size:128;primaryKey"`
 	TenantID       string     `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_installation,priority:1"`
 	Provider       string     `gorm:"column:provider;size:32;not null;uniqueIndex:idx_installation,priority:2"`
 	AccountID      string     `gorm:"column:account_id;size:128;not null;uniqueIndex:idx_installation,priority:3"`
@@ -110,6 +111,9 @@ func (s *Store) UpsertInstallation(ctx context.Context, record storage.InstallRe
 		record.CreatedAt = now
 	}
 	record.UpdatedAt = now
+	if record.ID == "" {
+		record.ID = storage.InstallRecordID(record)
+	}
 
 	data := toRow(record)
 	return s.tableDB().
@@ -277,6 +281,7 @@ func openGorm(driver, dsn string) (*gorm.DB, error) {
 
 func toRow(record storage.InstallRecord) row {
 	return row{
+		ID:             record.ID,
 		TenantID:       record.TenantID,
 		Provider:       record.Provider,
 		AccountID:      record.AccountID,
@@ -294,6 +299,7 @@ func toRow(record storage.InstallRecord) row {
 
 func fromRow(data row) storage.InstallRecord {
 	return storage.InstallRecord{
+		ID:                  data.ID,
 		TenantID:            data.TenantID,
 		Provider:            data.Provider,
 		AccountID:           data.AccountID,

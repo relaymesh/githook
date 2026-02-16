@@ -32,6 +32,7 @@ type Store struct {
 }
 
 type row struct {
+	ID              string    `gorm:"column:id;size:128;primaryKey"`
 	TenantID        string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_namespace,priority:1"`
 	Provider        string    `gorm:"column:provider;size:32;not null;uniqueIndex:idx_namespace,priority:2"`
 	InstanceKey     string    `gorm:"column:provider_instance_key;size:64;uniqueIndex:idx_namespace,priority:3"`
@@ -108,6 +109,9 @@ func (s *Store) UpsertNamespace(ctx context.Context, record storage.NamespaceRec
 	}
 	if record.TenantID == "" {
 		record.TenantID = storage.TenantFromContext(ctx)
+	}
+	if record.ID == "" {
+		record.ID = storage.NamespaceRecordID(record)
 	}
 	now := time.Now().UTC()
 	if record.CreatedAt.IsZero() {
@@ -281,6 +285,7 @@ func openGorm(driver, dsn string) (*gorm.DB, error) {
 
 func toRow(record storage.NamespaceRecord) row {
 	return row{
+		ID:              record.ID,
 		TenantID:        record.TenantID,
 		Provider:        record.Provider,
 		RepoID:          record.RepoID,
@@ -302,6 +307,7 @@ func toRow(record storage.NamespaceRecord) row {
 
 func fromRow(data row) storage.NamespaceRecord {
 	return storage.NamespaceRecord{
+		ID:                  data.ID,
 		TenantID:            data.TenantID,
 		Provider:            data.Provider,
 		RepoID:              data.RepoID,
