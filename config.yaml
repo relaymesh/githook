@@ -1,93 +1,14 @@
 server:
   port: 8080
-  public_base_url: ${PUBLIC_BASE_URL}
-  debug_events: false
-endpoint: ${ENDPOINT}
-providers:
-  github:
-    enabled: true
-    webhook:
-      secret: ${GITHUB_WEBHOOK_SECRET}
-    app:
-      app_id: ${GITHUB_APP_ID}
-      app_slug: Runner-gh-pool
-      private_key_path: ${GITHUB_PRIVATE_KEY_PATH}
-    api:
-      base_url: https://api.github.com
-    oauth:
-      client_id: ${GITHUB_OAUTH_CLIENT_ID}
-      client_secret: ${GITHUB_OAUTH_CLIENT_SECRET}
-      scopes: ${GITHUB_OAUTH_SCOPES}
-  gitlab:
-    enabled: true
-    webhook:
-      secret: ${GITLAB_WEBHOOK_SECRET}
-    api:
-      base_url: https://gitlab.com/api/v4
-    oauth:
-      client_id: ${GITLAB_OAUTH_CLIENT_ID}
-      client_secret: ${GITLAB_OAUTH_CLIENT_SECRET}
-      scopes: ${GITLAB_OAUTH_SCOPES}
-  bitbucket:
-    enabled: true
-    webhook:
-      secret: ${BITBUCKET_WEBHOOK_SECRET}
-    api:
-      base_url: https://api.bitbucket.org/2.0
-    oauth:
-      client_id: ${BITBUCKET_OAUTH_CLIENT_ID}
-      client_secret: ${BITBUCKET_OAUTH_CLIENT_SECRET}
-      scopes: ${BITBUCKET_OAUTH_SCOPES}
-watermill:
-  drivers: [amqp,nats,kafka,http,sql]
-  amqp:
-    url: amqp://guest:guest@localhost:5672
-    mode: durable_queue
-  nats:
-    cluster_id: test-cluster
-    client_id: githooks
-    url: nats://localhost:4222
-  kafka:
-    brokers: ["localhost:29092"]
-  http:
-    mode: base_url
-    base_url: http://localhost:8081
-  sql:
-    driver: postgres
-    dsn: postgres://githooks:githooks@localhost:5432/githooks?sslmode=disable
-    dialect: postgres
-    auto_initialize_schema: true
-
+endpoint: http://localhost:8080
 storage:
   driver: postgres
-  dsn: postgres://githooks:githooks@localhost:5432/githooks?sslmode=disable
+  dsn: postgresql://postgres:postgres@localhost:5432/postgres
   dialect: postgres
   auto_migrate: true
-
-oauth:
-  redirect_base_url: ${OAUTH_REDIRECT_BASE_URL}
-
-rules:
-  - when: action == "opened" && pull_request.draft == false
-    emit: github.pr.opened.ready
-
-  - when: action == "closed" && pull_request.merged == true
-    emit: github.pr.merged
-
-  - when: installation.id != null
-    emit: github.app.action
-
-  - when: head_commit.id != "" && commits[0].id != "" && commits[1] == nil
-    emit: github.commit.created
-
-  - when: ref_type == "tag"
-    emit: github.tag.created
-
-  - when: object_kind == "merge_request" && object_attributes.state == "opened"
-    emit: gitlab.mr.opened
-
-  - when: object_kind == "push" && project.name == "test" && repository.url == "git@gitlab.com:evalsocket2/test.git" 
-    emit: gitlab.mr.merged
-
-  - when: object_kind == "push" && project.name == "test" && project.namespace == "evalsocket" 
-    emit: gitlab.push
+# auth:
+#   oauth2:
+#     enabled: true
+#     issuer: https://dev-dh3dmjr12gnq1hlw.jp.auth0.com/
+#     audience: https://githook.fly.dev
+redirect_base_url: https://app.example.com/oauth/complete
