@@ -893,19 +893,15 @@ wk := worker.New(
 )
 ```
 
-### Driver Override
+### Worker invocation
 
-Target a specific subscriber driver:
+Workers already resolve the driver and topic from a rule, so you only need the rule ID:
 
 ```bash
-go run ./worker/main.go --config config.yaml --driver amqp
+go run ./worker/main.go --rule-id RULE_ID --endpoint https://your-domain.com
 ```
 
-```go
-subCfg.Driver = "amqp"
-```
-
-See [docs/sdk_clients.md](docs/sdk_clients.md) for advanced SDK usage.
+Use `subCfg.RuleID` or custom handler wiring when building reusable worker logic, and consult [docs/sdk_clients.md](docs/sdk_clients.md) for advanced SDK helpers (HTTP clients, middleware, API clients, etc.).
 
 ---
 
@@ -923,7 +919,7 @@ Working examples in the `example/` directory:
 
 **Run GitHub example:**
 ```bash
-go run ./example/github/worker/main.go --config config.yaml --driver amqp
+go run ./example/github/worker/main.go --rule-id RULE_ID --endpoint=https://<your-ngrok-url>
 ```
 
 ---
