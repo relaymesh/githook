@@ -36,29 +36,12 @@ Copy the HTTPS forwarding URL (e.g., `https://abc123.ngrok-free.app`). Keep ngro
 
 ## Step 4: Configure githook
 
-Edit `config.yaml`:
+Edit `config.yaml` and keep only the core sections:
 
 ```yaml
 server:
   port: 8080
 endpoint: https://<your-ngrok-url>
-
-providers:
-  bitbucket:
-    webhook:
-      secret: devsecret  # Optional
-    api:
-      base_url: https://api.bitbucket.org/2.0
-      web_base_url: https://bitbucket.org
-    oauth:
-      client_id: your-oauth-client-id
-      client_secret: your-oauth-client-secret
-
-watermill:
-  driver: amqp
-  amqp:
-    url: amqp://guest:guest@localhost:5672/
-    mode: durable_queue
 
 storage:
   driver: postgres
@@ -66,13 +49,12 @@ storage:
   dialect: postgres
   auto_migrate: true
 
+auth:
+  oauth2:
+    enabled: false
+
 redirect_base_url: https://app.example.com/success
 
-rules:
-  - when: pullrequest.state == "OPEN"
-    emit: bitbucket.pr.opened
-  - when: push.changes != null
-    emit: bitbucket.push
 ```
 
 ## Step 5: Start the Server
@@ -84,7 +66,7 @@ go run ./main.go serve --config config.yaml
 ## Step 6: Start a Worker
 
 ```bash
-go run ./example/bitbucket/worker/main.go --config config.yaml --driver amqp
+go run ./example/bitbucket/worker/main.go --rule-id RULE_ID --endpoint=https://<your-ngrok-url>
 ```
 
 ## Step 7: Complete OAuth Onboarding

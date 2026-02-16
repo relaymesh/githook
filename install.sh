@@ -4,6 +4,7 @@ set -e
 #   githook_<version>_<os>_<arch>.tar.gz (mac/linux) and .zip (windows)
 # and checksums.txt present in the release.
 
+
 usage() {
   this=$1
   cat <<EOF

@@ -198,47 +198,73 @@ server:
   port: 8080
 endpoint: https://<your-ngrok-url>
 
-providers:
-  github:
-    webhook:
-      secret: devsecret
-    app:
-      app_id: 123456
-      private_key_path: /path/to/github.pem
-      app_slug: your-app-slug
-    api:
-      base_url: https://api.github.com
-    oauth:
-      client_id: your-oauth-client-id
-      client_secret: your-oauth-client-secret
-
-watermill:
-  driver: amqp
-  amqp:
-    url: amqp://guest:guest@localhost:5672/
-    mode: durable_queue
-
 storage:
   driver: postgres
   dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
   dialect: postgres
   auto_migrate: true
-redirect_base_url: https://app.example.com/success  # Optional: Where to redirect users after OAuth completion
 
-rules:
-  - when: action == "opened" && pull_request.draft == false
-    emit: pr.opened.ready
-  - when: action == "closed" && pull_request.merged == true
-    emit: pr.merged
-  # Push events (single commit)
-  - when: head_commit.id != "" && commits[0].id != "" && commits[1] == null
-    emit: github.commit.created
-  # Check suite events (also contain commit information)
-  - when: action == "requested" && check_suite.head_commit.id != ""
-    emit: github.commit.created
+auth:
+  oauth2:
+    enabled: false
+
+redirect_base_url: https://app.example.com/success
+
 ```
-**OAuth Configuration:**
-- `redirect_base_url`: (Optional) URL where users are redirected after completing OAuth authorization. If not configured, users will see a simple success message. For production, point this to your application's OAuth success page.
+
+> The per-provider configuration (app IDs, webhook secrets, driver settings) is no longer stored in `config.yaml`. Use the `githook` CLI to bootstrap providers/drivers/rules before the worker starts.
+
+#### Bootstrap with the CLI
+
+1. **Create a driver** (e.g., AMQP) so rules can publish to your broker:
+
+```bash
+githook --endpoint http://localhost:8080 drivers set \
+  --tenant-id default \
+  --name amqp \
+  --config-file drivers/amqp.json
+```
+
+`drivers/amqp.json`:
+
+```json
+{
+  "name": "amqp",
+  "config_json": {
+    "URL": "amqp://guest:guest@localhost:5672/",
+    "Mode": "durable_queue"
+  }
+}
+```
+
+2. **Create a provider instance** with OAuth/webhook metadata:
+
+```bash
+githook --endpoint http://localhost:8080 providers set \
+  --tenant-id default \
+  --provider github \
+  --config-file providers/github.json
+```
+
+3. **Create a rule** that emits a single topic and points at the driver:
+
+```bash
+githook --endpoint http://localhost:8080 rules create \
+  --tenant-id default \
+  --driver-id default:amqp \
+  --when 'action == "opened"' \
+  --emit github.main
+```
+
+4. **List resources** to confirm:
+
+```bash
+githook --endpoint http://localhost:8080 providers list
+githook --endpoint http://localhost:8080 drivers list
+githook --endpoint http://localhost:8080 rules list
+```
+
+Each rule must emit exactly one topic, which the worker will subscribe to using the rule’s `emit` value and resolved driver ID.
 
 
 ### Step 5: Start the Server
@@ -251,10 +277,11 @@ The server should start on `http://localhost:8080` and be accessible via your ng
 
 ### Step 6: Start a Worker
 
-In another terminal:
+In another terminal (replace `RULE_ID` with a rule you created through the API):
 
 ```bash
-go run ./example/github/worker/main.go --config config.yaml --driver amqp
+go run ./example/github/worker/main.go --rule-id RULE_ID \
+  --endpoint https://<your-ngrok-url>
 ```
 
 ### Step 7: Install the GitHub App
@@ -310,12 +337,6 @@ Configure OAuth credentials and redirect URL:
 
 ```yaml
 endpoint: https://your-domain.com  # Your public URL
-
-providers:
-  github:
-    oauth:
-      client_id: your-oauth-client-id
-      client_secret: your-oauth-client-secret
 
 redirect_base_url: https://app.example.com/success  # Where to send users after OAuth
 ```
