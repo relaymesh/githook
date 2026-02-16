@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func subscriberConfigFromDriver(driver, raw string) (SubscriberConfig, error) {
+func SubscriberConfigFromDriver(driver, raw string) (SubscriberConfig, error) {
 	driver = strings.ToLower(strings.TrimSpace(driver))
 	if driver == "" {
 		return SubscriberConfig{}, errors.New("driver is required")
@@ -16,6 +16,20 @@ func subscriberConfigFromDriver(driver, raw string) (SubscriberConfig, error) {
 		return SubscriberConfig{}, err
 	}
 	return cfg, nil
+}
+
+// ValidateSubscriber builds and closes a subscriber from the driver JSON to ensure
+// the configuration is usable.
+func ValidateSubscriber(driver, raw string) error {
+	cfg, err := SubscriberConfigFromDriver(driver, raw)
+	if err != nil {
+		return err
+	}
+	sub, err := BuildSubscriber(cfg)
+	if err != nil {
+		return err
+	}
+	return sub.Close()
 }
 
 func applyDriverConfig(cfg *SubscriberConfig, name, raw string) error {

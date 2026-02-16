@@ -287,7 +287,27 @@ func (s *DriversService) UpsertDriver(
 	resp := &cloudv1.UpsertDriverResponse{
 		Driver: toProtoDriverRecord(record),
 	}
+	if err := ensureDriverBrokerReady(ctx, record); err != nil {
+		logError(s.Logger, "driver broker validation failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("driver broker validation failed"))
+	}
 	return connect.NewResponse(resp), nil
+}
+
+func ensureDriverBrokerReady(ctx context.Context, record *storage.DriverRecord) error {
+	if record == nil {
+		return nil
+	}
+	cfg, err := driverspkg.ConfigFromDriver(record.Name, record.ConfigJSON)
+	if err != nil {
+		return err
+	}
+	pub, err := core.NewPublisher(cfg)
+	if err != nil {
+		return err
+	}
+	defer pub.Close()
+	return nil
 }
 
 func (s *DriversService) DeleteDriver(
@@ -379,6 +399,10 @@ func (s *RulesService) CreateRule(
 	if err != nil {
 		logError(s.Logger, "create rule failed", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("create rule failed"))
+	}
+	if err := validateRuleSubscriber(ctx, s.Logger, s.DriverStore, driverID); err != nil {
+		logError(s.Logger, "rule subscriber validation failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("rule subscriber validation failed"))
 	}
 	if err := s.refreshEngine(ctx); err != nil {
 		logError(s.Logger, "rule engine refresh failed", err)

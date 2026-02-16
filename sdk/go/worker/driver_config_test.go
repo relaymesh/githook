@@ -3,10 +3,10 @@ package worker
 import "testing"
 
 func TestSubscriberConfigFromDriver(t *testing.T) {
-	if _, err := subscriberConfigFromDriver("", "{}"); err == nil {
+	if _, err := SubscriberConfigFromDriver("", "{}"); err == nil {
 		t.Fatalf("expected driver required error")
 	}
-	cfg, err := subscriberConfigFromDriver("amqp", `{"url":"amqp://localhost"}`)
+	cfg, err := SubscriberConfigFromDriver("amqp", `{"url":"amqp://localhost"}`)
 	if err != nil {
 		t.Fatalf("subscriber config: %v", err)
 	}

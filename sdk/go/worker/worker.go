@@ -259,7 +259,7 @@ func (w *Worker) buildDriverSubscribers(ctx context.Context, driverTopics map[st
 		if !record.Enabled {
 			return fmt.Errorf("driver is disabled: %s", driverID)
 		}
-		cfg, err := subscriberConfigFromDriver(record.Name, record.ConfigJSON)
+		cfg, err := SubscriberConfigFromDriver(record.Name, record.ConfigJSON)
 		if err != nil {
 			return err
 		}
