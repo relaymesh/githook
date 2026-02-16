@@ -2,6 +2,8 @@ package storage
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -199,34 +201,40 @@ type ProviderInstanceRecord struct {
 
 // NamespaceRecordID returns a deterministic identifier for a namespace.
 func NamespaceRecordID(record NamespaceRecord) string {
-	parts := []string{
-		strings.TrimSpace(record.TenantID),
-		strings.TrimSpace(record.Provider),
-		strings.TrimSpace(record.ProviderInstanceKey),
-		strings.TrimSpace(record.RepoID),
-	}
-	return strings.Join(parts, ":")
+	return hashID(
+		record.TenantID,
+		record.Provider,
+		record.ProviderInstanceKey,
+		record.RepoID,
+	)
 }
 
 // InstallRecordID returns a deterministic identifier for an installation.
 func InstallRecordID(record InstallRecord) string {
-	parts := []string{
-		strings.TrimSpace(record.TenantID),
-		strings.TrimSpace(record.Provider),
-		strings.TrimSpace(record.AccountID),
-		strings.TrimSpace(record.InstallationID),
-	}
-	return strings.Join(parts, ":")
+	return hashID(
+		record.TenantID,
+		record.Provider,
+		record.AccountID,
+		record.InstallationID,
+	)
 }
 
 // ProviderInstanceRecordID returns a deterministic identifier for a provider instance.
 func ProviderInstanceRecordID(record ProviderInstanceRecord) string {
-	parts := []string{
-		strings.TrimSpace(record.TenantID),
-		strings.TrimSpace(record.Provider),
-		strings.TrimSpace(record.Key),
+	return hashID(
+		record.TenantID,
+		record.Provider,
+		record.Key,
+	)
+}
+
+func hashID(parts ...string) string {
+	buf := sha256.New()
+	for _, part := range parts {
+		buf.Write([]byte(strings.TrimSpace(part)))
+		buf.Write([]byte{':'})
 	}
-	return strings.Join(parts, ":")
+	return fmt.Sprintf("%x", buf.Sum(nil))
 }
 
 // NamespaceFilter selects namespace rows.

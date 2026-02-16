@@ -32,7 +32,7 @@ type Store struct {
 }
 
 type row struct {
-	ID              string    `gorm:"column:id;size:128;primaryKey"`
+	ID              string    `gorm:"column:id;size:64;primaryKey"`
 	TenantID        string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_namespace,priority:1"`
 	Provider        string    `gorm:"column:provider;size:32;not null;uniqueIndex:idx_namespace,priority:2"`
 	InstanceKey     string    `gorm:"column:provider_instance_key;size:64;uniqueIndex:idx_namespace,priority:3"`

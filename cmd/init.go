@@ -14,56 +14,6 @@ const (
 
 endpoint: http://localhost:8080
 
-providers:
-  github:
-    # key: ""
-    webhook:
-      # path: "/webhooks/github"
-      # secret: "${GITHUB_WEBHOOK_SECRET}"
-    app:
-      # app_id: 0
-      # private_key_path: ""
-      # app_slug: ""
-    oauth:
-      # client_id: ""
-      # client_secret: ""
-      # scopes: []
-    api:
-      # base_url: "https://api.github.com"
-      # web_base_url: "https://github.com"
-  gitlab:
-    # key: ""
-    webhook:
-      # path: "/webhooks/gitlab"
-      # secret: "${GITLAB_WEBHOOK_SECRET}"
-    app:
-      # app_id: 0
-      # private_key_path: ""
-      # app_slug: ""
-    oauth:
-      # client_id: ""
-      # client_secret: ""
-      # scopes: []
-    api:
-      # base_url: "https://gitlab.com/api/v4"
-      # web_base_url: "https://gitlab.com"
-  bitbucket:
-    # key: ""
-    webhook:
-      # path: "/webhooks/bitbucket"
-      # secret: "${BITBUCKET_WEBHOOK_SECRET}"
-    app:
-      # app_id: 0
-      # private_key_path: ""
-      # app_slug: ""
-    oauth:
-      # client_id: ""
-      # client_secret: ""
-      # scopes: []
-    api:
-      # base_url: "https://api.bitbucket.org/2.0"
-      # web_base_url: "https://bitbucket.org"
-
 storage:
   driver: postgres
   dsn: postgres://user:pass@localhost:5432/githook?sslmode=disable
@@ -74,58 +24,6 @@ redirect_base_url: http://localhost:8080
 auth:
   oauth2:
     enabled: false
-    # issuer: ""
-    # audience: ""
-    # required_scopes: []
-    # required_roles: []
-    # required_groups: []
-    # mode: "client_credentials"
-    # client_id: ""
-    # client_secret: ""
-    # scopes: []
-    # redirect_url: ""
-    # authorize_url: ""
-    # token_url: ""
-    # jwks_url: ""
-
-watermill:
-  # driver: gochannel
-  # drivers: []
-  # dlq_driver: ""
-  # publish_retry:
-  #   attempts: 0
-  #   delay_ms: 0
-  # gochannel:
-  #   output_buffer: 64
-  #   persistent: false
-  #   block_publish_until_subscriber_ack: false
-  # kafka:
-  #   brokers: []
-  # nats:
-  #   cluster_id: ""
-  #   client_id: ""
-  #   url: ""
-  # amqp:
-  #   url: ""
-  #   mode: ""
-  # sql:
-  #   driver: ""
-  #   dsn: ""
-  #   dialect: ""
-  #   initialize_schema: false
-  #   auto_initialize_schema: false
-  # http:
-  #   base_url: ""
-  #   mode: ""
-  # riverqueue:
-  #   driver: ""
-  #   dsn: ""
-  #   table: ""
-  #   queue: ""
-  #   kind: ""
-  #   max_attempts: 0
-  #   priority: 0
-  #   tags: []
 `
 	initConfigTemplateCLI = `endpoint: http://localhost:8080
 
