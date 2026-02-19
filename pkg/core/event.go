@@ -10,6 +10,8 @@ type Event struct {
 	RequestID string `json:"request_id,omitempty"`
 	// LogID links the event to a stored event log entry.
 	LogID string `json:"-"`
+	// Headers contains the inbound webhook request headers.
+	Headers map[string][]string `json:"-"`
 	// Data is the flattened JSON payload of the event.
 	Data map[string]interface{} `json:"data"`
 	// RawPayload is the raw JSON payload from the webhook.

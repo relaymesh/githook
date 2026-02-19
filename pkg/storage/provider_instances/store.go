@@ -32,14 +32,15 @@ type Store struct {
 }
 
 type row struct {
-	ID         string    `gorm:"column:id;size:64;primaryKey"`
-	TenantID   string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_provider_instance,priority:1"`
-	Provider   string    `gorm:"column:provider;size:32;not null;uniqueIndex:idx_provider_instance,priority:2"`
-	Key        string    `gorm:"column:instance_key;size:64;not null;uniqueIndex:idx_provider_instance,priority:3"`
-	ConfigJSON string    `gorm:"column:config_json;type:text"`
-	Enabled    bool      `gorm:"column:enabled;not null;default:true"`
-	CreatedAt  time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt  time.Time `gorm:"column:updated_at;autoUpdateTime"`
+	ID              string    `gorm:"column:id;size:64;primaryKey"`
+	TenantID        string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_provider_instance,priority:1"`
+	Provider        string    `gorm:"column:provider;size:32;not null;uniqueIndex:idx_provider_instance,priority:2"`
+	Key             string    `gorm:"column:instance_key;size:64;not null;uniqueIndex:idx_provider_instance,priority:3"`
+	ConfigJSON      string    `gorm:"column:config_json;type:text"`
+	RedirectBaseURL string    `gorm:"column:redirect_base_url;type:text"`
+	Enabled         bool      `gorm:"column:enabled;not null;default:true"`
+	CreatedAt       time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt       time.Time `gorm:"column:updated_at;autoUpdateTime"`
 }
 
 // Open creates a GORM-backed provider instances store.
@@ -160,7 +161,7 @@ func (s *Store) UpsertProviderInstance(ctx context.Context, record storage.Provi
 		WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "tenant_id"}, {Name: "provider"}, {Name: "instance_key"}},
-			DoUpdates: clause.AssignmentColumns([]string{"config_json", "enabled", "updated_at"}),
+			DoUpdates: clause.AssignmentColumns([]string{"config_json", "redirect_base_url", "enabled", "updated_at"}),
 		}).
 		Create(&data).Error
 	if err != nil {
@@ -265,26 +266,28 @@ func openGorm(driver, dsn string) (*gorm.DB, error) {
 
 func toRow(record storage.ProviderInstanceRecord) row {
 	return row{
-		ID:         record.ID,
-		TenantID:   record.TenantID,
-		Provider:   record.Provider,
-		Key:        record.Key,
-		ConfigJSON: record.ConfigJSON,
-		Enabled:    record.Enabled,
-		CreatedAt:  record.CreatedAt,
-		UpdatedAt:  record.UpdatedAt,
+		ID:              record.ID,
+		TenantID:        record.TenantID,
+		Provider:        record.Provider,
+		Key:             record.Key,
+		ConfigJSON:      record.ConfigJSON,
+		RedirectBaseURL: record.RedirectBaseURL,
+		Enabled:         record.Enabled,
+		CreatedAt:       record.CreatedAt,
+		UpdatedAt:       record.UpdatedAt,
 	}
 }
 
 func fromRow(data row) storage.ProviderInstanceRecord {
 	return storage.ProviderInstanceRecord{
-		ID:         data.ID,
-		TenantID:   data.TenantID,
-		Provider:   data.Provider,
-		Key:        data.Key,
-		ConfigJSON: data.ConfigJSON,
-		Enabled:    data.Enabled,
-		CreatedAt:  data.CreatedAt,
-		UpdatedAt:  data.UpdatedAt,
+		ID:              data.ID,
+		TenantID:        data.TenantID,
+		Provider:        data.Provider,
+		Key:             data.Key,
+		ConfigJSON:      data.ConfigJSON,
+		RedirectBaseURL: data.RedirectBaseURL,
+		Enabled:         data.Enabled,
+		CreatedAt:       data.CreatedAt,
+		UpdatedAt:       data.UpdatedAt,
 	}
 }

@@ -86,6 +86,9 @@ type EventLogRecord struct {
 	RuleID         string
 	RuleWhen       string
 	Drivers        []string
+	Headers        map[string][]string
+	Body           []byte
+	BodyHash       string
 	Matched        bool
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
@@ -189,14 +192,15 @@ type EventLogBreakdown struct {
 
 // ProviderInstanceRecord stores per-tenant provider instance config.
 type ProviderInstanceRecord struct {
-	ID         string
-	TenantID   string
-	Provider   string
-	Key        string
-	ConfigJSON string
-	Enabled    bool
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID              string
+	TenantID        string
+	Provider        string
+	Key             string
+	ConfigJSON      string
+	RedirectBaseURL string
+	Enabled         bool
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 // NamespaceRecordID returns a deterministic identifier for a namespace.

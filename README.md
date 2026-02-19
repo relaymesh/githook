@@ -246,6 +246,27 @@ githook --endpoint http://localhost:8080 providers set \
   --config-file providers/github.json
 ```
 
+`providers/github.json` can include the `redirect_base_url` field:
+
+```json
+{
+  "redirect_base_url": "https://app.example.com/oauth/complete",
+  "app": {
+    "app_id": 12345,
+    "private_key_pem": "..."
+  },
+  "webhook": {
+    "secret": "your-webhook-secret"
+  },
+  "oauth": {
+    "client_id": "...",
+    "client_secret": "..."
+  }
+}
+```
+
+After OAuth completes, users are redirected to this URL with query parameters containing the installation details. If not specified, the global `redirect_base_url` from server config is used.
+
 3. **Create a rule** that emits a single topic and points at the driver:
 
 ```bash
@@ -338,8 +359,20 @@ Configure OAuth credentials and redirect URL:
 ```yaml
 endpoint: https://your-domain.com  # Your public URL
 
-redirect_base_url: https://app.example.com/success  # Where to send users after OAuth
+redirect_base_url: https://app.example.com/success  # Global fallback for post-OAuth redirect
 ```
+
+You can also set a per-provider-instance redirect URL in the config file:
+
+```json
+{
+  "redirect_base_url": "https://app.example.com/oauth/github/complete",
+  "app": { ... },
+  "oauth": { ... }
+}
+```
+
+Per-instance redirect URLs take precedence over the global `redirect_base_url` setting.
 
 **Callback URLs** (configure in provider settings):
 - **GitHub**: `https://your-domain.com/auth/github/callback`

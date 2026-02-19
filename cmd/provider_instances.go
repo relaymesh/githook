@@ -97,10 +97,13 @@ func newProviderInstancesSetCmd() *cobra.Command {
 	var provider string
 	var configFile string
 	var enabled bool
+	var redirectBaseURL string
 	cmd := &cobra.Command{
-		Use:     "set",
-		Short:   "Create a provider instance",
-		Example: "  githook --endpoint http://localhost:8080 providers set --provider github --config-file github.yaml",
+		Use:   "set",
+		Short: "Create a provider instance",
+		Example: "  githook --endpoint http://localhost:8080 providers set --provider github --config-file github.yaml\n" +
+			"  # With redirect_base_url in the config file:\n" +
+			"  # github.json: {\"redirect_base_url\": \"https://app.example.com/oauth/complete\", ...}",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(provider) == "" {
 				return fmt.Errorf("provider is required")
@@ -113,9 +116,17 @@ func newProviderInstancesSetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			payload, redirectURL, err := extractAndRemoveRedirectBaseURL(payload)
+			if err != nil {
+				return fmt.Errorf("failed to process config: %w", err)
+			}
 			payload, err = injectPrivateKeyPem(payload, "")
 			if err != nil {
 				return fmt.Errorf("failed to inject private key: %w", err)
+			}
+			// CLI flag overrides config file value
+			if strings.TrimSpace(redirectBaseURL) != "" {
+				redirectURL = strings.TrimSpace(redirectBaseURL)
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -124,9 +135,10 @@ func newProviderInstancesSetCmd() *cobra.Command {
 			client := cloudv1connect.NewProvidersServiceClient(http.DefaultClient, apiBaseURL, opts...)
 			req := connect.NewRequest(&cloudv1.UpsertProviderRequest{
 				Provider: &cloudv1.ProviderRecord{
-					Provider:   strings.TrimSpace(provider),
-					ConfigJson: payload,
-					Enabled:    enabled,
+					Provider:        strings.TrimSpace(provider),
+					ConfigJson:      payload,
+					Enabled:         enabled,
+					RedirectBaseUrl: redirectURL,
 				},
 			})
 			applyTenantHeader(req)
@@ -138,9 +150,29 @@ func newProviderInstancesSetCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&provider, "provider", "", "Provider name (github/gitlab/bitbucket)")
-	cmd.Flags().StringVar(&configFile, "config-file", "", "Path to provider YAML/JSON config")
+	cmd.Flags().StringVar(&configFile, "config-file", "", "Path to provider YAML/JSON config (can include redirect_base_url)")
 	cmd.Flags().BoolVar(&enabled, "enabled", true, "Enable this provider instance")
+	cmd.Flags().StringVar(&redirectBaseURL, "redirect-base-url", "", "Post-OAuth redirect URL (overrides config file)")
 	return cmd
+}
+
+// extractAndRemoveRedirectBaseURL extracts redirect_base_url from the config JSON
+// and removes it from the payload (since it's stored separately in the database).
+func extractAndRemoveRedirectBaseURL(payload string) (string, string, error) {
+	var target map[string]any
+	if err := json.Unmarshal([]byte(payload), &target); err != nil {
+		return payload, "", nil // Return original if not valid JSON
+	}
+	redirectURL := ""
+	if val, ok := target["redirect_base_url"].(string); ok {
+		redirectURL = strings.TrimSpace(val)
+		delete(target, "redirect_base_url")
+	}
+	out, err := json.Marshal(target)
+	if err != nil {
+		return payload, redirectURL, err
+	}
+	return string(out), redirectURL, nil
 }
 
 func injectPrivateKeyPem(payload, keyPath string) (string, error) {

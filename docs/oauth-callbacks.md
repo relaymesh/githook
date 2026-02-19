@@ -20,11 +20,38 @@ Configure these callback URLs in your provider OAuth applications:
 
 ## Configuration
 
+### Global Redirect URL
+
+Set a global fallback redirect URL in your config:
+
 ```yaml
 endpoint: https://your-domain.com  # Your public URL
 
-redirect_base_url: https://app.example.com/oauth/complete  # Where to send users after OAuth
+redirect_base_url: https://app.example.com/oauth/complete  # Global fallback for post-OAuth redirect
 ```
+
+### Per-Instance Redirect URL
+
+You can set a different redirect URL for each provider instance by including `redirect_base_url` in the config file:
+
+```json
+{
+  "redirect_base_url": "https://app.example.com/oauth/github/complete",
+  "app": { ... },
+  "oauth": { ... }
+}
+```
+
+Then create the provider:
+
+```bash
+githook providers set --provider github --config-file github.json
+```
+
+Per-instance redirect URLs take precedence over the global `redirect_base_url` setting. This is useful when:
+- Different provider instances need to redirect to different applications
+- You're running multiple tenants with different frontend applications
+- You need provider-specific post-OAuth handling
 
 ## Initiating OAuth
 

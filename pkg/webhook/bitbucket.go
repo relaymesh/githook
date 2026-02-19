@@ -147,6 +147,7 @@ func (h *BitbucketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Provider:       "bitbucket",
 			Name:           eventName,
 			RequestID:      reqID,
+			Headers:        cloneHeaders(r.Header),
 			Data:           data,
 			RawPayload:     rawBody,
 			RawObject:      rawObject,

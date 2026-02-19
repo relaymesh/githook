@@ -130,6 +130,7 @@ func (h *GitLabHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Provider:       "gitlab",
 			Name:           eventName,
 			RequestID:      reqID,
+			Headers:        cloneHeaders(r.Header),
 			Data:           data,
 			RawPayload:     rawBody,
 			RawObject:      rawObject,
