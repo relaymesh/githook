@@ -60,8 +60,8 @@ func (h *StartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if resolvedKey != "" {
 		instanceKey = resolvedKey
 	}
-	logger.Printf("oauth start resolved instance=%s app_slug=%q webhook_secret=%q oauth_client_id=%q",
-		instanceKey, providerCfg.App.AppSlug, providerCfg.Webhook.Secret, providerCfg.OAuth.ClientID)
+	logger.Printf("oauth start resolved instance=%s app_slug=%q oauth_client_id=%q",
+		instanceKey, providerCfg.App.AppSlug, providerCfg.OAuth.ClientID)
 	state = encodeState(state, tenantID, instanceKey)
 
 	registry := h.Registry

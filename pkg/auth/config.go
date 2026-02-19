@@ -24,8 +24,15 @@ func (c Config) ProviderConfigFor(provider string) (ProviderConfig, bool) {
 		if c.Extra == nil {
 			return ProviderConfig{}, false
 		}
-		cfg, ok := c.Extra[provider]
-		return cfg, ok
+		if cfg, ok := c.Extra[provider]; ok {
+			return cfg, true
+		}
+		for key, cfg := range c.Extra {
+			if strings.ToLower(strings.TrimSpace(key)) == provider {
+				return cfg, true
+			}
+		}
+		return ProviderConfig{}, false
 	}
 }
 
