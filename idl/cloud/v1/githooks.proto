@@ -53,7 +53,7 @@ service EventLogsService {
 }
 
 message InstallRecord {
-  string provider = 1 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+  string provider = 1 [(buf.validate.field).string.min_len = 1];
   string account_id = 2 [(buf.validate.field).string.min_len = 1];
   string account_name = 3;
   string installation_id = 4 [(buf.validate.field).string.min_len = 1];
@@ -67,7 +67,7 @@ message InstallRecord {
 }
 
 message NamespaceRecord {
-  string provider = 1 [(buf.validate.field).string.in = "github", (buf.validate.field).string.in = "gitlab", (buf.validate.field).string.in = "bitbucket"];
+  string provider = 1 [(buf.validate.field).string.min_len = 1];
   string repo_id = 2;
   string account_id = 3;
   string installation_id = 4;
@@ -86,12 +86,7 @@ message NamespaceRecord {
 message ListInstallationsRequest {
   // Optional account filter. When omitted, all accounts for the provider are returned.
   string state_id = 1;
-  string provider = 2 [
-    (buf.validate.field).string.in = "",
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 2;
 }
 
 message ListInstallationsResponse {
@@ -99,12 +94,7 @@ message ListInstallationsResponse {
 }
 
 message GetInstallationByIDRequest {
-  string provider = 1 [
-    (buf.validate.field).string.min_len = 1,
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 1 [(buf.validate.field).string.min_len = 1];
   string installation_id = 2 [(buf.validate.field).string.min_len = 1];
 }
 
@@ -121,12 +111,7 @@ message UpsertInstallationResponse {
 }
 
 message DeleteInstallationRequest {
-  string provider = 1 [
-    (buf.validate.field).string.min_len = 1,
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 1 [(buf.validate.field).string.min_len = 1];
   string account_id = 2 [(buf.validate.field).string.min_len = 1];
   string installation_id = 3 [(buf.validate.field).string.min_len = 1];
   string provider_instance_key = 4;
@@ -137,12 +122,7 @@ message DeleteInstallationResponse {}
 message ListNamespacesRequest {
   // Optional account filter. When omitted, all accounts for the provider are returned.
   string state_id = 1;
-  string provider = 2 [
-    (buf.validate.field).string.in = "",
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 2;
   string owner = 3;
   string repo = 4;
   string full_name = 5;
@@ -155,12 +135,7 @@ message ListNamespacesResponse {
 message SyncNamespacesRequest {
   // Optional account filter. When omitted, all accounts for the provider are synced.
   string state_id = 1;
-  string provider = 2 [
-    (buf.validate.field).string.min_len = 1,
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 message SyncNamespacesResponse {
@@ -170,24 +145,14 @@ message SyncNamespacesResponse {
 message GetNamespaceWebhookRequest {
   // Optional account filter. When omitted, the namespace is resolved by provider + repo_id.
   string state_id = 1;
-  string provider = 2 [
-    (buf.validate.field).string.min_len = 1,
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 2 [(buf.validate.field).string.min_len = 1];
   string repo_id = 3 [(buf.validate.field).string.min_len = 1];
 }
 
 message SetNamespaceWebhookRequest {
   // Optional account filter. When omitted, the namespace is resolved by provider + repo_id.
   string state_id = 1;
-  string provider = 2 [
-    (buf.validate.field).string.min_len = 1,
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 2 [(buf.validate.field).string.min_len = 1];
   string repo_id = 3 [(buf.validate.field).string.min_len = 1];
   bool enabled = 4;
 }
@@ -232,12 +197,7 @@ message DriverRecord {
 }
 
 message ProviderRecord {
-  string provider = 1 [
-    (buf.validate.field).string.min_len = 1,
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 1 [(buf.validate.field).string.min_len = 1];
   // Instance hash (server-generated).
   string hash = 2;
   string config_json = 3;
@@ -248,13 +208,13 @@ message ProviderRecord {
   string redirect_base_url = 7;
 }
 
+message EventLogHeaderValues {
+  repeated string values = 1;
+}
+
 message EventLogRecord {
   string id = 1;
-  string provider = 2 [
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 2;
   string name = 3;
   string request_id = 4;
   string state_id = 5;
@@ -270,6 +230,9 @@ message EventLogRecord {
   string error_message = 15;
   google.protobuf.Timestamp created_at = 16;
   google.protobuf.Timestamp updated_at = 17;
+  map<string, EventLogHeaderValues> headers = 18;
+  bytes body = 19;
+  string body_hash = 20;
 }
 
 message EventLogCount {
@@ -335,12 +298,7 @@ message EventLogBreakdown {
 }
 
 message EventPayload {
-  string provider = 1 [
-    (buf.validate.field).string.min_len = 1,
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 1 [(buf.validate.field).string.min_len = 1];
   string name = 2 [(buf.validate.field).string.min_len = 1];
   bytes payload = 3 [(buf.validate.field).bytes.min_len = 1];
 }
@@ -427,12 +385,7 @@ message DeleteDriverRequest {
 message DeleteDriverResponse {}
 
 message ListProvidersRequest {
-  string provider = 1 [
-    (buf.validate.field).string.in = "",
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 1;
 }
 
 message ListProvidersResponse {
@@ -464,12 +417,7 @@ message DeleteProviderRequest {
 message DeleteProviderResponse {}
 
 message ListEventLogsRequest {
-  string provider = 1 [
-    (buf.validate.field).string.in = "",
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 1;
   string name = 2;
   string topic = 3;
   string request_id = 4;
@@ -492,12 +440,7 @@ message ListEventLogsResponse {
 }
 
 message GetEventLogAnalyticsRequest {
-  string provider = 1 [
-    (buf.validate.field).string.in = "",
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 1;
   string name = 2;
   string topic = 3;
   string request_id = 4;
@@ -517,12 +460,7 @@ message GetEventLogAnalyticsResponse {
 }
 
 message GetEventLogTimeseriesRequest {
-  string provider = 1 [
-    (buf.validate.field).string.in = "",
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 1;
   string name = 2;
   string topic = 3;
   string request_id = 4;
@@ -543,12 +481,7 @@ message GetEventLogTimeseriesResponse {
 }
 
 message GetEventLogBreakdownRequest {
-  string provider = 1 [
-    (buf.validate.field).string.in = "",
-    (buf.validate.field).string.in = "github",
-    (buf.validate.field).string.in = "gitlab",
-    (buf.validate.field).string.in = "bitbucket"
-  ];
+  string provider = 1;
   string name = 2;
   string topic = 3;
   string request_id = 4;

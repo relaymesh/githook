@@ -178,7 +178,23 @@ func toProtoEventLogRecord(record storage.EventLogRecord) *cloudv1.EventLogRecor
 		ErrorMessage:   record.ErrorMessage,
 		CreatedAt:      toProtoTimestamp(record.CreatedAt),
 		UpdatedAt:      toProtoTimestamp(record.UpdatedAt),
+		Headers:        toProtoEventLogHeaders(record.Headers),
+		Body:           append([]byte(nil), record.Body...),
+		BodyHash:       record.BodyHash,
 	}
+}
+
+func toProtoEventLogHeaders(headers map[string][]string) map[string]*cloudv1.EventLogHeaderValues {
+	if len(headers) == 0 {
+		return nil
+	}
+	out := make(map[string]*cloudv1.EventLogHeaderValues, len(headers))
+	for key, values := range headers {
+		out[key] = &cloudv1.EventLogHeaderValues{
+			Values: append([]string(nil), values...),
+		}
+	}
+	return out
 }
 
 func toProtoEventLogAnalytics(analytics storage.EventLogAnalytics) *cloudv1.EventLogAnalytics {
