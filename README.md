@@ -222,19 +222,14 @@ redirect_base_url: https://app.example.com/success
 githook --endpoint http://localhost:8080 drivers set \
   --tenant-id default \
   --name amqp \
-  --config-file drivers/amqp.json
+  --config-file drivers/amqp.yaml
 ```
 
-`drivers/amqp.json`:
+`drivers/amqp.yaml`:
 
-```json
-{
-  "name": "amqp",
-  "config_json": {
-    "URL": "amqp://guest:guest@localhost:5672/",
-    "Mode": "durable_queue"
-  }
-}
+```yaml
+url: amqp://guest:guest@localhost:5672/
+mode: durable_queue
 ```
 
 2. **Create a provider instance** with OAuth/webhook metadata:
@@ -243,26 +238,21 @@ githook --endpoint http://localhost:8080 drivers set \
 githook --endpoint http://localhost:8080 providers set \
   --tenant-id default \
   --provider github \
-  --config-file providers/github.json
+  --config-file providers/github.yaml
 ```
 
-`providers/github.json` can include the `redirect_base_url` field:
+`providers/github.yaml` can include the `redirect_base_url` field:
 
-```json
-{
-  "redirect_base_url": "https://app.example.com/oauth/complete",
-  "app": {
-    "app_id": 12345,
-    "private_key_pem": "..."
-  },
-  "webhook": {
-    "secret": "your-webhook-secret"
-  },
-  "oauth": {
-    "client_id": "...",
-    "client_secret": "..."
-  }
-}
+```yaml
+redirect_base_url: https://app.example.com/oauth/complete
+app:
+  app_id: 12345
+  private_key_path: ./github.pem
+webhook:
+  secret: your-webhook-secret
+oauth:
+  client_id: "..."
+  client_secret: "..."
 ```
 
 After OAuth completes, users are redirected to this URL with query parameters containing the installation details. If not specified, the global `redirect_base_url` from server config is used.

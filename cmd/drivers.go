@@ -85,7 +85,7 @@ func newDriversSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "set",
 		Short:   "Create or update a driver config",
-		Example: "  githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.json",
+		Example: "  githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(name) == "" {
 				return fmt.Errorf("name is required")
@@ -118,7 +118,7 @@ func newDriversSetCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&name, "name", "", "Driver name (amqp/nats/kafka/sql/http/...)")
-	cmd.Flags().StringVar(&configFile, "config-file", "", "Path to driver YAML/JSON config")
+	cmd.Flags().StringVar(&configFile, "config-file", "", "Path to driver YAML config")
 	cmd.Flags().BoolVar(&enabled, "enabled", true, "Enable this driver")
 	return cmd
 }

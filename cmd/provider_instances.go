@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -102,8 +103,15 @@ func newProviderInstancesSetCmd() *cobra.Command {
 		Use:   "set",
 		Short: "Create a provider instance",
 		Example: "  githook --endpoint http://localhost:8080 providers set --provider github --config-file github.yaml\n" +
-			"  # With redirect_base_url in the config file:\n" +
-			"  # github.json: {\"redirect_base_url\": \"https://app.example.com/oauth/complete\", ...}",
+			"  # With redirect_base_url and private_key_path in the config file:\n" +
+			"  # github.yaml:\n" +
+			"  # redirect_base_url: https://app.example.com/oauth/complete\n" +
+			"  # app:\n" +
+			"  #   app_id: 12345\n" +
+			"  #   private_key_path: ./github.pem\n" +
+			"  # oauth:\n" +
+			"  #   client_id: your-client-id\n" +
+			"  #   client_secret: your-client-secret",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(provider) == "" {
 				return fmt.Errorf("provider is required")
@@ -120,7 +128,7 @@ func newProviderInstancesSetCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to process config: %w", err)
 			}
-			payload, err = injectPrivateKeyPem(payload, "")
+			payload, err = injectPrivateKeyPem(payload, "", configFile)
 			if err != nil {
 				return fmt.Errorf("failed to inject private key: %w", err)
 			}
@@ -150,7 +158,7 @@ func newProviderInstancesSetCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&provider, "provider", "", "Provider name (github/gitlab/bitbucket)")
-	cmd.Flags().StringVar(&configFile, "config-file", "", "Path to provider YAML/JSON config (can include redirect_base_url)")
+	cmd.Flags().StringVar(&configFile, "config-file", "", "Path to provider YAML config (can include redirect_base_url)")
 	cmd.Flags().BoolVar(&enabled, "enabled", true, "Enable this provider instance")
 	cmd.Flags().StringVar(&redirectBaseURL, "redirect-base-url", "", "Post-OAuth redirect URL (overrides config file)")
 	return cmd
@@ -175,7 +183,7 @@ func extractAndRemoveRedirectBaseURL(payload string) (string, string, error) {
 	return string(out), redirectURL, nil
 }
 
-func injectPrivateKeyPem(payload, keyPath string) (string, error) {
+func injectPrivateKeyPem(payload, keyPath, configFile string) (string, error) {
 	var target map[string]any
 	if err := json.Unmarshal([]byte(payload), &target); err != nil {
 		return "", err
@@ -185,7 +193,9 @@ func injectPrivateKeyPem(payload, keyPath string) (string, error) {
 		app = make(map[string]any)
 	}
 	var pem string
+	var keyPathFromConfig string
 	if keyPath != "" {
+		keyPath = resolveConfigPath(configFile, keyPath)
 		data, err := os.ReadFile(keyPath)
 		if err != nil {
 			return "", err
@@ -199,6 +209,8 @@ func injectPrivateKeyPem(payload, keyPath string) (string, error) {
 	}
 	if strings.TrimSpace(pem) == "" {
 		if pathVal, ok := app["private_key_path"].(string); ok && strings.TrimSpace(pathVal) != "" {
+			keyPathFromConfig = pathVal
+			pathVal = resolveConfigPath(configFile, pathVal)
 			data, err := os.ReadFile(pathVal)
 			if err != nil {
 				return "", err
@@ -208,7 +220,9 @@ func injectPrivateKeyPem(payload, keyPath string) (string, error) {
 	}
 	if strings.TrimSpace(pem) != "" {
 		app["private_key_pem"] = pem
-		delete(app, "private_key_path")
+		if strings.TrimSpace(keyPathFromConfig) != "" {
+			delete(app, "private_key_path")
+		}
 	}
 	target["app"] = app
 	out, err := json.Marshal(target)
@@ -216,6 +230,21 @@ func injectPrivateKeyPem(payload, keyPath string) (string, error) {
 		return "", err
 	}
 	return string(out), nil
+}
+
+func resolveConfigPath(configFile, value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	if filepath.IsAbs(value) || configFile == "" {
+		return value
+	}
+	dir := filepath.Dir(strings.TrimSpace(configFile))
+	if dir == "" || dir == "." {
+		return value
+	}
+	return filepath.Join(dir, value)
 }
 
 func newProviderInstancesDeleteCmd() *cobra.Command {

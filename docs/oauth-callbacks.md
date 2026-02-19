@@ -45,7 +45,7 @@ You can set a different redirect URL for each provider instance by including `re
 Then create the provider:
 
 ```bash
-githook providers set --provider github --config-file github.json
+githook providers set --provider github --config-file github.yaml
 ```
 
 Per-instance redirect URLs take precedence over the global `redirect_base_url` setting. This is useful when:

@@ -85,27 +85,22 @@ githook --endpoint http://localhost:8080 --tenant-id acme providers set --provid
 githook --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>
 ```
 
-`providers set` reads the provided YAML (or JSON) and stores it as the provider instance configuration. Because the CLI automatically sends `X-Tenant-ID`, you can also override the tenant via `--tenant-id` so the new provider lands in the right workspace. The API generates the instance hash on creation; store it for later use with `providers get`, `providers delete`, and the OAuth onboarding `instance=` query parameter.
+`providers set` reads the provided YAML and stores it as the provider instance configuration. Because the CLI automatically sends `X-Tenant-ID`, you can also override the tenant via `--tenant-id` so the new provider lands in the right workspace. The API generates the instance hash on creation; store it for later use with `providers get`, `providers delete`, and the OAuth onboarding `instance=` query parameter.
 
 ### Config File Format
 
 The config file can include `redirect_base_url` for per-instance OAuth redirects:
 
-```json
-{
-  "redirect_base_url": "https://app.example.com/oauth/complete",
-  "app": {
-    "app_id": 12345,
-    "private_key_pem": "-----BEGIN RSA PRIVATE KEY-----\n..."
-  },
-  "webhook": {
-    "secret": "your-webhook-secret"
-  },
-  "oauth": {
-    "client_id": "your-client-id",
-    "client_secret": "your-client-secret"
-  }
-}
+```yaml
+redirect_base_url: https://app.example.com/oauth/complete
+app:
+  app_id: 12345
+  private_key_path: ./github.pem
+webhook:
+  secret: your-webhook-secret
+oauth:
+  client_id: your-client-id
+  client_secret: your-client-secret
 ```
 
 ### Flags for `providers set`
@@ -113,7 +108,7 @@ The config file can include `redirect_base_url` for per-instance OAuth redirects
 | Flag | Description |
 |------|-------------|
 | `--provider` | Provider name: `github`, `gitlab`, or `bitbucket` |
-| `--config-file` | Path to provider YAML/JSON configuration file (can include `redirect_base_url`) |
+| `--config-file` | Path to provider YAML configuration file (can include `redirect_base_url`) |
 | `--enabled` | Enable this provider instance (default: `true`) |
 | `--redirect-base-url` | Per-instance OAuth redirect URL (overrides value in config file) |
 
@@ -126,7 +121,7 @@ githook --endpoint http://localhost:8080 --tenant-id acme drivers set --name amq
 githook --endpoint http://localhost:8080 drivers delete --name amqp
 ```
 
-The driver config file can be written in YAML (or JSON) and the CLI converts it to the JSON payload required by the API. `--tenant-id` decides which tenant owns the driver.
+The driver config file must be YAML and the CLI converts it to the JSON payload required by the API. `--tenant-id` decides which tenant owns the driver.
 
 ## Rules (curl)
 
