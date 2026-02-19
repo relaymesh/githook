@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/rs/cors"
 
 	"githook/pkg/api"
-	"githook/pkg/auth"
 	oidchelper "githook/pkg/auth/oidc"
 	"githook/pkg/core"
 	driverspkg "githook/pkg/drivers"
@@ -198,12 +198,15 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		connectOpts = append(connectOpts, connect.WithInterceptors(newAuthInterceptor(verifier, logger)))
 	}
 	connectOpts = append(connectOpts, connect.WithInterceptors(newTenantInterceptor()))
+	webhookRegistry := webhook.DefaultRegistry()
+	oauthRegistry := oauth.DefaultRegistry()
 	mux.Handle("/", &oauth.StartHandler{
 		Providers:             config.Providers,
 		Endpoint:              config.Endpoint,
 		Logger:                logger,
 		ProviderInstanceStore: instanceStore,
 		ProviderInstanceCache: instanceCache,
+		Registry:              oauthRegistry,
 	})
 	{
 		installSvc := &api.InstallationsService{
@@ -265,95 +268,61 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		mux.Handle(path, handler)
 	}
 
-	ghHandler, err := webhook.NewGitHubHandler(
-		config.Providers.GitHub.Webhook.Secret,
-		ruleEngine,
-		publisher,
-		logger,
-		config.Server.MaxBodyBytes,
-		config.Server.DebugEvents,
-		installStore,
-		namespaceStore,
-		logStore,
-		ruleStore,
-		driverStore,
-		config.RulesStrict,
-		dynamicDriverCache,
-	)
-	if err != nil {
-		return fmt.Errorf("github handler: %w", err)
+	webhookOpts := webhook.HandlerOptions{
+		Rules:              ruleEngine,
+		Publisher:          publisher,
+		Logger:             logger,
+		MaxBodyBytes:       config.Server.MaxBodyBytes,
+		DebugEvents:        config.Server.DebugEvents,
+		InstallStore:       installStore,
+		NamespaceStore:     namespaceStore,
+		EventLogStore:      logStore,
+		RuleStore:          ruleStore,
+		DriverStore:        driverStore,
+		RulesStrict:        config.RulesStrict,
+		DynamicDriverCache: dynamicDriverCache,
 	}
-	mux.Handle(config.Providers.GitHub.Webhook.Path, ghHandler)
-	logger.Printf(
-		"provider=github webhook=enabled path=%s oauth_callback=/auth/github/callback app_id=%d",
-		config.Providers.GitHub.Webhook.Path,
-		config.Providers.GitHub.App.AppID,
-	)
 
-	glHandler, err := webhook.NewGitLabHandler(
-		config.Providers.GitLab.Webhook.Secret,
-		ruleEngine,
-		publisher,
-		logger,
-		config.Server.MaxBodyBytes,
-		config.Server.DebugEvents,
-		namespaceStore,
-		logStore,
-		ruleStore,
-		driverStore,
-		config.RulesStrict,
-		dynamicDriverCache,
-	)
-	if err != nil {
-		return fmt.Errorf("gitlab handler: %w", err)
+	for _, provider := range webhookRegistry.Providers() {
+		providerCfg, ok := config.Providers.ProviderConfigFor(provider.Name())
+		if !ok {
+			continue
+		}
+		handler, err := provider.NewHandler(providerCfg, webhookOpts)
+		if err != nil {
+			return fmt.Errorf("%s handler: %w", provider.Name(), err)
+		}
+		path := provider.WebhookPath(providerCfg)
+		mux.Handle(path, handler)
+		oauthCallback := ""
+		if oauthProvider, ok := oauthRegistry.Provider(provider.Name()); ok {
+			oauthCallback = oauthProvider.CallbackPath()
+		}
+		extra := strings.TrimSpace(provider.WebhookLogFields(providerCfg))
+		if extra != "" {
+			extra = " " + extra
+		}
+		logger.Printf("provider=%s webhook=enabled path=%s oauth_callback=%s%s", provider.Name(), path, oauthCallback, extra)
 	}
-	mux.Handle(config.Providers.GitLab.Webhook.Path, glHandler)
-	logger.Printf(
-		"provider=gitlab webhook=enabled path=%s oauth_callback=/auth/gitlab/callback",
-		config.Providers.GitLab.Webhook.Path,
-	)
-
-	bbHandler, err := webhook.NewBitbucketHandler(
-		config.Providers.Bitbucket.Webhook.Secret,
-		ruleEngine,
-		publisher,
-		logger,
-		config.Server.MaxBodyBytes,
-		config.Server.DebugEvents,
-		namespaceStore,
-		logStore,
-		ruleStore,
-		driverStore,
-		config.RulesStrict,
-		dynamicDriverCache,
-	)
-	if err != nil {
-		return fmt.Errorf("bitbucket handler: %w", err)
-	}
-	mux.Handle(config.Providers.Bitbucket.Webhook.Path, bbHandler)
-	logger.Printf(
-		"provider=bitbucket webhook=enabled path=%s oauth_callback=/auth/bitbucket/callback",
-		config.Providers.Bitbucket.Webhook.Path,
-	)
 
 	redirectBase := config.RedirectBaseURL
-	oauthHandler := func(provider string, cfg auth.ProviderConfig) *oauth.Handler {
-		return &oauth.Handler{
-			Provider:              provider,
-			Config:                cfg,
-			Providers:             config.Providers,
-			Store:                 installStore,
-			NamespaceStore:        namespaceStore,
-			ProviderInstanceStore: instanceStore,
-			ProviderInstanceCache: instanceCache,
-			Logger:                logger,
-			RedirectBase:          redirectBase,
-			Endpoint:              config.Endpoint,
-		}
+	oauthOpts := oauth.HandlerOptions{
+		Providers:             config.Providers,
+		Store:                 installStore,
+		NamespaceStore:        namespaceStore,
+		ProviderInstanceStore: instanceStore,
+		ProviderInstanceCache: instanceCache,
+		Logger:                logger,
+		RedirectBase:          redirectBase,
+		Endpoint:              config.Endpoint,
 	}
-	mux.Handle("/auth/github/callback", oauthHandler("github", config.Providers.GitHub))
-	mux.Handle("/auth/gitlab/callback", oauthHandler("gitlab", config.Providers.GitLab))
-	mux.Handle("/auth/bitbucket/callback", oauthHandler("bitbucket", config.Providers.Bitbucket))
+	for _, provider := range oauthRegistry.Providers() {
+		providerCfg, ok := config.Providers.ProviderConfigFor(provider.Name())
+		if !ok {
+			continue
+		}
+		mux.Handle(provider.CallbackPath(), provider.NewHandler(providerCfg, oauthOpts))
+	}
 
 	corsHandler := cors.New(cors.Options{
 		AllowedMethods: []string{

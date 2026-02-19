@@ -1,10 +1,32 @@
 package auth
 
+import "strings"
+
 // Config contains provider configuration for webhooks and SCM auth.
 type Config struct {
-	GitHub    ProviderConfig `yaml:"github"`
-	GitLab    ProviderConfig `yaml:"gitlab"`
-	Bitbucket ProviderConfig `yaml:"bitbucket"`
+	GitHub    ProviderConfig            `yaml:"github"`
+	GitLab    ProviderConfig            `yaml:"gitlab"`
+	Bitbucket ProviderConfig            `yaml:"bitbucket"`
+	Extra     map[string]ProviderConfig `yaml:"extra"`
+}
+
+// ProviderConfigFor returns a provider config by name, including extras.
+func (c Config) ProviderConfigFor(provider string) (ProviderConfig, bool) {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	switch provider {
+	case "github":
+		return c.GitHub, true
+	case "gitlab":
+		return c.GitLab, true
+	case "bitbucket":
+		return c.Bitbucket, true
+	default:
+		if c.Extra == nil {
+			return ProviderConfig{}, false
+		}
+		cfg, ok := c.Extra[provider]
+		return cfg, ok
+	}
 }
 
 // ProviderConfig contains webhook and auth configuration for a provider.

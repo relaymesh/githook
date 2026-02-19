@@ -22,6 +22,7 @@ type StartHandler struct {
 	Logger                *log.Logger
 	ProviderInstanceStore storage.ProviderInstanceStore
 	ProviderInstanceCache *providerinstance.Cache
+	Registry              *Registry
 }
 
 func (h *StartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -63,37 +64,25 @@ func (h *StartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		instanceKey, providerCfg.App.AppSlug, providerCfg.Webhook.Secret, providerCfg.OAuth.ClientID)
 	state = encodeState(state, tenantID, instanceKey)
 
-	switch provider {
-	case "github":
-		target, err := githubInstallURL(providerCfg, state)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		http.Redirect(w, r, target, http.StatusFound)
-	case "gitlab":
-		redirectURL := callbackURL(r, "gitlab", h.Endpoint)
-		target, err := gitlabAuthorizeURL(providerCfg, state, redirectURL)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		http.Redirect(w, r, target, http.StatusFound)
-	case "bitbucket":
-		redirectURL := callbackURL(r, "bitbucket", h.Endpoint)
-		target, err := bitbucketAuthorizeURL(providerCfg, state, redirectURL)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		http.Redirect(w, r, target, http.StatusFound)
-	default:
-		http.Error(w, "unsupported provider", http.StatusBadRequest)
+	registry := h.Registry
+	if registry == nil {
+		registry = DefaultRegistry()
 	}
+	plugin, ok := registry.Provider(provider)
+	if !ok {
+		http.Error(w, "unsupported provider", http.StatusBadRequest)
+		return
+	}
+	target, err := plugin.AuthorizeURL(r, providerCfg, state, h.Endpoint)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, target, http.StatusFound)
 }
 
 func (h *StartHandler) resolveProviderConfig(ctx context.Context, provider, instanceKey string) (auth.ProviderConfig, string) {
-	fallback := providerConfigFromAuth(h.Providers, provider)
+	fallback, _ := h.Providers.ProviderConfigFor(provider)
 	instanceKey = strings.TrimSpace(instanceKey)
 
 	if instanceKey != "" {
@@ -128,14 +117,8 @@ func (h *StartHandler) resolveProviderConfig(ctx context.Context, provider, inst
 }
 
 func providerConfigFromAuth(cfg auth.Config, provider string) auth.ProviderConfig {
-	switch provider {
-	case "gitlab":
-		return cfg.GitLab
-	case "bitbucket":
-		return cfg.Bitbucket
-	default:
-		return cfg.GitHub
-	}
+	config, _ := cfg.ProviderConfigFor(provider)
+	return config
 }
 
 func githubInstallURL(cfg auth.ProviderConfig, state string) (string, error) {
