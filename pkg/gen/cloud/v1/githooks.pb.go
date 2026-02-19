@@ -4461,9 +4461,9 @@ var File_cloud_v1_githooks_proto protoreflect.FileDescriptor
 
 const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\n" +
-	"\x17cloud/v1/githooks.proto\x12\bcloud.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9c\x04\n" +
-	"\rInstallRecord\x12<\n" +
-	"\bprovider\x18\x01 \x01(\tB \xbaH\x1dr\x1bR\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12&\n" +
+	"\x17cloud/v1/githooks.proto\x12\bcloud.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x83\x04\n" +
+	"\rInstallRecord\x12#\n" +
+	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12&\n" +
 	"\n" +
 	"account_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\taccountId\x12!\n" +
 	"\faccount_name\x18\x03 \x01(\tR\vaccountName\x120\n" +
@@ -4478,9 +4478,9 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x122\n" +
-	"\x15provider_instance_key\x18\v \x01(\tR\x13providerInstanceKey\"\x9c\x04\n" +
-	"\x0fNamespaceRecord\x12<\n" +
-	"\bprovider\x18\x01 \x01(\tB \xbaH\x1dr\x1bR\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x17\n" +
+	"\x15provider_instance_key\x18\v \x01(\tR\x13providerInstanceKey\"\x83\x04\n" +
+	"\x0fNamespaceRecord\x12#\n" +
+	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12\x17\n" +
 	"\arepo_id\x18\x02 \x01(\tR\x06repoId\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x03 \x01(\tR\taccountId\x12'\n" +
@@ -4499,52 +4499,52 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"u\n" +
+	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"Q\n" +
 	"\x18ListInstallationsRequest\x12\x19\n" +
-	"\bstate_id\x18\x01 \x01(\tR\astateId\x12>\n" +
-	"\bprovider\x18\x02 \x01(\tB\"\xbaH\x1fr\x1dR\x00R\x06githubR\x06gitlabR\tbitbucketR\bprovider\"Z\n" +
+	"\bstate_id\x18\x01 \x01(\tR\astateId\x12\x1a\n" +
+	"\bprovider\x18\x02 \x01(\tR\bprovider\"Z\n" +
 	"\x19ListInstallationsResponse\x12=\n" +
-	"\rinstallations\x18\x01 \x03(\v2\x17.cloud.v1.InstallRecordR\rinstallations\"\x8e\x01\n" +
-	"\x1aGetInstallationByIDRequest\x12>\n" +
-	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x120\n" +
+	"\rinstallations\x18\x01 \x03(\v2\x17.cloud.v1.InstallRecordR\rinstallations\"s\n" +
+	"\x1aGetInstallationByIDRequest\x12#\n" +
+	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x120\n" +
 	"\x0finstallation_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0einstallationId\"Z\n" +
 	"\x1bGetInstallationByIDResponse\x12;\n" +
 	"\finstallation\x18\x01 \x01(\v2\x17.cloud.v1.InstallRecordR\finstallation\"`\n" +
 	"\x19UpsertInstallationRequest\x12C\n" +
 	"\finstallation\x18\x01 \x01(\v2\x17.cloud.v1.InstallRecordB\x06\xbaH\x03\xc8\x01\x01R\finstallation\"Y\n" +
 	"\x1aUpsertInstallationResponse\x12;\n" +
-	"\finstallation\x18\x01 \x01(\v2\x17.cloud.v1.InstallRecordR\finstallation\"\xe9\x01\n" +
-	"\x19DeleteInstallationRequest\x12>\n" +
-	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12&\n" +
+	"\finstallation\x18\x01 \x01(\v2\x17.cloud.v1.InstallRecordR\finstallation\"\xce\x01\n" +
+	"\x19DeleteInstallationRequest\x12#\n" +
+	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12&\n" +
 	"\n" +
 	"account_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\taccountId\x120\n" +
 	"\x0finstallation_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0einstallationId\x122\n" +
 	"\x15provider_instance_key\x18\x04 \x01(\tR\x13providerInstanceKey\"\x1c\n" +
-	"\x1aDeleteInstallationResponse\"\xb9\x01\n" +
+	"\x1aDeleteInstallationResponse\"\x95\x01\n" +
 	"\x15ListNamespacesRequest\x12\x19\n" +
-	"\bstate_id\x18\x01 \x01(\tR\astateId\x12>\n" +
-	"\bprovider\x18\x02 \x01(\tB\"\xbaH\x1fr\x1dR\x00R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x14\n" +
+	"\bstate_id\x18\x01 \x01(\tR\astateId\x12\x1a\n" +
+	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x14\n" +
 	"\x05owner\x18\x03 \x01(\tR\x05owner\x12\x12\n" +
 	"\x04repo\x18\x04 \x01(\tR\x04repo\x12\x1b\n" +
 	"\tfull_name\x18\x05 \x01(\tR\bfullName\"S\n" +
 	"\x16ListNamespacesResponse\x129\n" +
 	"\n" +
 	"namespaces\x18\x01 \x03(\v2\x19.cloud.v1.NamespaceRecordR\n" +
-	"namespaces\"r\n" +
+	"namespaces\"W\n" +
 	"\x15SyncNamespacesRequest\x12\x19\n" +
-	"\bstate_id\x18\x01 \x01(\tR\astateId\x12>\n" +
-	"\bprovider\x18\x02 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\"S\n" +
+	"\bstate_id\x18\x01 \x01(\tR\astateId\x12#\n" +
+	"\bprovider\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\"S\n" +
 	"\x16SyncNamespacesResponse\x129\n" +
 	"\n" +
 	"namespaces\x18\x01 \x03(\v2\x19.cloud.v1.NamespaceRecordR\n" +
-	"namespaces\"\x99\x01\n" +
+	"namespaces\"~\n" +
 	"\x1aGetNamespaceWebhookRequest\x12\x19\n" +
-	"\bstate_id\x18\x01 \x01(\tR\astateId\x12>\n" +
-	"\bprovider\x18\x02 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12 \n" +
-	"\arepo_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06repoId\"\xb3\x01\n" +
+	"\bstate_id\x18\x01 \x01(\tR\astateId\x12#\n" +
+	"\bprovider\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12 \n" +
+	"\arepo_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06repoId\"\x98\x01\n" +
 	"\x1aSetNamespaceWebhookRequest\x12\x19\n" +
-	"\bstate_id\x18\x01 \x01(\tR\astateId\x12>\n" +
-	"\bprovider\x18\x02 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12 \n" +
+	"\bstate_id\x18\x01 \x01(\tR\astateId\x12#\n" +
+	"\bprovider\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12 \n" +
 	"\arepo_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06repoId\x12\x18\n" +
 	"\aenabled\x18\x04 \x01(\bR\aenabled\"7\n" +
 	"\x1bGetNamespaceWebhookResponse\x12\x18\n" +
@@ -4575,9 +4575,9 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x0e\n" +
-	"\x02id\x18\x06 \x01(\tR\x02id\"\xc1\x02\n" +
-	"\x0eProviderRecord\x12>\n" +
-	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x12\n" +
+	"\x02id\x18\x06 \x01(\tR\x02id\"\xa6\x02\n" +
+	"\x0eProviderRecord\x12#\n" +
+	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12\x12\n" +
 	"\x04hash\x18\x02 \x01(\tR\x04hash\x12\x1f\n" +
 	"\vconfig_json\x18\x03 \x01(\tR\n" +
 	"configJson\x12\x18\n" +
@@ -4588,10 +4588,10 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12*\n" +
 	"\x11redirect_base_url\x18\a \x01(\tR\x0fredirectBaseUrl\".\n" +
 	"\x14EventLogHeaderValues\x12\x16\n" +
-	"\x06values\x18\x01 \x03(\tR\x06values\"\xa0\x06\n" +
+	"\x06values\x18\x01 \x03(\tR\x06values\"\xfe\x05\n" +
 	"\x0eEventLogRecord\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12<\n" +
-	"\bprovider\x18\x02 \x01(\tB \xbaH\x1dr\x1bR\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x12\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
+	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x04 \x01(\tR\trequestId\x12\x19\n" +
@@ -4648,9 +4648,9 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\ffailed_count\x18\x04 \x01(\x03R\vfailedCount\x12$\n" +
 	"\x0elatency_p50_ms\x18\x05 \x01(\x01R\flatencyP50Ms\x12$\n" +
 	"\x0elatency_p95_ms\x18\x06 \x01(\x01R\flatencyP95Ms\x12$\n" +
-	"\x0elatency_p99_ms\x18\a \x01(\x01R\flatencyP99Ms\"\x8e\x01\n" +
-	"\fEventPayload\x12>\n" +
-	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1d\x10\x01R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x1b\n" +
+	"\x0elatency_p99_ms\x18\a \x01(\x01R\flatencyP99Ms\"s\n" +
+	"\fEventPayload\x12#\n" +
+	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12\x1b\n" +
 	"\x04name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12!\n" +
 	"\apayload\x18\x03 \x01(\fB\a\xbaH\x04z\x02\x10\x01R\apayload\"P\n" +
 	"\tRuleMatch\x12\x12\n" +
@@ -4695,9 +4695,9 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\x06driver\x18\x01 \x01(\v2\x16.cloud.v1.DriverRecordR\x06driver\"2\n" +
 	"\x13DeleteDriverRequest\x12\x1b\n" +
 	"\x04name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\"\x16\n" +
-	"\x14DeleteDriverResponse\"V\n" +
-	"\x14ListProvidersRequest\x12>\n" +
-	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1dR\x00R\x06githubR\x06gitlabR\tbitbucketR\bprovider\"O\n" +
+	"\x14DeleteDriverResponse\"2\n" +
+	"\x14ListProvidersRequest\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\"O\n" +
 	"\x15ListProvidersResponse\x126\n" +
 	"\tproviders\x18\x01 \x03(\v2\x18.cloud.v1.ProviderRecordR\tproviders\"V\n" +
 	"\x12GetProviderRequest\x12#\n" +
@@ -4712,9 +4712,9 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\x15DeleteProviderRequest\x12#\n" +
 	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12\x1b\n" +
 	"\x04hash\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04hash\"\x18\n" +
-	"\x16DeleteProviderResponse\"\xc0\x04\n" +
-	"\x14ListEventLogsRequest\x12>\n" +
-	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1dR\x00R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x12\n" +
+	"\x16DeleteProviderResponse\"\x9c\x04\n" +
+	"\x14ListEventLogsRequest\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05topic\x18\x03 \x01(\tR\x05topic\x12\x1d\n" +
 	"\n" +
@@ -4736,9 +4736,9 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\bend_time\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\"m\n" +
 	"\x15ListEventLogsResponse\x12,\n" +
 	"\x04logs\x18\x01 \x03(\v2\x18.cloud.v1.EventLogRecordR\x04logs\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xff\x03\n" +
-	"\x1bGetEventLogAnalyticsRequest\x12>\n" +
-	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1dR\x00R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x12\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xdb\x03\n" +
+	"\x1bGetEventLogAnalyticsRequest\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05topic\x18\x03 \x01(\tR\x05topic\x12\x1d\n" +
 	"\n" +
@@ -4755,9 +4755,9 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"start_time\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x125\n" +
 	"\bend_time\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\"Y\n" +
 	"\x1cGetEventLogAnalyticsResponse\x129\n" +
-	"\tanalytics\x18\x01 \x01(\v2\x1b.cloud.v1.EventLogAnalyticsR\tanalytics\"\xcc\x04\n" +
-	"\x1cGetEventLogTimeseriesRequest\x12>\n" +
-	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1dR\x00R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x12\n" +
+	"\tanalytics\x18\x01 \x01(\v2\x1b.cloud.v1.EventLogAnalyticsR\tanalytics\"\xa8\x04\n" +
+	"\x1cGetEventLogTimeseriesRequest\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05topic\x18\x03 \x01(\tR\x05topic\x12\x1d\n" +
 	"\n" +
@@ -4775,9 +4775,9 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\bend_time\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\x12J\n" +
 	"\binterval\x18\x0e \x01(\x0e2$.cloud.v1.EventLogTimeseriesIntervalB\b\xbaH\x05\x82\x01\x02 \x00R\binterval\"]\n" +
 	"\x1dGetEventLogTimeseriesResponse\x12<\n" +
-	"\abuckets\x18\x01 \x03(\v2\".cloud.v1.EventLogTimeseriesBucketR\abuckets\"\x8e\x06\n" +
-	"\x1bGetEventLogBreakdownRequest\x12>\n" +
-	"\bprovider\x18\x01 \x01(\tB\"\xbaH\x1fr\x1dR\x00R\x06githubR\x06gitlabR\tbitbucketR\bprovider\x12\x12\n" +
+	"\abuckets\x18\x01 \x03(\v2\".cloud.v1.EventLogTimeseriesBucketR\abuckets\"\xea\x05\n" +
+	"\x1bGetEventLogBreakdownRequest\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05topic\x18\x03 \x01(\tR\x05topic\x12\x1d\n" +
 	"\n" +
