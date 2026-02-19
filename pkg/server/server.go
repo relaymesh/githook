@@ -48,13 +48,87 @@ func RunConfig(configPath string) error {
 
 // Run starts the server until the context is canceled.
 func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
+	return RunWithMiddleware(ctx, config, logger)
+}
+
+// RunWithMiddleware starts the server with HTTP middleware applied to all handlers.
+func RunWithMiddleware(ctx context.Context, config core.Config, logger *log.Logger, middlewares ...Middleware) error {
+	if logger == nil {
+		logger = core.NewLogger("server")
+	}
+	handler, cleanup, err := BuildHandler(ctx, config, logger, middlewares...)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
+
+	addr := ":" + strconv.Itoa(config.Server.Port)
+	if config.Endpoint != "" {
+		logger.Printf("server endpoint=%s", config.Endpoint)
+	}
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadTimeout:       time.Duration(config.Server.ReadTimeoutMS) * time.Millisecond,
+		WriteTimeout:      time.Duration(config.Server.WriteTimeoutMS) * time.Millisecond,
+		IdleTimeout:       time.Duration(config.Server.IdleTimeoutMS) * time.Millisecond,
+		ReadHeaderTimeout: time.Duration(config.Server.ReadHeaderMS) * time.Millisecond,
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		logger.Printf("listening on %s", addr)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errCh <- err
+			return
+		}
+		errCh <- nil
+	}()
+
+	select {
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			logger.Printf("shutdown: %v", err)
+		}
+		return nil
+	case err := <-errCh:
+		if err != nil {
+			return fmt.Errorf("listen: %w", err)
+		}
+		return nil
+	}
+}
+
+// BuildHandler constructs the HTTP handler and returns a cleanup function.
+func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, middlewares ...Middleware) (http.Handler, func(), error) {
+	if logger == nil {
+		logger = core.NewLogger("server")
+	}
+	var closers []func()
+	addCloser := func(fn func()) {
+		if fn != nil {
+			closers = append(closers, fn)
+		}
+	}
+	cleanup := func() {
+		for i := len(closers) - 1; i >= 0; i-- {
+			closers[i]()
+		}
+	}
+	fail := func(err error) (http.Handler, func(), error) {
+		cleanup()
+		return nil, nil, err
+	}
+
 	ruleEngine, err := core.NewRuleEngine(core.RulesConfig{
 		Rules:  config.Rules,
 		Strict: config.RulesStrict,
 		Logger: logger,
 	})
 	if err != nil {
-		return fmt.Errorf("compile rules: %w", err)
+		return fail(fmt.Errorf("compile rules: %w", err))
 	}
 
 	var (
@@ -76,10 +150,10 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 			AutoMigrate: config.Storage.AutoMigrate,
 		})
 		if err != nil {
-			return fmt.Errorf("storage: %w", err)
+			return fail(fmt.Errorf("storage: %w", err))
 		}
 		installStore = store
-		defer installStore.Close()
+		addCloser(func() { _ = installStore.Close() })
 		logger.Printf("storage enabled driver=%s dialect=%s table=githook_installations", config.Storage.Driver, config.Storage.Dialect)
 
 		nsStore, err := namespaces.Open(namespaces.Config{
@@ -89,10 +163,10 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 			AutoMigrate: config.Storage.AutoMigrate,
 		})
 		if err != nil {
-			return fmt.Errorf("namespaces storage: %w", err)
+			return fail(fmt.Errorf("namespaces storage: %w", err))
 		}
 		namespaceStore = nsStore
-		defer namespaceStore.Close()
+		addCloser(func() { _ = namespaceStore.Close() })
 		logger.Printf("namespaces enabled driver=%s dialect=%s table=git_namespaces", config.Storage.Driver, config.Storage.Dialect)
 
 		rsStore, err := rules.Open(rules.Config{
@@ -102,10 +176,10 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 			AutoMigrate: config.Storage.AutoMigrate,
 		})
 		if err != nil {
-			return fmt.Errorf("rules storage: %w", err)
+			return fail(fmt.Errorf("rules storage: %w", err))
 		}
 		ruleStore = rsStore
-		defer ruleStore.Close()
+		addCloser(func() { _ = ruleStore.Close() })
 		logger.Printf("rules enabled driver=%s dialect=%s table=githook_rules", config.Storage.Driver, config.Storage.Dialect)
 
 		elStore, err := eventlogs.Open(eventlogs.Config{
@@ -115,10 +189,10 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 			AutoMigrate: config.Storage.AutoMigrate,
 		})
 		if err != nil {
-			return fmt.Errorf("event logs storage: %w", err)
+			return fail(fmt.Errorf("event logs storage: %w", err))
 		}
 		logStore = elStore
-		defer logStore.Close()
+		addCloser(func() { _ = logStore.Close() })
 		logger.Printf("event logs enabled driver=%s dialect=%s table=githook_event_logs", config.Storage.Driver, config.Storage.Dialect)
 
 		dsStore, err := driversstore.Open(driversstore.Config{
@@ -128,10 +202,10 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 			AutoMigrate: config.Storage.AutoMigrate,
 		})
 		if err != nil {
-			return fmt.Errorf("drivers storage: %w", err)
+			return fail(fmt.Errorf("driver storage: %w", err))
 		}
 		driverStore = dsStore
-		defer driverStore.Close()
+		addCloser(func() { _ = driverStore.Close() })
 		logger.Printf("drivers enabled driver=%s dialect=%s table=githook_drivers", config.Storage.Driver, config.Storage.Dialect)
 
 		piStore, err := providerinstancestore.Open(providerinstancestore.Config{
@@ -141,41 +215,43 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 			AutoMigrate: config.Storage.AutoMigrate,
 		})
 		if err != nil {
-			return fmt.Errorf("provider instances storage: %w", err)
+			return fail(fmt.Errorf("provider instances storage: %w", err))
 		}
 		instanceStore = piStore
-		defer instanceStore.Close()
+		addCloser(func() { _ = instanceStore.Close() })
 		logger.Printf("provider instances enabled driver=%s dialect=%s table=githook_provider_instances", config.Storage.Driver, config.Storage.Dialect)
 	} else {
 		logger.Printf("storage disabled (missing storage.driver or storage.dsn)")
 	}
 
 	dynamicDriverCache = driverspkg.NewDynamicPublisherCache()
-	defer dynamicDriverCache.Close()
+	addCloser(func() { _ = dynamicDriverCache.Close() })
 
 	if driverStore != nil {
 		driverCache = driverspkg.NewCache(driverStore, config.Watermill, logger)
 		if err := driverCache.Refresh(ctx); err != nil {
-			return fmt.Errorf("drivers cache: %w", err)
+			return fail(fmt.Errorf("drivers cache: %w", err))
 		}
+		addCloser(driverCache.Close)
 	}
 
 	if instanceStore != nil {
 		instanceCache = providerinstance.NewCache(instanceStore, logger)
 		if err := instanceCache.Refresh(ctx); err != nil {
-			return fmt.Errorf("provider instances cache: %w", err)
+			return fail(fmt.Errorf("provider instances cache: %w", err))
 		}
+		addCloser(instanceCache.Close)
 	}
 
 	basePublisher, err := core.NewPublisher(config.Watermill)
 	if err != nil {
-		return fmt.Errorf("publisher: %w", err)
+		return fail(fmt.Errorf("publisher: %w", err))
 	}
 	publisher := core.Publisher(basePublisher)
 	if driverCache != nil {
 		publisher = driverspkg.NewTenantPublisher(driverCache, basePublisher)
 	}
-	defer publisher.Close()
+	addCloser(func() { _ = publisher.Close() })
 
 	mux := http.NewServeMux()
 	validationInterceptor := validate.NewInterceptor()
@@ -186,7 +262,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 	if config.Auth.OAuth2.Enabled {
 		created, err := oidchelper.NewVerifier(ctx, config.Auth.OAuth2)
 		if err != nil {
-			return fmt.Errorf("oauth2 verifier: %w", err)
+			return fail(fmt.Errorf("oauth2 verifier: %w", err))
 		}
 		verifier = created
 		authHandler := newOAuth2Handler(config.Auth.OAuth2, logger)
@@ -290,7 +366,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		}
 		handler, err := provider.NewHandler(providerCfg, webhookOpts)
 		if err != nil {
-			return fmt.Errorf("%s handler: %w", provider.Name(), err)
+			return fail(fmt.Errorf("%s handler: %w", provider.Name(), err))
 		}
 		path := provider.WebhookPath(providerCfg)
 		mux.Handle(path, handler)
@@ -350,43 +426,8 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		},
 		MaxAge: int(2 * time.Hour / time.Second),
 	})
-	handler := h2c.NewHandler(corsHandler.Handler(mux), &http2.Server{})
+	appHandler := applyMiddlewares(mux, middlewares)
+	handler := h2c.NewHandler(corsHandler.Handler(appHandler), &http2.Server{})
 
-	addr := ":" + strconv.Itoa(config.Server.Port)
-	if config.Endpoint != "" {
-		logger.Printf("server endpoint=%s", config.Endpoint)
-	}
-	server := &http.Server{
-		Addr:              addr,
-		Handler:           handler,
-		ReadTimeout:       time.Duration(config.Server.ReadTimeoutMS) * time.Millisecond,
-		WriteTimeout:      time.Duration(config.Server.WriteTimeoutMS) * time.Millisecond,
-		IdleTimeout:       time.Duration(config.Server.IdleTimeoutMS) * time.Millisecond,
-		ReadHeaderTimeout: time.Duration(config.Server.ReadHeaderMS) * time.Millisecond,
-	}
-
-	errCh := make(chan error, 1)
-	go func() {
-		logger.Printf("listening on %s", addr)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			errCh <- err
-			return
-		}
-		errCh <- nil
-	}()
-
-	select {
-	case <-ctx.Done():
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		if err := server.Shutdown(shutdownCtx); err != nil {
-			logger.Printf("shutdown: %v", err)
-		}
-		return nil
-	case err := <-errCh:
-		if err != nil {
-			return fmt.Errorf("listen: %w", err)
-		}
-		return nil
-	}
+	return handler, cleanup, nil
 }
