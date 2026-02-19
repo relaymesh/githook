@@ -210,9 +210,10 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 	})
 	{
 		installSvc := &api.InstallationsService{
-			Store:     installStore,
-			Providers: config.Providers,
-			Logger:    logger,
+			Store:                 installStore,
+			Providers:             config.Providers,
+			ProviderInstanceStore: instanceStore,
+			Logger:                logger,
 		}
 		path, handler := cloudv1connect.NewInstallationsServiceHandler(installSvc, connectOpts...)
 		mux.Handle(path, handler)
@@ -269,22 +270,24 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 	}
 
 	webhookOpts := webhook.HandlerOptions{
-		Rules:              ruleEngine,
-		Publisher:          publisher,
-		Logger:             logger,
-		MaxBodyBytes:       config.Server.MaxBodyBytes,
-		DebugEvents:        config.Server.DebugEvents,
-		InstallStore:       installStore,
-		NamespaceStore:     namespaceStore,
-		EventLogStore:      logStore,
-		RuleStore:          ruleStore,
-		DriverStore:        driverStore,
-		RulesStrict:        config.RulesStrict,
-		DynamicDriverCache: dynamicDriverCache,
+		Rules:                 ruleEngine,
+		Publisher:             publisher,
+		Logger:                logger,
+		MaxBodyBytes:          config.Server.MaxBodyBytes,
+		DebugEvents:           config.Server.DebugEvents,
+		InstallStore:          installStore,
+		NamespaceStore:        namespaceStore,
+		EventLogStore:         logStore,
+		RuleStore:             ruleStore,
+		DriverStore:           driverStore,
+		RulesStrict:           config.RulesStrict,
+		DynamicDriverCache:    dynamicDriverCache,
+		ProviderInstanceStore: instanceStore,
+		ProviderInstanceCache: instanceCache,
 	}
 
 	for _, provider := range webhookRegistry.Providers() {
-		providerCfg, ok := config.Providers.ProviderConfigFor(provider.Name())
+		providerCfg, ok := resolveProviderConfig(ctx, config.Providers, instanceStore, provider.Name())
 		if !ok {
 			continue
 		}
@@ -292,7 +295,11 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		if err != nil {
 			return fmt.Errorf("%s handler: %w", provider.Name(), err)
 		}
-		path := provider.WebhookPath(providerCfg)
+		path := strings.TrimSpace(provider.WebhookPath(providerCfg))
+		if path == "" {
+			logger.Printf("provider=%s webhook=skipped reason=empty_path", provider.Name())
+			continue
+		}
 		mux.Handle(path, handler)
 		oauthCallback := ""
 		if oauthProvider, ok := oauthRegistry.Provider(provider.Name()); ok {
@@ -317,7 +324,7 @@ func Run(ctx context.Context, config core.Config, logger *log.Logger) error {
 		Endpoint:              config.Endpoint,
 	}
 	for _, provider := range oauthRegistry.Providers() {
-		providerCfg, ok := config.Providers.ProviderConfigFor(provider.Name())
+		providerCfg, ok := resolveProviderConfig(ctx, config.Providers, instanceStore, provider.Name())
 		if !ok {
 			continue
 		}

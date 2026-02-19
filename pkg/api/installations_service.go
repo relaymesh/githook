@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
@@ -16,9 +17,10 @@ import (
 
 // InstallationsService implements the Connect/GRPC InstallationsService.
 type InstallationsService struct {
-	Store     storage.Store
-	Providers auth.Config
-	Logger    *log.Logger
+	Store                 storage.Store
+	Providers             auth.Config
+	ProviderInstanceStore storage.ProviderInstanceStore
+	Logger                *log.Logger
 }
 
 func (s *InstallationsService) ListInstallations(
@@ -32,7 +34,10 @@ func (s *InstallationsService) ListInstallations(
 	provider := strings.TrimSpace(req.Msg.GetProvider())
 	providers := []string{provider}
 	if provider == "" {
-		providers = []string{"github", "gitlab", "bitbucket"}
+		providers = providerNamesForInstallations(ctx, s.ProviderInstanceStore)
+		if len(providers) == 0 {
+			providers = []string{"github", "gitlab", "bitbucket"}
+		}
 	}
 	if s.Logger != nil {
 		s.Logger.Printf("installations list provider=%s state_id=%s tenant=%s", provider, stateID, storage.TenantFromContext(ctx))
@@ -55,6 +60,33 @@ func (s *InstallationsService) ListInstallations(
 		Installations: toProtoInstallations(records),
 	}
 	return connect.NewResponse(resp), nil
+}
+
+func providerNamesForInstallations(ctx context.Context, store storage.ProviderInstanceStore) []string {
+	if store == nil {
+		return nil
+	}
+	records, err := store.ListProviderInstances(ctx, "")
+	if err != nil || len(records) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(records))
+	for _, record := range records {
+		name := strings.TrimSpace(record.Provider)
+		if name == "" {
+			continue
+		}
+		seen[name] = struct{}{}
+	}
+	if len(seen) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(seen))
+	for name := range seen {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func (s *InstallationsService) GetInstallationByID(

@@ -3,6 +3,7 @@ package webhook
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"githook/pkg/auth"
 )
@@ -13,12 +14,15 @@ type gitLabProvider struct{}
 
 type bitbucketProvider struct{}
 
+type slackProvider struct{}
+
 // DefaultRegistry registers the built-in webhook providers.
 func DefaultRegistry() *Registry {
 	registry := NewRegistry()
 	_ = registry.Register(gitHubProvider{})
 	_ = registry.Register(gitLabProvider{})
 	_ = registry.Register(bitbucketProvider{})
+	_ = registry.Register(slackProvider{})
 	return registry
 }
 
@@ -108,6 +112,27 @@ func (bitbucketProvider) NewHandler(cfg auth.ProviderConfig, opts HandlerOptions
 }
 
 func (bitbucketProvider) WebhookLogFields(cfg auth.ProviderConfig) string {
+	_ = cfg
+	return ""
+}
+
+func (slackProvider) Name() string {
+	return "slack"
+}
+
+func (slackProvider) WebhookPath(cfg auth.ProviderConfig) string {
+	path := strings.TrimSpace(cfg.Webhook.Path)
+	if path == "" {
+		return "/webhooks/slack"
+	}
+	return path
+}
+
+func (slackProvider) NewHandler(cfg auth.ProviderConfig, opts HandlerOptions) (http.Handler, error) {
+	return NewSlackHandler(cfg, opts)
+}
+
+func (slackProvider) WebhookLogFields(cfg auth.ProviderConfig) string {
 	_ = cfg
 	return ""
 }

@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 
+	"githook/pkg/auth"
+	"githook/pkg/providerinstance"
 	"githook/pkg/storage"
 	"githook/pkg/storage/installations"
 	"githook/pkg/storage/namespaces"
@@ -80,6 +82,31 @@ func resolveProviderInstanceHash(
 		return "", "", err
 	}
 	return hash, legacyKey, nil
+}
+
+func resolveProviderConfig(
+	ctx context.Context,
+	providers auth.Config,
+	instanceStore storage.ProviderInstanceStore,
+	provider string,
+) (auth.ProviderConfig, bool) {
+	if cfg, ok := providers.ProviderConfigFor(provider); ok {
+		return cfg, true
+	}
+	if instanceStore == nil {
+		return auth.ProviderConfig{}, false
+	}
+	records, err := instanceStore.ListProviderInstances(ctx, provider)
+	if err != nil || len(records) == 0 {
+		return auth.ProviderConfig{}, false
+	}
+	for _, record := range records {
+		cfg, err := providerinstance.ProviderConfigFromRecord(record)
+		if err == nil {
+			return cfg, true
+		}
+	}
+	return auth.ProviderConfig{}, false
 }
 
 func migrateProviderInstanceKey(

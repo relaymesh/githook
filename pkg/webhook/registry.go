@@ -10,23 +10,26 @@ import (
 	"githook/pkg/auth"
 	"githook/pkg/core"
 	"githook/pkg/drivers"
+	"githook/pkg/providerinstance"
 	"githook/pkg/storage"
 )
 
 // HandlerOptions holds dependencies used to build webhook handlers.
 type HandlerOptions struct {
-	Rules              *core.RuleEngine
-	Publisher          core.Publisher
-	Logger             *log.Logger
-	MaxBodyBytes       int64
-	DebugEvents        bool
-	InstallStore       storage.Store
-	NamespaceStore     storage.NamespaceStore
-	EventLogStore      storage.EventLogStore
-	RuleStore          storage.RuleStore
-	DriverStore        storage.DriverStore
-	RulesStrict        bool
-	DynamicDriverCache *drivers.DynamicPublisherCache
+	Rules                 *core.RuleEngine
+	Publisher             core.Publisher
+	Logger                *log.Logger
+	MaxBodyBytes          int64
+	DebugEvents           bool
+	InstallStore          storage.Store
+	NamespaceStore        storage.NamespaceStore
+	EventLogStore         storage.EventLogStore
+	RuleStore             storage.RuleStore
+	DriverStore           storage.DriverStore
+	RulesStrict           bool
+	DynamicDriverCache    *drivers.DynamicPublisherCache
+	ProviderInstanceStore storage.ProviderInstanceStore
+	ProviderInstanceCache *providerinstance.Cache
 }
 
 // Provider is a plugin interface for webhook integrations.
