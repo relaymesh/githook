@@ -1,21 +1,35 @@
 # Rules Engine
 
-Rules use JSONPath for field access and boolean logic for matching. Each matching rule emits a topic and can optionally target specific drivers.
+Rules use JSONPath for field access and boolean logic for matching. Rules are stored on the server and managed via the CLI/API (not `config.yaml`).
 
-## Syntax
+## Managing Rules
+```sh
+githook --endpoint http://localhost:8080 rules list
+githook --endpoint http://localhost:8080 rules create \
+  --when 'action == "opened" && pull_request.draft == false' \
+  --emit pr.opened.ready \
+  --driver-id <driver-id>
+```
+`--driver-id` should match the driver record ID (see `githook drivers list`).
+
+## Rule Shape
 ```yaml
+when: action == "opened" && pull_request.draft == false
+emit: pr.opened.ready
+driver_id: <driver-id>
+```
+
+To test locally without changing stored rules, use `rules match` with a YAML file:
+```sh
+githook --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml
+```
+
+```yaml
+# rules.yaml
 rules:
   - when: action == "opened" && pull_request.draft == false
     emit: pr.opened.ready
-  - when: action == "closed" && pull_request.merged == true
-    emit: pr.merged
-    drivers: [amqp, http]
-  - when: action == "closed" && pull_request.merged == true
-    emit: [pr.merged, audit.pr.merged]
-  - when: contains(labels, "bug")
-    emit: issue.label.bug
-  - when: like(ref, "refs/heads/%")
-    emit: push.branch
+    driver_id: <driver-id>
 ```
 
 ## JSONPath
@@ -30,29 +44,19 @@ rules:
 
 ### Nested Examples
 ```yaml
-rules:
-  - when: contains($.pull_request.labels[*].name, "bug")
-    emit: pr.label.bug
-
-  - when: contains($.repository.full_name, "acme/")
-    emit: repo.acme
-
-  - when: like($.pull_request.head.ref, "release/%")
-    emit: pr.branch.release
-
-  - when: like($.sender.login, "bot-%")
-    emit: sender.bot
+when: contains($.pull_request.labels[*].name, "bug")
+emit: pr.label.bug
+driver_id: <driver-id>
 ```
 
 ## Driver Targeting
-- `drivers` omitted: publish to all configured drivers.
-- `drivers` specified: publish only to those drivers.
+Each rule targets a single driver via `driver_id`. To publish the same event to multiple drivers, create multiple rules with the same `when`/`emit` and different `driver_id` values.
 
 ## Fan-Out Topics
 Use a list for `emit` to publish the same event to multiple topics.
 
 ## Strict Mode
-Set `rules_strict: true` to skip a rule if any JSONPath in its `when` clause is missing.
+Strict mode is a server setting; use `githook rules match --strict` to test locally.
 
 ## System Rules (GitHub App)
 GitHub App installation events are always processed to keep `githook_installations` in sync.

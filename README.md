@@ -491,132 +491,51 @@ Webhook URL schema: `<base-url>/webhooks/<provider>`
 
 ## Drivers
 
-Drivers are message broker implementations that githook uses to publish events. Powered by [Watermill](https://watermill.io/), githook supports multiple brokers simultaneously.
+Drivers are the message broker backends where events are published. Manage them through the CLI (stored on the server, per tenant); you do not configure drivers in `config.yaml`.
 
-### Available Drivers
+**Supported drivers:** `amqp`, `nats`, `kafka`, `sql`, `http`, `gochannel`, `riverqueue`.
 
-**AMQP (RabbitMQ)**
-```yaml
-watermill:
-  driver: amqp
-  amqp:
-    url: amqp://guest:guest@localhost:5672/
-    mode: durable_queue
+**CLI examples:**
+```sh
+githook --endpoint http://localhost:8080 drivers list
+githook --endpoint http://localhost:8080 drivers get --name amqp
+githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml
+githook --endpoint http://localhost:8080 drivers delete --name amqp
 ```
 
-Modes:
-- `durable_queue`: Persistent queues (survives broker restart)
-- `nondurable_queue`: Ephemeral queues
-- `durable_pubsub`: Persistent topic exchanges
-- `nondurable_pubsub`: Ephemeral topic exchanges
-
-**NATS Streaming**
-```yaml
-watermill:
-  driver: nats
-  nats:
-    url: nats://localhost:4222
-    cluster_id: test-cluster
-    client_id: githook-publisher
+**Multiple drivers example:**
+```sh
+githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml
+githook --endpoint http://localhost:8080 drivers set --name http --config-file http.yaml
+githook --endpoint http://localhost:8080 drivers set --name sql --config-file sql.yaml
 ```
 
-**Kafka**
-```yaml
-watermill:
-  driver: kafka
-  kafka:
-    brokers: ["localhost:9092"]
-    consumer_group: githook
-```
+To publish to multiple brokers, create multiple drivers via the CLI. Each rule targets one driver via `driver_id`; to fan-out across drivers, create multiple rules with the same `when`/`emit` and different `driver_id` values.
 
-**SQL (PostgreSQL/MySQL)**
-```yaml
-watermill:
-  driver: sql
-  sql:
-    driver: postgres
-    dsn: postgres://user:pass@localhost/db?sslmode=disable
-    table: events
-```
-
-**HTTP**
-```yaml
-watermill:
-  driver: http
-  http:
-    mode: base_url
-    base_url: http://localhost:9000/hooks
-```
-
-**GoChannel (In-Memory)**
-```yaml
-watermill:
-  driver: gochannel
-```
-
-Use for testing or single-binary deployments.
-
-**RiverQueue (Postgres Job Queue)**
-```yaml
-watermill:
-  driver: riverqueue
-  riverqueue:
-    driver: postgres
-    dsn: postgres://user:pass@localhost:5432/db?sslmode=disable
-    table: river_job
-    queue: default
-    kind: githook.event
-```
-
-### Multi-Driver Fan-Out
-
-Publish the same event to multiple brokers:
-
-```yaml
-watermill:
-  drivers: [amqp, http, sql]
-  amqp:
-    url: amqp://guest:guest@localhost:5672/
-  http:
-    base_url: http://localhost:9000/hooks
-  sql:
-    driver: postgres
-    dsn: postgres://user:pass@localhost/db
-```
-
-### Per-Rule Driver Targeting
-
-Override drivers for specific rules:
-
-```yaml
-rules:
-  - when: action == "opened"
-    emit: pr.opened
-    drivers: [amqp]  # Only publish to AMQP
-
-  - when: action == "closed"
-    emit: pr.closed
-    drivers: [amqp, http]  # Publish to both AMQP and HTTP
-```
-
-If `drivers` is omitted, the default `driver` or `drivers` from the Watermill config is used.
-
-See [docs/drivers.md](docs/drivers.md) for advanced driver configuration.
+See [docs/drivers.md](docs/drivers.md) for driver config file formats.
 
 ---
 
 ## Rules
 
-Rules are the heart of githook' event routing system. They define which webhook events to publish and where to send them.
+Rules are stored on the server and managed via the CLI/API (not `config.yaml`). They define which webhook events to publish and where to send them.
+
+**CLI example:**
+```sh
+githook --endpoint http://localhost:8080 rules create \
+  --when 'action == "opened"' \
+  --emit pr.opened.ready \
+  --driver-id <driver-id>
+```
 
 ### Rule Structure
 
 ```yaml
-rules:
-  - when: <boolean-expression>
-    emit: <topic-name>
-    drivers: [<driver-list>]  # optional
+when: <boolean-expression>
+emit: <topic-name>            # or a list of topics
+driver_id: <driver-id>
 ```
+Use `githook drivers list` to find the driver record ID.
 
 ### Rule Evaluation
 
@@ -666,67 +585,51 @@ when: like(pull_request.head.ref, "feature/%")
 Publish the same event to multiple topics:
 
 ```yaml
-rules:
-  - when: action == "closed" && pull_request.merged == true
-    emit: [pr.merged, audit.pr.merged, notifications.pr.merged]
+when: action == "closed" && pull_request.merged == true
+emit: [pr.merged, audit.pr.merged, notifications.pr.merged]
+driver_id: <driver-id>
 ```
 
 ### Strict Mode
 
-By default, rules with missing fields won't match. Enable strict mode to fail loudly:
+By default, rules with missing fields won't match. Strict mode is a server setting; use `githook rules match --strict` to test locally.
 
 ```yaml
-rules_strict: true
-rules:
-  - when: nonexistent.field == "value"
-    emit: will.never.match
+when: nonexistent.field == "value"
+emit: will.never.match
+driver_id: <driver-id>
 ```
 
 ### Example Rules
 
 **Pull request events:**
 ```yaml
-rules:
-  # Non-draft PR opened
-  - when: action == "opened" && pull_request.draft == false
-    emit: pr.opened.ready
-
-  # PR merged
-  - when: action == "closed" && pull_request.merged == true
-    emit: pr.merged
-
-  # PR draft converted to ready
-  - when: action == "ready_for_review"
-    emit: pr.ready_for_review
+# Non-draft PR opened
+when: action == "opened" && pull_request.draft == false
+emit: pr.opened.ready
+driver_id: <driver-id>
 ```
 
 **Commit/push events:**
 ```yaml
-rules:
-  # Single commit pushed
-  - when: head_commit.id != "" && commits[0].id != "" && commits[1] == null
-    emit: github.commit.created
-
-  # Check suite requested (also contains commit info)
-  - when: action == "requested" && check_suite.head_commit.id != ""
-    emit: github.commit.created
+# Single commit pushed
+when: head_commit.id != "" && commits[0].id != "" && commits[1] == null
+emit: github.commit.created
+driver_id: <driver-id>
 ```
 
 **Tag events:**
 ```yaml
-rules:
-  - when: ref_type == "tag"
-    emit: github.tag.created
+when: ref_type == "tag"
+emit: github.tag.created
+driver_id: <driver-id>
 ```
 
 **Branch-specific rules:**
 ```yaml
-rules:
-  - when: pull_request.base.ref == "main"
-    emit: pr.targeting.main
-
-  - when: like(pull_request.head.ref, "release/%")
-    emit: pr.from.release.branch
+when: pull_request.base.ref == "main"
+emit: pr.targeting.main
+driver_id: <driver-id>
 ```
 
 See [docs/rules.md](docs/rules.md) for advanced rule patterns.

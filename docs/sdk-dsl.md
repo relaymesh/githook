@@ -64,12 +64,12 @@ clients:
 
 ## Rule DSL (Already Supported)
 
-Rules are already defined in the server config:
+Rules are stored on the server and managed via the CLI/API:
 
 ```yaml
-rules:
-  - when: action == "closed" && pull_request.merged == true
-    emit: pr.merged
+when: action == "closed" && pull_request.merged == true
+emit: pr.merged
+driver_id: <driver-id>
 ```
 
 `when` supports JSONPath expressions, boolean logic, and helper functions like `contains()` and `like()`.

@@ -62,7 +62,7 @@ redirect_base_url: https://app.example.com/success
 
 ```
 
-> Provider onboarding and webhook configuration are now handled via the Connect APIs; the open-source config only defines server/storage/auth/rules.
+> Provider onboarding and webhook configuration are now handled via the Connect APIs; the open-source config only defines server/storage/auth.
 
 ## Step 5: Start the Server
 
@@ -99,7 +99,7 @@ Create a pull request or push a commit to an installed repository. The worker wi
 - **Webhooks not received**: Check ngrok is still running, verify `endpoint` matches ngrok URL
 - **404 on callback**: Callback URL must be `/auth/github/callback`
 - **Missing signature**: Webhook secret doesn't match configuration
-- **No matching rules**: Rules in config don't match the webhook payload
+- **No matching rules**: Stored rules don't match the webhook payload (use the CLI to create/update rules)
 - **Connection refused**: Ensure Docker Compose is running
 - **Database errors**: Check PostgreSQL is running and connection string is correct
 

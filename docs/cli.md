@@ -69,12 +69,14 @@ githook --endpoint http://localhost:8080 namespaces webhook set --provider gitla
 githook --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml
 githook --endpoint http://localhost:8080 rules list
 githook --endpoint http://localhost:8080 rules get --id <rule-id>
-githook --endpoint http://localhost:8080 rules create --when 'action == "opened"' --emit pr.opened.ready
-githook --endpoint http://localhost:8080 rules update --id <rule-id> --when 'action == "closed"' --emit pr.merged
+githook --endpoint http://localhost:8080 rules create --when 'action == "opened"' --emit pr.opened.ready --driver-id <driver-id>
+githook --endpoint http://localhost:8080 rules update --id <rule-id> --when 'action == "closed"' --emit pr.merged --driver-id <driver-id>
 githook --endpoint http://localhost:8080 rules delete --id <rule-id>
 ```
 
 Throw `--tenant-id` on these commands when targeting a different tenant (default `default`).
+`rules match` evaluates a local rules file without changing stored rules.
+`--driver-id` should match the driver record ID (see `githook drivers list`).
 
 ## Providers
 
