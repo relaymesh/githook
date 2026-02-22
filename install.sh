@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-# Based on godownloader output; refactored to match yindia/githook release asset names:
+# Based on godownloader output; refactored to match relaymesh/githook release asset names:
 #   githook_<version>_<os>_<arch>.tar.gz (mac/linux) and .zip (windows)
 # and checksums.txt present in the release.
 
@@ -8,13 +8,13 @@ set -e
 usage() {
   this=$1
   cat <<EOF
-$this: download binaries for yindia/githook
+$this: download binaries for relaymesh/githook
 
 Usage: $this [-b] bindir [-d] [tag]
   -b sets bindir or installation directory, Defaults to ./bin
   -d turns on debug logging
    [tag] is a tag from
-   https://github.com/yindia/githook/releases
+   https://github.com/relaymesh/githook/releases
    If tag is missing, then the latest will be used.
 EOF
   exit 2

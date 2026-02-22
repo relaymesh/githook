@@ -121,19 +121,19 @@ githook consists of two main components:
 ### Homebrew (macOS/Linux)
 
 ```bash
-brew install yindia/homebrew-yindia/githook
+brew install relaymesh/homebrew-formula/githook
 ```
 
 ### Install Script (Linux/macOS)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yindia/githook/refs/heads/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/relaymesh/githook/refs/heads/main/install.sh | sh
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/yindia/githook.git
+git clone https://github.com/relaymesh/githook.git
 cd githook
 go build -o githook ./main.go
 ```
@@ -867,4 +867,4 @@ This separation lets you scale event processing independently while keeping conf
 
 **Made with ❤️ for developers who automate Git workflows**
 
-Questions? Issues? Check the [documentation](docs/) or [open an issue](https://github.com/yindia/githook/issues).
+Questions? Issues? Check the [documentation](docs/) or [open an issue](https://github.com/relaymesh/githook/issues).
