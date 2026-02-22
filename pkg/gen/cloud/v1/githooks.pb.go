@@ -207,6 +207,9 @@ type InstallRecord struct {
 	CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt           *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	ProviderInstanceKey string                 `protobuf:"bytes,11,opt,name=provider_instance_key,json=providerInstanceKey,proto3" json:"provider_instance_key,omitempty"`
+	EnterpriseId        string                 `protobuf:"bytes,12,opt,name=enterprise_id,json=enterpriseId,proto3" json:"enterprise_id,omitempty"`
+	EnterpriseSlug      string                 `protobuf:"bytes,13,opt,name=enterprise_slug,json=enterpriseSlug,proto3" json:"enterprise_slug,omitempty"`
+	EnterpriseName      string                 `protobuf:"bytes,14,opt,name=enterprise_name,json=enterpriseName,proto3" json:"enterprise_name,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -314,6 +317,27 @@ func (x *InstallRecord) GetUpdatedAt() *timestamppb.Timestamp {
 func (x *InstallRecord) GetProviderInstanceKey() string {
 	if x != nil {
 		return x.ProviderInstanceKey
+	}
+	return ""
+}
+
+func (x *InstallRecord) GetEnterpriseId() string {
+	if x != nil {
+		return x.EnterpriseId
+	}
+	return ""
+}
+
+func (x *InstallRecord) GetEnterpriseSlug() string {
+	if x != nil {
+		return x.EnterpriseSlug
+	}
+	return ""
+}
+
+func (x *InstallRecord) GetEnterpriseName() string {
+	if x != nil {
+		return x.EnterpriseName
 	}
 	return ""
 }
@@ -4461,7 +4485,7 @@ var File_cloud_v1_githooks_proto protoreflect.FileDescriptor
 
 const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\n" +
-	"\x17cloud/v1/githooks.proto\x12\bcloud.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x83\x04\n" +
+	"\x17cloud/v1/githooks.proto\x12\bcloud.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfa\x04\n" +
 	"\rInstallRecord\x12#\n" +
 	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12&\n" +
 	"\n" +
@@ -4478,7 +4502,10 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x122\n" +
-	"\x15provider_instance_key\x18\v \x01(\tR\x13providerInstanceKey\"\x83\x04\n" +
+	"\x15provider_instance_key\x18\v \x01(\tR\x13providerInstanceKey\x12#\n" +
+	"\renterprise_id\x18\f \x01(\tR\fenterpriseId\x12'\n" +
+	"\x0fenterprise_slug\x18\r \x01(\tR\x0eenterpriseSlug\x12'\n" +
+	"\x0fenterprise_name\x18\x0e \x01(\tR\x0eenterpriseName\"\x83\x04\n" +
 	"\x0fNamespaceRecord\x12#\n" +
 	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12\x17\n" +
 	"\arepo_id\x18\x02 \x01(\tR\x06repoId\x12\x1d\n" +

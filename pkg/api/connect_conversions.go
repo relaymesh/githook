@@ -31,6 +31,9 @@ func toProtoInstallation(record storage.InstallRecord) *cloudv1.InstallRecord {
 		CreatedAt:           toProtoTimestamp(record.CreatedAt),
 		UpdatedAt:           toProtoTimestamp(record.UpdatedAt),
 		ProviderInstanceKey: record.ProviderInstanceKey,
+		EnterpriseId:        record.EnterpriseID,
+		EnterpriseSlug:      record.EnterpriseSlug,
+		EnterpriseName:      record.EnterpriseName,
 	}
 }
 

@@ -64,6 +64,9 @@ message InstallRecord {
   google.protobuf.Timestamp created_at = 9;
   google.protobuf.Timestamp updated_at = 10;
   string provider_instance_key = 11;
+  string enterprise_id = 12;
+  string enterprise_slug = 13;
+  string enterprise_name = 14;
 }
 
 message NamespaceRecord {

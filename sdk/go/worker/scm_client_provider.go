@@ -3,6 +3,8 @@ package worker
 import (
 	"context"
 	"errors"
+	"strconv"
+	"strings"
 
 	"githook/pkg/auth"
 	"githook/pkg/scm"
@@ -68,6 +70,21 @@ func (p *SCMClientProvider) Client(ctx context.Context, evt *Event) (interface{}
 		return nil, errors.New("event is required")
 	}
 	switch evt.Provider {
+	case "github":
+		if record, err := p.resolveInstallation(ctx, evt); err == nil && record != nil {
+			client, err := p.githubClient(ctx, record.InstallationID)
+			if err == nil {
+				return client, nil
+			}
+		}
+		authCtx, err := p.resolver.Resolve(ctx, auth.EventContext{
+			Provider: evt.Provider,
+			Payload:  evt.Payload,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return p.factory.NewClient(ctx, authCtx)
 	case "gitlab", "bitbucket":
 		client := p.installationsClient
 		if client == nil || client.BaseURL == "" {
@@ -97,4 +114,27 @@ func (p *SCMClientProvider) Client(ctx context.Context, evt *Event) (interface{}
 		}
 		return p.factory.NewClient(ctx, authCtx)
 	}
+}
+
+func (p *SCMClientProvider) resolveInstallation(ctx context.Context, evt *Event) (*InstallationRecord, error) {
+	client := p.installationsClient
+	if client == nil {
+		return nil, nil
+	}
+	return ResolveInstallation(ctx, evt, client)
+}
+
+func (p *SCMClientProvider) githubClient(ctx context.Context, installationID string) (interface{}, error) {
+	trimmed := strings.TrimSpace(installationID)
+	if trimmed == "" {
+		return nil, errors.New("installation id is required")
+	}
+	id, err := strconv.ParseInt(trimmed, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return p.factory.NewClient(ctx, auth.AuthContext{
+		Provider:       auth.ProviderGitHub,
+		InstallationID: id,
+	})
 }

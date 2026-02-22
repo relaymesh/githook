@@ -17,6 +17,9 @@ type InstallRecord struct {
 	AccountName         string
 	InstallationID      string
 	ProviderInstanceKey string
+	EnterpriseID        string
+	EnterpriseSlug      string
+	EnterpriseName      string
 	AccessToken         string
 	RefreshToken        string
 	ExpiresAt           *time.Time

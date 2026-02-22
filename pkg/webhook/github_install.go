@@ -87,6 +87,13 @@ func (h *GitHubHandler) applyInstallSystemRules(ctx context.Context, eventName s
 			storeCtx = storage.WithTenant(ctx, tenantID)
 		}
 
+		enterpriseID, enterpriseSlug, enterpriseName := recordEnterprise(record)
+		if enterprise, ok := extractGitHubEnterprise(raw); ok {
+			enterpriseID = enterprise.ID
+			enterpriseSlug = enterprise.Slug
+			enterpriseName = enterprise.Name
+		}
+
 		if action == "deleted" {
 			if err := h.store.DeleteInstallation(storeCtx, "github", accountID, installationID, instanceKey); err != nil {
 				return err
@@ -99,6 +106,9 @@ func (h *GitHubHandler) applyInstallSystemRules(ctx context.Context, eventName s
 				AccountName:         accountName,
 				InstallationID:      installationID,
 				ProviderInstanceKey: instanceKey,
+				EnterpriseID:        enterpriseID,
+				EnterpriseSlug:      enterpriseSlug,
+				EnterpriseName:      enterpriseName,
 				AccessToken:         accessToken,
 				RefreshToken:        refreshToken,
 				ExpiresAt:           expiresAt,
@@ -179,6 +189,40 @@ type githubRepo struct {
 	DefaultBranch string
 	HTMLURL       string
 	SSHURL        string
+}
+
+type githubEnterprise struct {
+	ID   string
+	Slug string
+	Name string
+}
+
+func extractGitHubEnterprise(raw []byte) (githubEnterprise, bool) {
+	var payload struct {
+		Enterprise struct {
+			ID   int64  `json:"id"`
+			Slug string `json:"slug"`
+			Name string `json:"name"`
+		} `json:"enterprise"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return githubEnterprise{}, false
+	}
+	if payload.Enterprise.ID == 0 && strings.TrimSpace(payload.Enterprise.Slug) == "" && strings.TrimSpace(payload.Enterprise.Name) == "" {
+		return githubEnterprise{}, false
+	}
+	return githubEnterprise{
+		ID:   strconv.FormatInt(payload.Enterprise.ID, 10),
+		Slug: strings.TrimSpace(payload.Enterprise.Slug),
+		Name: strings.TrimSpace(payload.Enterprise.Name),
+	}, true
+}
+
+func recordEnterprise(record *storage.InstallRecord) (string, string, string) {
+	if record == nil {
+		return "", "", ""
+	}
+	return strings.TrimSpace(record.EnterpriseID), strings.TrimSpace(record.EnterpriseSlug), strings.TrimSpace(record.EnterpriseName)
 }
 
 func extractGitHubRepos(raw []byte, eventName string) []githubRepo {

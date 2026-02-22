@@ -99,10 +99,21 @@ func (s *InstallationsService) UpsertInstallation(
 		AccountName:         strings.TrimSpace(install.GetAccountName()),
 		InstallationID:      strings.TrimSpace(install.GetInstallationId()),
 		ProviderInstanceKey: strings.TrimSpace(install.GetProviderInstanceKey()),
+		EnterpriseID:        strings.TrimSpace(install.GetEnterpriseId()),
+		EnterpriseSlug:      strings.TrimSpace(install.GetEnterpriseSlug()),
+		EnterpriseName:      strings.TrimSpace(install.GetEnterpriseName()),
 		AccessToken:         strings.TrimSpace(install.GetAccessToken()),
 		RefreshToken:        strings.TrimSpace(install.GetRefreshToken()),
 		ExpiresAt:           fromProtoTimestampPtr(install.GetExpiresAt()),
 		MetadataJSON:        strings.TrimSpace(install.GetMetadataJson()),
+	}
+	if record.EnterpriseID == "" && record.EnterpriseSlug == "" && record.EnterpriseName == "" {
+		existing, err := s.Store.GetInstallationByInstallationID(ctx, provider, record.InstallationID)
+		if err == nil && existing != nil {
+			record.EnterpriseID = existing.EnterpriseID
+			record.EnterpriseSlug = existing.EnterpriseSlug
+			record.EnterpriseName = existing.EnterpriseName
+		}
 	}
 	if record.CreatedAt.IsZero() {
 		record.CreatedAt = time.Now().UTC()

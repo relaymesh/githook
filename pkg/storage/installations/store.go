@@ -39,6 +39,9 @@ type row struct {
 	AccountName    string     `gorm:"column:account_name;size:255"`
 	InstallationID string     `gorm:"column:installation_id;size:128;not null;uniqueIndex:idx_installation,priority:4"`
 	InstanceKey    string     `gorm:"column:provider_instance_key;size:64;uniqueIndex:idx_installation,priority:5"`
+	EnterpriseID   string     `gorm:"column:enterprise_id;size:128"`
+	EnterpriseSlug string     `gorm:"column:enterprise_slug;size:255"`
+	EnterpriseName string     `gorm:"column:enterprise_name;size:255"`
 	AccessToken    string     `gorm:"column:access_token"`
 	RefreshToken   string     `gorm:"column:refresh_token"`
 	ExpiresAt      *time.Time `gorm:"column:expires_at"`
@@ -120,7 +123,7 @@ func (s *Store) UpsertInstallation(ctx context.Context, record storage.InstallRe
 		WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "tenant_id"}, {Name: "provider"}, {Name: "account_id"}, {Name: "installation_id"}, {Name: "provider_instance_key"}},
-			DoUpdates: clause.AssignmentColumns([]string{"account_name", "provider_instance_key", "access_token", "refresh_token", "expires_at", "metadata_json", "updated_at"}),
+			DoUpdates: clause.AssignmentColumns([]string{"account_name", "provider_instance_key", "enterprise_id", "enterprise_slug", "enterprise_name", "access_token", "refresh_token", "expires_at", "metadata_json", "updated_at"}),
 		}).
 		Create(&data).Error
 }
@@ -288,6 +291,9 @@ func toRow(record storage.InstallRecord) row {
 		AccountName:    record.AccountName,
 		InstallationID: record.InstallationID,
 		InstanceKey:    record.ProviderInstanceKey,
+		EnterpriseID:   record.EnterpriseID,
+		EnterpriseSlug: record.EnterpriseSlug,
+		EnterpriseName: record.EnterpriseName,
 		AccessToken:    record.AccessToken,
 		RefreshToken:   record.RefreshToken,
 		ExpiresAt:      record.ExpiresAt,
@@ -306,6 +312,9 @@ func fromRow(data row) storage.InstallRecord {
 		AccountName:         data.AccountName,
 		InstallationID:      data.InstallationID,
 		ProviderInstanceKey: data.InstanceKey,
+		EnterpriseID:        data.EnterpriseID,
+		EnterpriseSlug:      data.EnterpriseSlug,
+		EnterpriseName:      data.EnterpriseName,
 		AccessToken:         data.AccessToken,
 		RefreshToken:        data.RefreshToken,
 		ExpiresAt:           data.ExpiresAt,

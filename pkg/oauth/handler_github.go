@@ -67,6 +67,13 @@ func (h *Handler) handleGitHubApp(w http.ResponseWriter, r *http.Request, logger
 		ExpiresAt:           token.ExpiresAt,
 		MetadataJSON:        token.MetadataJSON(),
 	}
+	if storeAvailable(h.Store) {
+		if existing, err := h.Store.GetInstallationByInstallationID(storeCtx, "github", installationID); err == nil && existing != nil {
+			record.EnterpriseID = existing.EnterpriseID
+			record.EnterpriseSlug = existing.EnterpriseSlug
+			record.EnterpriseName = existing.EnterpriseName
+		}
+	}
 
 	if warning == "" && storeAvailable(h.Store) {
 		if record.InstallationID == resolveExistingInstallationID(storeCtx, h.Store, "github", accountID, instanceKey) && code == "" {

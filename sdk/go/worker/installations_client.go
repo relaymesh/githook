@@ -18,13 +18,17 @@ import (
 
 // InstallationRecord mirrors the server installation response.
 type InstallationRecord struct {
-	Provider       string     `json:"provider"`
-	AccountID      string     `json:"account_id"`
-	AccountName    string     `json:"account_name"`
-	InstallationID string     `json:"installation_id"`
-	AccessToken    string     `json:"access_token"`
-	RefreshToken   string     `json:"refresh_token"`
-	ExpiresAt      *time.Time `json:"expires_at"`
+	Provider            string     `json:"provider"`
+	AccountID           string     `json:"account_id"`
+	AccountName         string     `json:"account_name"`
+	InstallationID      string     `json:"installation_id"`
+	ProviderInstanceKey string     `json:"provider_instance_key"`
+	EnterpriseID        string     `json:"enterprise_id"`
+	EnterpriseSlug      string     `json:"enterprise_slug"`
+	EnterpriseName      string     `json:"enterprise_name"`
+	AccessToken         string     `json:"access_token"`
+	RefreshToken        string     `json:"refresh_token"`
+	ExpiresAt           *time.Time `json:"expires_at"`
 }
 
 // InstallationsClient fetches installation records from the server API.
@@ -89,12 +93,21 @@ func fromProtoInstallation(record *cloudv1.InstallRecord) InstallationRecord {
 		expiresTime = &t
 	}
 	return InstallationRecord{
-		Provider:       record.GetProvider(),
-		AccountID:      record.GetAccountId(),
-		AccountName:    record.GetAccountName(),
-		InstallationID: record.GetInstallationId(),
-		AccessToken:    record.GetAccessToken(),
-		RefreshToken:   record.GetRefreshToken(),
-		ExpiresAt:      expiresTime,
+		Provider:            record.GetProvider(),
+		AccountID:           record.GetAccountId(),
+		AccountName:         record.GetAccountName(),
+		InstallationID:      record.GetInstallationId(),
+		ProviderInstanceKey: record.GetProviderInstanceKey(),
+		EnterpriseID:        record.GetEnterpriseId(),
+		EnterpriseSlug:      record.GetEnterpriseSlug(),
+		EnterpriseName:      record.GetEnterpriseName(),
+		AccessToken:         record.GetAccessToken(),
+		RefreshToken:        record.GetRefreshToken(),
+		ExpiresAt:           expiresTime,
 	}
+}
+
+// IsEnterprise reports whether the installation is tied to an enterprise account.
+func (r InstallationRecord) IsEnterprise() bool {
+	return r.EnterpriseID != "" || r.EnterpriseSlug != "" || r.EnterpriseName != ""
 }
