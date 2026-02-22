@@ -35,7 +35,7 @@ func (s *NamespacesService) ListNamespaces(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
 	stateID := strings.TrimSpace(req.Msg.GetStateId())
-	provider := strings.TrimSpace(req.Msg.GetProvider())
+	provider := auth.NormalizeProviderName(req.Msg.GetProvider())
 
 	filter := storage.NamespaceFilter{
 		Provider: provider,
@@ -66,7 +66,7 @@ func (s *NamespacesService) SyncNamespaces(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
 	stateID := strings.TrimSpace(req.Msg.GetStateId())
-	provider := strings.TrimSpace(req.Msg.GetProvider())
+	provider := auth.NormalizeProviderName(req.Msg.GetProvider())
 
 	installations, err := installationsForSync(ctx, s.InstallStore, provider, stateID)
 	if err != nil {
@@ -84,11 +84,11 @@ func (s *NamespacesService) SyncNamespaces(
 			logError(s.Logger, "provider config lookup failed", cfgErr)
 			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("provider config missing"))
 		}
-		if provider != "github" && record.AccessToken == "" {
+		if provider != auth.ProviderGitHub && record.AccessToken == "" {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("access token missing"))
 		}
 		accessToken := record.AccessToken
-		if provider != "github" && shouldRefresh(record.ExpiresAt) && record.RefreshToken != "" {
+		if provider != auth.ProviderGitHub && shouldRefresh(record.ExpiresAt) && record.RefreshToken != "" {
 			switch provider {
 			case "gitlab":
 				refreshed, err := oauth.RefreshGitLabToken(ctx, providerCfg, record.RefreshToken)
@@ -117,7 +117,7 @@ func (s *NamespacesService) SyncNamespaces(
 		}
 
 		switch provider {
-		case "github":
+		case auth.ProviderGitHub:
 			// No remote sync for GitHub; namespaces come from install webhooks.
 		case "gitlab":
 			if err := oauth.SyncGitLabNamespaces(ctx, s.Store, providerCfg, accessToken, record.AccountID, record.InstallationID, record.ProviderInstanceKey); err != nil {
@@ -156,7 +156,7 @@ func (s *NamespacesService) GetNamespaceWebhook(
 	if s.Store == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
-	provider := strings.TrimSpace(req.Msg.GetProvider())
+	provider := auth.NormalizeProviderName(req.Msg.GetProvider())
 	repoID := strings.TrimSpace(req.Msg.GetRepoId())
 	stateID := strings.TrimSpace(req.Msg.GetStateId())
 
@@ -186,7 +186,7 @@ func (s *NamespacesService) SetNamespaceWebhook(
 	if s.InstallStore == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("installation storage not configured"))
 	}
-	provider := strings.TrimSpace(req.Msg.GetProvider())
+	provider := auth.NormalizeProviderName(req.Msg.GetProvider())
 	repoID := strings.TrimSpace(req.Msg.GetRepoId())
 	stateID := strings.TrimSpace(req.Msg.GetStateId())
 
@@ -201,7 +201,7 @@ func (s *NamespacesService) SetNamespaceWebhook(
 	if stateID != "" && record.AccountID != stateID {
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("state_id mismatch"))
 	}
-	if provider == "github" {
+	if provider == auth.ProviderGitHub {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("github webhooks are always enabled"))
 	}
 	webhookURL, err := webhookURL(s.Endpoint, provider)

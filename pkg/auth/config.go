@@ -1,7 +1,5 @@
 package auth
 
-import "strings"
-
 // Config contains provider configuration for webhooks and SCM auth.
 type Config struct {
 	GitHub    ProviderConfig            `yaml:"github"`
@@ -12,13 +10,13 @@ type Config struct {
 
 // ProviderConfigFor returns a provider config by name, including extras.
 func (c Config) ProviderConfigFor(provider string) (ProviderConfig, bool) {
-	provider = strings.ToLower(strings.TrimSpace(provider))
+	provider = NormalizeProviderName(provider)
 	switch provider {
-	case "github":
+	case ProviderGitHub:
 		return c.GitHub, true
-	case "gitlab":
+	case ProviderGitLab:
 		return c.GitLab, true
-	case "bitbucket":
+	case ProviderBitbucket:
 		return c.Bitbucket, true
 	default:
 		if c.Extra == nil {
@@ -28,7 +26,7 @@ func (c Config) ProviderConfigFor(provider string) (ProviderConfig, bool) {
 			return cfg, true
 		}
 		for key, cfg := range c.Extra {
-			if strings.ToLower(strings.TrimSpace(key)) == provider {
+			if NormalizeProviderName(key) == provider {
 				return cfg, true
 			}
 		}

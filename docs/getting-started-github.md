@@ -103,29 +103,14 @@ Create a pull request or push a commit to an installed repository. The worker wi
 - **Connection refused**: Ensure Docker Compose is running
 - **Database errors**: Check PostgreSQL is running and connection string is correct
 
-## Multiple Provider Instances
+## GitHub Enterprise
 
-For GitHub.com + GitHub Enterprise setups, configure multiple instances:
+To use GitHub Enterprise, point the GitHub API base URL to your GHE host:
 
 ```yaml
 providers:
   github:
     api:
-      base_url: https://api.github.com
-    # ... other config
-
-  github_enterprise:
-    api:
       base_url: https://ghe.company.com/api/v3
-    # ... other config
-```
-
-Get instance hash:
-```bash
-githook --endpoint http://localhost:8080 providers list --provider github
-```
-
-Use with OAuth:
-```
-http://localhost:8080/?provider=github&instance=<instance-hash>
+      web_base_url: https://ghe.company.com
 ```

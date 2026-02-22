@@ -14,9 +14,11 @@ you omit `providers.*.webhook.path` in config, defaults are `/webhooks/github`,
 
 ### GitHub Enterprise Server
 
-GitHub Enterprise Server uses the same webhook endpoint and secret. Some versions
-send `X-Hub-Signature` (sha1) instead of `X-Hub-Signature-256`. Githooks
-accepts either signature when `GITHUB_WEBHOOK_SECRET` is set.
+GitHub Enterprise Server uses the same webhook endpoint (`/webhooks/github`).
+Some versions send `X-Hub-Signature` (sha1) instead of `X-Hub-Signature-256`.
+Githooks accepts either signature when the webhook secret is set.
+
+Set `providers.github.api.base_url` (and `web_base_url`) to your GHE host.
 
 ## GitLab
 1. Go to **Settings → Webhooks** in your project/group.

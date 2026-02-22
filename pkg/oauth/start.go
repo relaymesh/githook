@@ -39,7 +39,7 @@ func (h *StartHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	provider := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("provider")))
+	provider := auth.NormalizeProviderName(r.URL.Query().Get("provider"))
 	if provider == "" {
 		http.Error(w, "missing provider", http.StatusBadRequest)
 		return

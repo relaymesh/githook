@@ -27,17 +27,19 @@ func NewFactory(cfg auth.Config) *Factory {
 
 // NewClient creates a provider-specific client from an AuthContext.
 func (f *Factory) NewClient(ctx context.Context, authCtx auth.AuthContext) (Client, error) {
-	switch authCtx.Provider {
-	case "github":
+	provider := auth.NormalizeProviderName(authCtx.Provider)
+	switch provider {
+	case auth.ProviderGitHub:
+		cfg := f.cfg.GitHub
 		return github.NewAppClient(ctx, github.AppConfig{
-			AppID:          f.cfg.GitHub.App.AppID,
-			PrivateKeyPath: f.cfg.GitHub.App.PrivateKeyPath,
-			PrivateKeyPEM:  f.cfg.GitHub.App.PrivateKeyPEM,
-			BaseURL:        f.cfg.GitHub.API.BaseURL,
+			AppID:          cfg.App.AppID,
+			PrivateKeyPath: cfg.App.PrivateKeyPath,
+			PrivateKeyPEM:  cfg.App.PrivateKeyPEM,
+			BaseURL:        cfg.API.BaseURL,
 		}, authCtx.InstallationID)
-	case "gitlab":
+	case auth.ProviderGitLab:
 		return gitlab.NewTokenClient(f.cfg.GitLab, authCtx.Token)
-	case "bitbucket":
+	case auth.ProviderBitbucket:
 		return bitbucket.NewTokenClient(f.cfg.Bitbucket, authCtx.Token)
 	default:
 		return nil, errors.New("unsupported provider for scm client")

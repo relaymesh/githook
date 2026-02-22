@@ -9,22 +9,22 @@ import (
 func enabledProvidersList(cfg auth.Config) []string {
 	out := make([]string, 0, 3)
 	if cfg.GitHub.Enabled {
-		out = append(out, "github")
+		out = append(out, auth.ProviderGitHub)
 	}
 	if cfg.GitLab.Enabled {
-		out = append(out, "gitlab")
+		out = append(out, auth.ProviderGitLab)
 	}
 	if cfg.Bitbucket.Enabled {
-		out = append(out, "bitbucket")
+		out = append(out, auth.ProviderBitbucket)
 	}
 	return out
 }
 
 func providerConfigFromAuthConfig(cfg auth.Config, provider string) auth.ProviderConfig {
-	switch strings.TrimSpace(provider) {
-	case "gitlab":
+	switch auth.NormalizeProviderName(provider) {
+	case auth.ProviderGitLab:
 		return cfg.GitLab
-	case "bitbucket":
+	case auth.ProviderBitbucket:
 		return cfg.Bitbucket
 	default:
 		return cfg.GitHub

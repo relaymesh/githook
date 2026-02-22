@@ -29,10 +29,14 @@ func (s *InstallationsService) ListInstallations(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
 	stateID := strings.TrimSpace(req.Msg.GetStateId())
-	provider := strings.TrimSpace(req.Msg.GetProvider())
+	provider := auth.NormalizeProviderName(req.Msg.GetProvider())
 	providers := []string{provider}
 	if provider == "" {
-		providers = []string{"github", "gitlab", "bitbucket"}
+		providers = []string{
+			auth.ProviderGitHub,
+			auth.ProviderGitLab,
+			auth.ProviderBitbucket,
+		}
 	}
 	if s.Logger != nil {
 		s.Logger.Printf("installations list provider=%s state_id=%s tenant=%s", provider, stateID, storage.TenantFromContext(ctx))
@@ -64,7 +68,7 @@ func (s *InstallationsService) GetInstallationByID(
 	if s.Store == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
-	provider := strings.TrimSpace(req.Msg.GetProvider())
+	provider := auth.NormalizeProviderName(req.Msg.GetProvider())
 	installationID := strings.TrimSpace(req.Msg.GetInstallationId())
 	record, err := s.Store.GetInstallationByInstallationID(ctx, provider, installationID)
 	if err != nil {
@@ -88,7 +92,7 @@ func (s *InstallationsService) UpsertInstallation(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
 	install := req.Msg.GetInstallation()
-	provider := strings.TrimSpace(install.GetProvider())
+	provider := auth.NormalizeProviderName(install.GetProvider())
 	record := storage.InstallRecord{
 		Provider:            provider,
 		AccountID:           strings.TrimSpace(install.GetAccountId()),
@@ -121,7 +125,7 @@ func (s *InstallationsService) DeleteInstallation(
 	if s.Store == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
-	provider := strings.TrimSpace(req.Msg.GetProvider())
+	provider := auth.NormalizeProviderName(req.Msg.GetProvider())
 	accountID := strings.TrimSpace(req.Msg.GetAccountId())
 	installationID := strings.TrimSpace(req.Msg.GetInstallationId())
 	instanceKey := strings.TrimSpace(req.Msg.GetProviderInstanceKey())

@@ -109,32 +109,19 @@ githook --endpoint https://your-domain.com providers list --provider github
 - Uses `providers.bitbucket.oauth.client_id` and `client_secret`
 - Callback URL: `https://your-domain.com/auth/bitbucket/callback`
 
-## Multiple Provider Instances
+## GitHub Enterprise
 
-For organizations using both public and self-hosted platforms:
+To use GitHub Enterprise, set the GitHub API base URL to your GHE host:
 
 ```yaml
 providers:
   github:
     api:
-      base_url: https://api.github.com
+      base_url: https://ghe.company.com/api/v3
+      web_base_url: https://ghe.company.com
     oauth:
       client_id: your-oauth-client-id
       client_secret: your-oauth-client-secret
-
-  github_enterprise:
-    api:
-      base_url: https://ghe.company.com/api/v3
-    oauth:
-      client_id: your-ghe-oauth-client-id
-      client_secret: your-ghe-oauth-client-secret
-```
-
-Each instance gets a unique hash. Specify which instance during OAuth:
-
-```
-https://your-domain.com/?provider=github&instance=<github-com-hash>
-https://your-domain.com/?provider=github&instance=<ghe-hash>
 ```
 
 ## Security

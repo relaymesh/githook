@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"strings"
 
 	"githook/pkg/providers/github"
 )
@@ -38,9 +37,9 @@ func NewResolver(cfg Config) *DefaultResolver {
 
 // Resolve builds an AuthContext from the webhook event.
 func (r *DefaultResolver) Resolve(_ context.Context, event EventContext) (AuthContext, error) {
-	provider := strings.ToLower(strings.TrimSpace(event.Provider))
+	provider := NormalizeProviderName(event.Provider)
 	switch provider {
-	case "github":
+	case ProviderGitHub:
 		if r.cfg.GitHub.App.AppID == 0 ||
 			(r.cfg.GitHub.App.PrivateKeyPath == "" && r.cfg.GitHub.App.PrivateKeyPEM == "") {
 			return AuthContext{}, errors.New("github app_id and private key are required")
@@ -53,7 +52,7 @@ func (r *DefaultResolver) Resolve(_ context.Context, event EventContext) (AuthCo
 			return AuthContext{}, errors.New("github installation id not found in payload")
 		}
 		return AuthContext{
-			Provider:       "github",
+			Provider:       ProviderGitHub,
 			InstallationID: installationID,
 		}, nil
 	default:

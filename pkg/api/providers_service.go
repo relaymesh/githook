@@ -10,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	"githook/pkg/auth"
 	cloudv1 "githook/pkg/gen/cloud/v1"
 	"githook/pkg/providerinstance"
 	"githook/pkg/storage"
@@ -35,7 +36,7 @@ func (s *ProvidersService) ListProviders(
 	if s.Store == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
-	provider := strings.TrimSpace(req.Msg.GetProvider())
+	provider := auth.NormalizeProviderName(req.Msg.GetProvider())
 	records, err := s.Store.ListProviderInstances(ctx, provider)
 	if err != nil {
 		logError(s.Logger, "list provider instances failed", err)
@@ -54,7 +55,7 @@ func (s *ProvidersService) GetProvider(
 	if s.Store == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
-	provider := strings.TrimSpace(req.Msg.GetProvider())
+	provider := auth.NormalizeProviderName(req.Msg.GetProvider())
 	hash := strings.TrimSpace(req.Msg.GetHash())
 	record, err := s.Store.GetProviderInstance(ctx, provider, hash)
 	if err != nil {
@@ -75,7 +76,7 @@ func (s *ProvidersService) UpsertProvider(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
 	provider := req.Msg.GetProvider()
-	providerName := strings.TrimSpace(provider.GetProvider())
+	providerName := auth.NormalizeProviderName(provider.GetProvider())
 	hash := strings.TrimSpace(provider.GetHash())
 	configJSON := strings.TrimSpace(provider.GetConfigJson())
 	if providerName == "" {
@@ -147,7 +148,7 @@ func (s *ProvidersService) DeleteProvider(
 	if s.Store == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
-	provider := strings.TrimSpace(req.Msg.GetProvider())
+	provider := auth.NormalizeProviderName(req.Msg.GetProvider())
 	hash := strings.TrimSpace(req.Msg.GetHash())
 	if err := s.Store.DeleteProviderInstance(ctx, provider, hash); err != nil {
 		logError(s.Logger, "delete provider instance failed", err)
