@@ -50,6 +50,6 @@ changelog:
 
 release:
   github:
-    owner: "yindia"
+    owner: "relaymesh"
     name: "githook"
   draft: true

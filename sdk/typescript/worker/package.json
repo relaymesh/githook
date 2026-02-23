@@ -16,9 +16,9 @@
   },
   "dependencies": {
     "@bufbuild/protobuf": "^1.10.0",
-    "@relaymesh/relaybus-amqp": "^0.0.4",
-    "@relaymesh/relaybus-kafka": "^0.0.4",
-    "@relaymesh/relaybus-nats": "^0.0.4"
+    "@relaymesh/relaybus-amqp": "^0.0.5",
+    "@relaymesh/relaybus-kafka": "^0.0.5",
+    "@relaymesh/relaybus-nats": "^0.0.5"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
