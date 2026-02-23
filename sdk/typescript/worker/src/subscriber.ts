@@ -1,7 +1,3 @@
-import { AmqpSubscriber } from "@relaymesh/relaybus-amqp";
-import { KafkaSubscriber } from "@relaymesh/relaybus-kafka";
-import { NatsSubscriber } from "@relaymesh/relaybus-nats";
-
 import type { Driver, SubscriberConfig } from "./config.js";
 import { MetadataKeyDriver } from "./metadata.js";
 import type { MessageHandler, RelaybusMessage } from "./types.js";
@@ -73,6 +69,7 @@ class RelaybusSubscriber implements Subscriber {
     if (!cfg || !cfg.url) {
       throw new Error("amqp url is required");
     }
+    const { AmqpSubscriber } = await loadRelaybusModule("@relaymesh/relaybus-amqp", "relaybus amqp");
     const sub = await AmqpSubscriber.connect({
       url: cfg.url,
       exchange: cfg.exchange,
@@ -96,6 +93,7 @@ class RelaybusSubscriber implements Subscriber {
     if (!brokers.length) {
       throw new Error("kafka brokers are required");
     }
+    const { KafkaSubscriber } = await loadRelaybusModule("@relaymesh/relaybus-kafka", "relaybus kafka");
     const sub = await KafkaSubscriber.connect({
       brokers,
       groupId: cfg?.groupId,
@@ -115,6 +113,7 @@ class RelaybusSubscriber implements Subscriber {
     if (!cfg || !cfg.url) {
       throw new Error("nats url is required");
     }
+    const { NatsSubscriber } = await loadRelaybusModule("@relaymesh/relaybus-nats", "relaybus nats");
     const sub = await NatsSubscriber.connect({
       url: cfg.url,
       subjectPrefix: cfg.subjectPrefix,
@@ -189,4 +188,12 @@ function resolveKafkaTopic(topic: string, cfg?: SubscriberConfig["kafka"]): stri
     return topic;
   }
   return `${prefix}${topic}`;
+}
+
+async function loadRelaybusModule(name: string, label: string): Promise<any> {
+  try {
+    return await import(name);
+  } catch (err) {
+    throw new Error(`${label} package missing: npm install ${name}`);
+  }
 }

@@ -10,8 +10,25 @@ export * from "./listener.js";
 export * from "./metadata.js";
 export * from "./oauth2.js";
 export * from "./retry.js";
-export * from "./scm_client_provider.js";
-export * from "./scm_clients.js";
 export * from "./subscriber.js";
 export * from "./types.js";
 export * from "./worker.js";
+
+export {
+  RemoteSCMClientProvider,
+  NewRemoteSCMClientProvider,
+  GitHubClient,
+  GitLabClient,
+  BitbucketClient,
+} from "./scm_client_provider.js";
+
+export {
+  GitHubClientFromEvent,
+  GitLabClientFromEvent,
+  BitbucketClientFromEvent,
+  newProviderClient,
+  GitHubClient as GitHubSCMClient,
+  GitLabClient as GitLabSCMClient,
+  BitbucketClient as BitbucketSCMClient,
+  type SCMClient,
+} from "./scm_clients.js";

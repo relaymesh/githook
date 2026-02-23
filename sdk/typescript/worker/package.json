@@ -15,7 +15,9 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^1.10.0",
+    "@bufbuild/protobuf": "^1.10.0"
+  },
+  "optionalDependencies": {
     "@relaymesh/relaybus-amqp": "^0.0.5",
     "@relaymesh/relaybus-kafka": "^0.0.5",
     "@relaymesh/relaybus-nats": "^0.0.5"

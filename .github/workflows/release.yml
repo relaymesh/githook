@@ -76,7 +76,7 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
       - name: Install dependencies
-        run: npm install
+        run: npm install --omit=optional
         working-directory: sdk/typescript/worker
       - name: Build package
         run: npm run build
@@ -100,9 +100,9 @@ jobs:
           import re
           from pathlib import Path
           version = "${GITHUB_REF_NAME#v}"
-          path = Path("sdk/python/worker/pyproject.toml")
+          path = Path("sdk/python/worker/setup.cfg")
           text = path.read_text(encoding="utf-8")
-          updated = re.sub(r'(?m)^version\\s*=\\s*"[^"]+"', f'version = "{version}"', text, count=1)
+          updated = re.sub(r'(?m)^version\\s*=\\s*[^\\n]+', f'version = {version}', text, count=1)
           path.write_text(updated, encoding="utf-8")
           PY
       - name: Build package

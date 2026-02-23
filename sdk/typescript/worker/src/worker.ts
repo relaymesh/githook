@@ -107,7 +107,11 @@ export class Worker {
   HandleTopic(topic: string, handler: Handler): void;
   HandleTopic(topic: string, driverId: string, handler: Handler): void;
   HandleTopic(topic: string, driverOrHandler: string | Handler, handler?: Handler): void {
-    this.handleTopic(topic, driverOrHandler as string | Handler, handler);
+    if (typeof driverOrHandler === "function") {
+      this.handleTopic(topic, driverOrHandler);
+    } else {
+      this.handleTopic(topic, driverOrHandler, handler as Handler);
+    }
   }
 
   handleTopic(topic: string, handler: Handler): void;
