@@ -1,6 +1,6 @@
 # SDK Client Injection
 
-Use the SDK to attach provider-specific clients to each event. You can either inject your own clients or let the SDK resolve them from the webhook payload using the `providers` config. The SDK returns a ready-to-use provider SDK client so you do not have to construct it yourself.
+Use the SDK to attach client instances to each event. The worker can request SCM client credentials from the server and build provider clients locally (with a small LRU cache), or you can inject your own client resolver.
 
 ## Pattern
 
@@ -11,81 +11,49 @@ wk := worker.New(
   worker.WithSubscriber(sub),
   worker.WithTopics("pr.opened.ready", "pr.merged"),
   worker.WithClientProvider(worker.ClientProviderFunc(func(ctx context.Context, evt *worker.Event) (interface{}, error) {
-    switch evt.Provider {
-    case "github":
-      return newGitHubAppClient(appID, installationID, privateKeyPEM), nil
-    case "gitlab":
-      return newGitLabClient(token), nil
-    case "bitbucket":
-      return newBitbucketClient(username, appPassword), nil
-    default:
-      return nil, nil
-    }
+    // Example: return a thin client that calls your own API.
+    return newSCMProxyClient(os.Getenv("SCM_PROXY_URL")), nil
   })),
 )
 
 wk.HandleTopic("pr.opened.ready", "driver-id", func(ctx context.Context, evt *worker.Event) error {
-  switch evt.Provider {
-  case "github":
-    gh, _ := worker.GitHubClient(evt)
-    _ = gh
-  case "gitlab":
-    gl, _ := worker.GitLabClient(evt)
-    _ = gl
-  case "bitbucket":
-    bb, _ := worker.BitbucketClient(evt)
-    _ = bb
-  }
+  _ = evt.Client
   return nil
 })
 ```
 
-## Auto-resolve clients from config
+## Server-resolved SCM clients (recommended)
 
-Use `SCMClientProvider` to resolve clients automatically from your providers config:
+Use the remote SCM client provider to fetch credentials from the server and build
+provider SDK clients locally. The provider caches up to 10 clients by default.
+The server resolves enterprise vs. cloud based on the provider instance key in the event metadata.
 
 ```go
 wk := worker.New(
   worker.WithSubscriber(sub),
   worker.WithTopics("pr.opened.ready", "pr.merged"),
-  worker.WithClientProvider(worker.NewSCMClientProvider(cfg.Providers)),
-)
-```
-
-The `providers` section in your config includes the SCM auth settings (`app.app_id`, `app.private_key_path`, OAuth client credentials, and API base URLs). For GitLab and Bitbucket, the worker resolves access tokens via the Installations API using the `installation_id` in event metadata.
-
-By default the endpoint is resolved from `GITHOOK_ENDPOINT` (falling back to `GITHOOK_API_BASE_URL`). When neither environment variable is set it falls back to `http://localhost:8080`.
-
-## Multi-provider worker example
-
-This pattern uses SDK-resolved clients for GitHub, GitLab, and Bitbucket in the same handler.
-See `example/vercel/worker/main.go` for a complete runnable example.
-
-```go
-wk := worker.New(
-  worker.WithSubscriber(sub),
-  worker.WithTopics("vercel.preview", "vercel.production"),
-  worker.WithClientProvider(worker.NewSCMClientProvider(cfg.Providers)),
+  worker.WithClientProvider(worker.NewRemoteSCMClientProvider()),
 )
 
-wk.HandleTopic("vercel.preview", "driver-id", func(ctx context.Context, evt *worker.Event) error {
-  switch evt.Provider {
-  case "github":
-    gh, ok := worker.GitHubClient(evt)
-    if ok {
-      _ = gh
-    }
-  case "gitlab":
-    gl, ok := worker.GitLabClient(evt)
-    if ok {
-      _ = gl
-    }
-  case "bitbucket":
-    bb, ok := worker.BitbucketClient(evt)
-    if ok {
-      _ = bb
-    }
+wk.HandleTopic("pr.opened.ready", "driver-id", func(ctx context.Context, evt *worker.Event) error {
+  if gh, ok := worker.GitHubClient(evt); ok {
+    _, _, _ = gh.Repositories.List(ctx, "", nil)
   }
   return nil
 })
+```
+
+```python
+from relaymesh_githook import New, WithClientProvider, NewRemoteSCMClientProvider, GitHubClient
+
+wk = New(
+    WithClientProvider(NewRemoteSCMClientProvider()),
+)
+
+def handler(ctx, evt):
+    client = GitHubClient(evt)
+    if client:
+        client.request_json("GET", "/user")
+
+wk.HandleRule("rule-id", handler)
 ```

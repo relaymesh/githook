@@ -44,6 +44,10 @@ service ProvidersService {
   rpc DeleteProvider(DeleteProviderRequest) returns (DeleteProviderResponse);
 }
 
+service SCMService {
+  rpc GetSCMClient(GetSCMClientRequest) returns (GetSCMClientResponse);
+}
+
 service EventLogsService {
   rpc ListEventLogs(ListEventLogsRequest) returns (ListEventLogsResponse);
   rpc GetEventLogAnalytics(GetEventLogAnalyticsRequest) returns (GetEventLogAnalyticsResponse);
@@ -209,6 +213,24 @@ message ProviderRecord {
   google.protobuf.Timestamp updated_at = 6;
   // Per-instance OAuth redirect URL (overrides global redirect_base_url).
   string redirect_base_url = 7;
+}
+
+message SCMClient {
+  string provider = 1 [(buf.validate.field).string.min_len = 1];
+  string api_base_url = 2;
+  string access_token = 3 [(buf.validate.field).string.min_len = 1];
+  google.protobuf.Timestamp expires_at = 4;
+  string provider_instance_key = 5;
+}
+
+message GetSCMClientRequest {
+  string provider = 1 [(buf.validate.field).string.min_len = 1];
+  string installation_id = 2 [(buf.validate.field).string.min_len = 1];
+  string provider_instance_key = 3;
+}
+
+message GetSCMClientResponse {
+  SCMClient client = 1;
 }
 
 message EventLogHeaderValues {

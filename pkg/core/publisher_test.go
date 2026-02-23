@@ -4,34 +4,55 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
+	relaymessage "github.com/relaymesh/relaybus/sdk/core/go/message"
 	"google.golang.org/protobuf/proto"
 
 	cloudv1 "githook/pkg/gen/cloud/v1"
 )
 
-// stubPublisher is a mock publisher for testing.
+// stubPublisher is a mock Publisher for testing.
 type stubPublisher struct {
-	published    int
-	lastTopic    string
-	lastPayload  []byte
-	lastMetadata message.Metadata
+	published int
+	lastTopic string
 }
 
-// Publish increments the published count and records the topic.
-func (s *stubPublisher) Publish(topic string, msgs ...*message.Message) error {
-	s.published += len(msgs)
+func (s *stubPublisher) Publish(ctx context.Context, topic string, event Event) error {
+	s.published++
 	s.lastTopic = topic
-	if len(msgs) > 0 {
-		s.lastPayload = append([]byte(nil), msgs[0].Payload...)
-		s.lastMetadata = msgs[0].Metadata
+	return nil
+}
+
+func (s *stubPublisher) PublishForDrivers(ctx context.Context, topic string, event Event, drivers []string) error {
+	return s.Publish(ctx, topic, event)
+}
+
+func (s *stubPublisher) Close() error {
+	return nil
+}
+
+type stubRelayPublisher struct {
+	published int
+	lastTopic string
+	lastMsg   relaymessage.Message
+}
+
+func (s *stubRelayPublisher) Publish(ctx context.Context, topic string, msg relaymessage.Message) error {
+	s.published++
+	s.lastTopic = topic
+	s.lastMsg = msg
+	return nil
+}
+
+func (s *stubRelayPublisher) PublishBatch(ctx context.Context, topic string, msgs []relaymessage.Message) error {
+	for _, msg := range msgs {
+		if err := s.Publish(ctx, topic, msg); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-// Close is a no-op.
-func (s *stubPublisher) Close() error {
+func (s *stubRelayPublisher) Close() error {
 	return nil
 }
 
@@ -49,12 +70,11 @@ func TestRegisterPublisherDriver(t *testing.T) {
 	}()
 
 	stub := &stubPublisher{}
-	closed := false
-	RegisterPublisherDriver(driverName, func(cfg WatermillConfig, logger watermill.LoggerAdapter) (message.Publisher, func() error, error) {
-		return stub, func() error { closed = true; return nil }, nil
+	RegisterPublisherDriver(driverName, func(cfg RelaybusConfig) (Publisher, error) {
+		return stub, nil
 	})
 
-	pub, err := NewPublisher(WatermillConfig{Driver: driverName})
+	pub, err := NewPublisher(RelaybusConfig{Driver: driverName})
 	if err != nil {
 		t.Fatalf("new publisher: %v", err)
 	}
@@ -69,20 +89,6 @@ func TestRegisterPublisherDriver(t *testing.T) {
 
 	if err := pub.Close(); err != nil {
 		t.Fatalf("close: %v", err)
-	}
-	if !closed {
-		t.Fatalf("expected custom close to be called")
-	}
-}
-
-// TestHTTPURLTarget tests that the HTTP target URL is constructed correctly.
-func TestHTTPURLTarget(t *testing.T) {
-	url, err := httpTargetURL(HTTPConfig{Mode: "base_url", BaseURL: "http://localhost:8080/hooks"}, "topic")
-	if err != nil {
-		t.Fatalf("httpTargetURL: %v", err)
-	}
-	if url != "http://localhost:8080/hooks/topic" {
-		t.Fatalf("unexpected url: %q", url)
 	}
 }
 
@@ -106,14 +112,14 @@ func TestMultipleDrivers(t *testing.T) {
 	a := &stubPublisher{}
 	b := &stubPublisher{}
 
-	RegisterPublisherDriver("multi-a", func(cfg WatermillConfig, logger watermill.LoggerAdapter) (message.Publisher, func() error, error) {
-		return a, nil, nil
+	RegisterPublisherDriver("multi-a", func(cfg RelaybusConfig) (Publisher, error) {
+		return a, nil
 	})
-	RegisterPublisherDriver("multi-b", func(cfg WatermillConfig, logger watermill.LoggerAdapter) (message.Publisher, func() error, error) {
-		return b, nil, nil
+	RegisterPublisherDriver("multi-b", func(cfg RelaybusConfig) (Publisher, error) {
+		return b, nil
 	})
 
-	pub, err := NewPublisher(WatermillConfig{Drivers: []string{"multi-a", "multi-b"}})
+	pub, err := NewPublisher(RelaybusConfig{Drivers: []string{"multi-a", "multi-b"}})
 	if err != nil {
 		t.Fatalf("new publisher: %v", err)
 	}
@@ -140,12 +146,12 @@ func TestPublishUsesRawPayloadAndMetadata(t *testing.T) {
 		}
 	}()
 
-	stub := &stubPublisher{}
-	RegisterPublisherDriver(driverName, func(cfg WatermillConfig, logger watermill.LoggerAdapter) (message.Publisher, func() error, error) {
-		return stub, nil, nil
+	stub := &stubRelayPublisher{}
+	RegisterPublisherDriver(driverName, func(cfg RelaybusConfig) (Publisher, error) {
+		return &relaybusPublisher{publisher: stub}, nil
 	})
 
-	pub, err := NewPublisher(WatermillConfig{Driver: driverName})
+	pub, err := NewPublisher(RelaybusConfig{Driver: driverName})
 	if err != nil {
 		t.Fatalf("new publisher: %v", err)
 	}
@@ -162,19 +168,19 @@ func TestPublishUsesRawPayloadAndMetadata(t *testing.T) {
 	}
 
 	var env cloudv1.EventPayload
-	if err := proto.Unmarshal(stub.lastPayload, &env); err != nil {
+	if err := proto.Unmarshal(stub.lastMsg.Payload, &env); err != nil {
 		t.Fatalf("unmarshal proto payload: %v", err)
 	}
 	if string(env.GetPayload()) != string(raw) {
 		t.Fatalf("expected raw payload to be forwarded")
 	}
-	if stub.lastMetadata.Get("provider") != "github" {
+	if stub.lastMsg.Metadata["provider"] != "github" {
 		t.Fatalf("expected provider metadata")
 	}
-	if stub.lastMetadata.Get("event") != "push" {
+	if stub.lastMsg.Metadata["event"] != "push" {
 		t.Fatalf("expected event metadata")
 	}
-	if stub.lastMetadata.Get("request_id") != "req-123" {
+	if stub.lastMsg.Metadata["request_id"] != "req-123" {
 		t.Fatalf("expected request_id metadata")
 	}
 }

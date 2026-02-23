@@ -17,3 +17,9 @@ plugins:
   - plugin: buf.build/grpc/go:v1.6.1
     out: pkg/gen
     opt: paths=source_relative
+  - plugin: buf.build/bufbuild/es:v1.10.0
+    out: sdk/typescript/worker/gen
+  - plugin: buf.build/protocolbuffers/python:v33.5
+    out:  sdk/python/worker
+  - plugin: buf.build/connectrpc/python:v0.8.1
+    out:  sdk/python/worker

@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/ThreeDotsLabs/watermill"
+	"github.com/google/uuid"
 
 	"githook/pkg/core"
 	"githook/pkg/storage"
@@ -28,7 +28,7 @@ func logEventFailure(ctx context.Context, store storage.EventLogStore, logger *l
 	body := append([]byte(nil), event.RawPayload...)
 	bodyHash := hashBody(body)
 	record := storage.EventLogRecord{
-		ID:             watermill.NewUUID(),
+		ID:             uuid.NewString(),
 		Provider:       event.Provider,
 		Name:           event.Name,
 		RequestID:      event.RequestID,
@@ -68,7 +68,7 @@ func buildEventLogRecords(event core.Event, rules []core.MatchedRule) ([]storage
 	bodyHash := hashBody(body)
 	if len(rules) == 0 {
 		record := storage.EventLogRecord{
-			ID:             watermill.NewUUID(),
+			ID:             uuid.NewString(),
 			Provider:       event.Provider,
 			Name:           event.Name,
 			RequestID:      event.RequestID,
@@ -98,7 +98,7 @@ func buildEventLogRecords(event core.Event, rules []core.MatchedRule) ([]storage
 		}
 		for _, topic := range rule.Emit {
 			record := storage.EventLogRecord{
-				ID:             watermill.NewUUID(),
+				ID:             uuid.NewString(),
 				Provider:       event.Provider,
 				Name:           event.Name,
 				RequestID:      event.RequestID,

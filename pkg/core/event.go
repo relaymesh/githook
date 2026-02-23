@@ -22,6 +22,8 @@ type Event struct {
 	StateID string `json:"-"`
 	// InstallationID maps the event to a provider installation for token lookup.
 	InstallationID string `json:"-"`
+	// ProviderInstanceKey identifies the provider instance configuration.
+	ProviderInstanceKey string `json:"-"`
 	// NamespaceID identifies the repository/namespace for the event.
 	NamespaceID string `json:"-"`
 	// NamespaceName is the human-readable namespace (owner/repo).

@@ -24,7 +24,7 @@ type Rule struct {
 	DriverID string `yaml:"driver_id"`
 	// DriverName is used internally to track the driver name resolved from storage.
 	DriverName string `yaml:"-"`
-	// DriverConfigJSON stores the Watermill driver configuration (optional).
+	// DriverConfigJSON stores the Relaybus driver configuration (optional).
 	DriverConfigJSON string `yaml:"driver_config_json"`
 	// DriverEnabled indicates whether the associated driver is enabled.
 	DriverEnabled bool `yaml:"driver_enabled"`

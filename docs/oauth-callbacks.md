@@ -34,12 +34,14 @@ redirect_base_url: https://app.example.com/oauth/complete  # Global fallback for
 
 You can set a different redirect URL for each provider instance by including `redirect_base_url` in the config file:
 
-```json
-{
-  "redirect_base_url": "https://app.example.com/oauth/github/complete",
-  "app": { ... },
-  "oauth": { ... }
-}
+```yaml
+redirect_base_url: https://app.example.com/oauth/github/complete
+app:
+  app_id: 12345
+  private_key_path: ./github.pem
+oauth:
+  client_id: your-client-id
+  client_secret: your-client-secret
 ```
 
 Then create the provider:
@@ -100,13 +102,13 @@ githook --endpoint https://your-domain.com providers list --provider github
 ### GitLab
 
 - OAuth required for all GitLab integrations
-- Uses `providers.gitlab.oauth.client_id` and `client_secret`
+- Configure `oauth.client_id` and `oauth.client_secret` in the provider instance config
 - Callback URL: `https://your-domain.com/auth/gitlab/callback`
 
 ### Bitbucket
 
 - OAuth required for all Bitbucket integrations
-- Uses `providers.bitbucket.oauth.client_id` and `client_secret`
+- Configure `oauth.client_id` and `oauth.client_secret` in the provider instance config
 - Callback URL: `https://your-domain.com/auth/bitbucket/callback`
 
 ## GitHub Enterprise
@@ -114,14 +116,12 @@ githook --endpoint https://your-domain.com providers list --provider github
 To use GitHub Enterprise, set the GitHub API base URL to your GHE host:
 
 ```yaml
-providers:
-  github:
-    api:
-      base_url: https://ghe.company.com/api/v3
-      web_base_url: https://ghe.company.com
-    oauth:
-      client_id: your-oauth-client-id
-      client_secret: your-oauth-client-secret
+api:
+  base_url: https://ghe.company.com/api/v3
+  web_base_url: https://ghe.company.com
+oauth:
+  client_id: your-oauth-client-id
+  client_secret: your-oauth-client-secret
 ```
 
 ## Security

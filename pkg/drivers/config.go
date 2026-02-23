@@ -9,8 +9,8 @@ import (
 	"githook/pkg/storage"
 )
 
-// RecordsFromConfig converts a Watermill config into driver records.
-func RecordsFromConfig(cfg core.WatermillConfig) ([]storage.DriverRecord, error) {
+// RecordsFromConfig converts a Relaybus config into driver records.
+func RecordsFromConfig(cfg core.RelaybusConfig) ([]storage.DriverRecord, error) {
 	drivers := cfg.Drivers
 	if len(drivers) == 0 && cfg.Driver != "" {
 		drivers = []string{cfg.Driver}
@@ -37,8 +37,8 @@ func RecordsFromConfig(cfg core.WatermillConfig) ([]storage.DriverRecord, error)
 	return out, nil
 }
 
-// ConfigFromRecords builds a Watermill config from stored driver records.
-func ConfigFromRecords(base core.WatermillConfig, records []storage.DriverRecord) (core.WatermillConfig, error) {
+// ConfigFromRecords builds a Relaybus config from stored driver records.
+func ConfigFromRecords(base core.RelaybusConfig, records []storage.DriverRecord) (core.RelaybusConfig, error) {
 	cfg := base
 	cfg.Drivers = nil
 	cfg.Driver = ""
@@ -51,70 +51,54 @@ func ConfigFromRecords(base core.WatermillConfig, records []storage.DriverRecord
 			continue
 		}
 		if err := applyDriverConfig(&cfg, name, record.ConfigJSON); err != nil {
-			return core.WatermillConfig{}, err
+			return core.RelaybusConfig{}, err
 		}
 		cfg.Drivers = append(cfg.Drivers, name)
 	}
 	return cfg, nil
 }
 
-func marshalDriverConfig(name string, cfg core.WatermillConfig) (string, error) {
+func marshalDriverConfig(name string, cfg core.RelaybusConfig) (string, error) {
 	switch strings.ToLower(name) {
-	case "gochannel":
-		return marshalJSON(cfg.GoChannel)
 	case "amqp":
 		return marshalJSON(cfg.AMQP)
 	case "nats":
 		return marshalJSON(cfg.NATS)
 	case "kafka":
 		return marshalJSON(cfg.Kafka)
-	case "http":
-		return marshalJSON(cfg.HTTP)
-	case "sql":
-		return marshalJSON(cfg.SQL)
-	case "riverqueue":
-		return marshalJSON(cfg.RiverQueue)
 	default:
 		return "", errors.New("unsupported driver: " + name)
 	}
 }
 
-func applyDriverConfig(cfg *core.WatermillConfig, name, raw string) error {
+func applyDriverConfig(cfg *core.RelaybusConfig, name, raw string) error {
 	if cfg == nil {
 		return errors.New("config is nil")
 	}
 	switch strings.ToLower(name) {
-	case "gochannel":
-		return unmarshalJSON(raw, &cfg.GoChannel)
 	case "amqp":
 		return unmarshalJSON(raw, &cfg.AMQP)
 	case "nats":
 		return unmarshalJSON(raw, &cfg.NATS)
 	case "kafka":
 		return unmarshalJSON(raw, &cfg.Kafka)
-	case "http":
-		return unmarshalJSON(raw, &cfg.HTTP)
-	case "sql":
-		return unmarshalJSON(raw, &cfg.SQL)
-	case "riverqueue":
-		return unmarshalJSON(raw, &cfg.RiverQueue)
 	default:
 		return errors.New("unsupported driver: " + name)
 	}
 }
 
-// ConfigFromDriver builds a Watermill config for a single driver from its JSON payload.
-func ConfigFromDriver(driverName, configJSON string) (core.WatermillConfig, error) {
+// ConfigFromDriver builds a Relaybus config for a single driver from its JSON payload.
+func ConfigFromDriver(driverName, configJSON string) (core.RelaybusConfig, error) {
 	name := strings.ToLower(strings.TrimSpace(driverName))
 	if name == "" {
-		return core.WatermillConfig{}, errors.New("driver name is required")
+		return core.RelaybusConfig{}, errors.New("driver name is required")
 	}
-	cfg := core.WatermillConfig{
+	cfg := core.RelaybusConfig{
 		Driver:  name,
 		Drivers: []string{name},
 	}
 	if err := applyDriverConfig(&cfg, name, configJSON); err != nil {
-		return core.WatermillConfig{}, err
+		return core.RelaybusConfig{}, err
 	}
 	return cfg, nil
 }

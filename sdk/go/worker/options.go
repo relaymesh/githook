@@ -3,16 +3,14 @@ package worker
 import (
 	"strings"
 
-	"github.com/ThreeDotsLabs/watermill/message"
-
 	"githook/pkg/auth"
 )
 
 // Option is a function that configures a Worker.
 type Option func(*Worker)
 
-// WithSubscriber sets the Watermill subscriber for the worker.
-func WithSubscriber(sub message.Subscriber) Option {
+// WithSubscriber sets the Relaybus subscriber for the worker.
+func WithSubscriber(sub Subscriber) Option {
 	return func(w *Worker) {
 		w.subscriber = sub
 	}

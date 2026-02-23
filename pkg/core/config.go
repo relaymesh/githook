@@ -26,8 +26,8 @@ type AppConfig struct {
 	} `yaml:"server"`
 	// Providers contains configuration for each Git provider.
 	Providers auth.Config `yaml:"providers"`
-	// Watermill holds configuration for the message router.
-	Watermill WatermillConfig `yaml:"watermill"`
+	// Relaybus holds configuration for the Relaybus message router.
+	Relaybus RelaybusConfig `yaml:"relaybus"`
 	// Storage holds configuration for installation storage.
 	Storage StorageConfig `yaml:"storage"`
 	// RedirectBaseURL is where users are redirected after OAuth completion.
@@ -50,71 +50,37 @@ type Config struct {
 // ProviderConfig represents the configuration for a single Git provider.
 type ProviderConfig = auth.ProviderConfig
 
-// WatermillConfig holds the configuration for Watermill, which handles messaging.
-type WatermillConfig struct {
+// RelaybusConfig holds the configuration for Relaybus, which handles messaging.
+type RelaybusConfig struct {
 	Driver       string             `yaml:"driver"`
 	Drivers      []string           `yaml:"drivers"`
-	GoChannel    GoChannelConfig    `yaml:"gochannel"`
 	Kafka        KafkaConfig        `yaml:"kafka"`
 	NATS         NATSConfig         `yaml:"nats"`
 	AMQP         AMQPConfig         `yaml:"amqp"`
-	SQL          SQLConfig          `yaml:"sql"`
-	HTTP         HTTPConfig         `yaml:"http"`
-	RiverQueue   RiverQueueConfig   `yaml:"riverqueue"`
 	PublishRetry PublishRetryConfig `yaml:"publish_retry"`
 	DLQDriver    string             `yaml:"dlq_driver"`
 }
 
-// GoChannelConfig holds configuration for the GoChannel pub/sub.
-type GoChannelConfig struct {
-	OutputChannelBuffer            int64 `yaml:"output_buffer"`
-	Persistent                     bool  `yaml:"persistent"`
-	BlockPublishUntilSubscriberAck bool  `yaml:"block_publish_until_subscriber_ack"`
-}
-
 // KafkaConfig holds configuration for the Kafka pub/sub.
 type KafkaConfig struct {
-	Brokers []string `yaml:"brokers"`
+	Brokers     []string `yaml:"brokers"`
+	Broker      string   `yaml:"broker"`
+	TopicPrefix string   `yaml:"topic_prefix"`
 }
 
 // NATSConfig holds configuration for the NATS pub/sub.
 type NATSConfig struct {
-	ClusterID string `yaml:"cluster_id"`
-	ClientID  string `yaml:"client_id"`
-	URL       string `yaml:"url"`
+	URL           string `yaml:"url"`
+	SubjectPrefix string `yaml:"subject_prefix"`
 }
 
 // AMQPConfig holds configuration for the AMQP pub/sub.
 type AMQPConfig struct {
-	URL  string `yaml:"url"`
-	Mode string `yaml:"mode"`
-}
-
-// SQLConfig holds configuration for the SQL pub/sub.
-type SQLConfig struct {
-	Driver               string `yaml:"driver"`
-	DSN                  string `yaml:"dsn"`
-	Dialect              string `yaml:"dialect"`
-	InitializeSchema     bool   `yaml:"initialize_schema"`
-	AutoInitializeSchema bool   `yaml:"auto_initialize_schema"`
-}
-
-// HTTPConfig holds configuration for the HTTP publisher.
-type HTTPConfig struct {
-	BaseURL string `yaml:"base_url"`
-	Mode    string `yaml:"mode"`
-}
-
-// RiverQueueConfig holds configuration for the RiverQueue publisher.
-type RiverQueueConfig struct {
-	Driver      string   `yaml:"driver"`
-	DSN         string   `yaml:"dsn"`
-	Table       string   `yaml:"table"`
-	Queue       string   `yaml:"queue"`
-	Kind        string   `yaml:"kind"`
-	MaxAttempts int      `yaml:"max_attempts"`
-	Priority    int      `yaml:"priority"`
-	Tags        []string `yaml:"tags"`
+	URL                string `yaml:"url"`
+	Exchange           string `yaml:"exchange"`
+	RoutingKeyTemplate string `yaml:"routing_key_template"`
+	Mandatory          bool   `yaml:"mandatory"`
+	Immediate          bool   `yaml:"immediate"`
 }
 
 type PublishRetryConfig struct {
@@ -124,10 +90,14 @@ type PublishRetryConfig struct {
 
 // StorageConfig holds configuration for SQL-backed installation storage.
 type StorageConfig struct {
-	Driver      string `yaml:"driver"`
-	DSN         string `yaml:"dsn"`
-	Dialect     string `yaml:"dialect"`
-	AutoMigrate bool   `yaml:"auto_migrate"`
+	Driver            string `yaml:"driver"`
+	DSN               string `yaml:"dsn"`
+	Dialect           string `yaml:"dialect"`
+	AutoMigrate       bool   `yaml:"auto_migrate"`
+	MaxOpenConns      int    `yaml:"max_open_conns"`
+	MaxIdleConns      int    `yaml:"max_idle_conns"`
+	ConnMaxLifetimeMS int64  `yaml:"conn_max_lifetime_ms"`
+	ConnMaxIdleTimeMS int64  `yaml:"conn_max_idle_time_ms"`
 }
 
 // OAuthConfig holds configuration for OAuth callbacks.
@@ -241,32 +211,11 @@ func applyDefaults(cfg *AppConfig) {
 	if cfg.Providers.Bitbucket.Webhook.Path == "" {
 		cfg.Providers.Bitbucket.Webhook.Path = "/webhooks/bitbucket"
 	}
-	if cfg.Watermill.Driver == "" {
-		cfg.Watermill.Driver = "gochannel"
+	if cfg.Relaybus.PublishRetry.Attempts == 0 {
+		cfg.Relaybus.PublishRetry.Attempts = 3
 	}
-	if cfg.Watermill.GoChannel.OutputChannelBuffer == 0 {
-		cfg.Watermill.GoChannel.OutputChannelBuffer = 64
-	}
-	if cfg.Watermill.HTTP.Mode == "" {
-		cfg.Watermill.HTTP.Mode = "topic_url"
-	}
-	if cfg.Watermill.RiverQueue.Table == "" {
-		cfg.Watermill.RiverQueue.Table = "river_job"
-	}
-	if cfg.Watermill.RiverQueue.Queue == "" {
-		cfg.Watermill.RiverQueue.Queue = "default"
-	}
-	if cfg.Watermill.RiverQueue.Kind == "" {
-		cfg.Watermill.RiverQueue.Kind = "githook.event"
-	}
-	if cfg.Watermill.RiverQueue.MaxAttempts == 0 {
-		cfg.Watermill.RiverQueue.MaxAttempts = 25
-	}
-	if cfg.Watermill.PublishRetry.Attempts == 0 {
-		cfg.Watermill.PublishRetry.Attempts = 3
-	}
-	if cfg.Watermill.PublishRetry.DelayMS == 0 {
-		cfg.Watermill.PublishRetry.DelayMS = 500
+	if cfg.Relaybus.PublishRetry.DelayMS == 0 {
+		cfg.Relaybus.PublishRetry.DelayMS = 500
 	}
 	applyAuthDefaults(cfg)
 }

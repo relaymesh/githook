@@ -22,6 +22,21 @@ Githooks preserves provider event names in `Event.Name` and sets `Event.Provider
 - Bitbucket events use keys like `pullrequest:created`.
 - GitLab event names come from `X-Gitlab-Event` (e.g., `Merge Request Hook`).
 
+## Message Metadata
+
+Published messages include metadata keys that workers can use:
+- `installation_id`: Provider installation ID.
+- `provider_instance_key`: Provider instance hash (used to resolve enterprise vs. cloud).
+- `request_id`: Request trace ID.
+- `log_id`: Event log record ID.
+- `driver`: Broker driver name (amqp/nats/kafka).
+
+## Event Logs
+
+Event log records persist the webhook headers and raw body, plus a `body_hash`
+for duplicate detection. The EventLogs API returns these fields to workers
+and clients.
+
 ## Debugging
 Check logs for:
 - `event provider=... name=... topics=[...]`

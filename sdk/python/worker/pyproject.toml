@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "relaymesh-githook"
+version = "0.1.0"
+description = "Relaymesh Githook worker SDK"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "protobuf>=4.21.0",
+]
+
+[project.optional-dependencies]
+amqp = ["relaybus-amqp"]
+kafka = ["relaybus-kafka"]
+nats = ["relaybus-nats"]
+all = ["relaybus-amqp", "relaybus-kafka", "relaybus-nats"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["relaymesh_githook*", "cloud*"]

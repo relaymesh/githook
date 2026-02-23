@@ -1,0 +1,1 @@
+"""Generated githook proto definitions."""

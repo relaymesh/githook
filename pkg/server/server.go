@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
 	"githook/pkg/oauth"
 	"githook/pkg/providerinstance"
+	"githook/pkg/storage"
 	driversstore "githook/pkg/storage/drivers"
 	"githook/pkg/storage/eventlogs"
 	"githook/pkg/storage/installations"
@@ -143,11 +145,18 @@ func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, m
 		dynamicDriverCache *driverspkg.DynamicPublisherCache
 	)
 	if config.Storage.Driver != "" && config.Storage.DSN != "" {
+		pool := storage.PoolConfig{
+			MaxOpenConns:      config.Storage.MaxOpenConns,
+			MaxIdleConns:      config.Storage.MaxIdleConns,
+			ConnMaxLifetimeMS: config.Storage.ConnMaxLifetimeMS,
+			ConnMaxIdleTimeMS: config.Storage.ConnMaxIdleTimeMS,
+		}
 		store, err := installations.Open(installations.Config{
 			Driver:      config.Storage.Driver,
 			DSN:         config.Storage.DSN,
 			Dialect:     config.Storage.Dialect,
 			AutoMigrate: config.Storage.AutoMigrate,
+			Pool:        pool,
 		})
 		if err != nil {
 			return fail(fmt.Errorf("storage: %w", err))
@@ -161,6 +170,7 @@ func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, m
 			DSN:         config.Storage.DSN,
 			Dialect:     config.Storage.Dialect,
 			AutoMigrate: config.Storage.AutoMigrate,
+			Pool:        pool,
 		})
 		if err != nil {
 			return fail(fmt.Errorf("namespaces storage: %w", err))
@@ -174,6 +184,7 @@ func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, m
 			DSN:         config.Storage.DSN,
 			Dialect:     config.Storage.Dialect,
 			AutoMigrate: config.Storage.AutoMigrate,
+			Pool:        pool,
 		})
 		if err != nil {
 			return fail(fmt.Errorf("rules storage: %w", err))
@@ -187,6 +198,7 @@ func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, m
 			DSN:         config.Storage.DSN,
 			Dialect:     config.Storage.Dialect,
 			AutoMigrate: config.Storage.AutoMigrate,
+			Pool:        pool,
 		})
 		if err != nil {
 			return fail(fmt.Errorf("event logs storage: %w", err))
@@ -200,6 +212,7 @@ func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, m
 			DSN:         config.Storage.DSN,
 			Dialect:     config.Storage.Dialect,
 			AutoMigrate: config.Storage.AutoMigrate,
+			Pool:        pool,
 		})
 		if err != nil {
 			return fail(fmt.Errorf("driver storage: %w", err))
@@ -213,6 +226,7 @@ func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, m
 			DSN:         config.Storage.DSN,
 			Dialect:     config.Storage.Dialect,
 			AutoMigrate: config.Storage.AutoMigrate,
+			Pool:        pool,
 		})
 		if err != nil {
 			return fail(fmt.Errorf("provider instances storage: %w", err))
@@ -228,7 +242,7 @@ func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, m
 	addCloser(func() { _ = dynamicDriverCache.Close() })
 
 	if driverStore != nil {
-		driverCache = driverspkg.NewCache(driverStore, config.Watermill, logger)
+		driverCache = driverspkg.NewCache(driverStore, config.Relaybus, logger)
 		if err := driverCache.Refresh(ctx); err != nil {
 			return fail(fmt.Errorf("drivers cache: %w", err))
 		}
@@ -243,13 +257,24 @@ func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, m
 		addCloser(instanceCache.Close)
 	}
 
-	basePublisher, err := core.NewPublisher(config.Watermill)
-	if err != nil {
-		return fail(fmt.Errorf("publisher: %w", err))
+	hasBaseDrivers := strings.TrimSpace(config.Relaybus.Driver) != "" || len(config.Relaybus.Drivers) > 0
+	var basePublisher core.Publisher
+	if hasBaseDrivers {
+		var err error
+		basePublisher, err = core.NewPublisher(config.Relaybus)
+		if err != nil {
+			return fail(fmt.Errorf("publisher: %w", err))
+		}
 	}
-	publisher := core.Publisher(basePublisher)
-	if driverCache != nil {
+
+	var publisher core.Publisher
+	switch {
+	case driverCache != nil:
 		publisher = driverspkg.NewTenantPublisher(driverCache, basePublisher)
+	case basePublisher != nil:
+		publisher = basePublisher
+	default:
+		return fail(errors.New("relaybus publisher not configured"))
 	}
 	addCloser(func() { _ = publisher.Close() })
 
@@ -333,6 +358,17 @@ func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, m
 			Logger: logger,
 		}
 		path, handler := cloudv1connect.NewProvidersServiceHandler(providerSvc, connectOpts...)
+		mux.Handle(path, handler)
+	}
+	{
+		scmSvc := &api.SCMService{
+			Store:                 installStore,
+			ProviderInstanceStore: instanceStore,
+			ProviderInstanceCache: instanceCache,
+			Providers:             config.Providers,
+			Logger:                logger,
+		}
+		path, handler := cloudv1connect.NewSCMServiceHandler(scmSvc, connectOpts...)
 		mux.Handle(path, handler)
 	}
 	{

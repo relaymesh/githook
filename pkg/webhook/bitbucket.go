@@ -132,7 +132,7 @@ func (h *BitbucketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		rawObject, data := rawObjectAndFlatten(rawBody)
 		rawObject = annotatePayload(rawObject, data, "bitbucket", eventName)
 		namespaceID, namespaceName := bitbucketNamespaceInfo(rawBody)
-		tenantID, stateID, installationID := h.resolveStateID(r.Context(), rawBody)
+		tenantID, stateID, installationID, instanceKey := h.resolveStateID(r.Context(), rawBody)
 		ctx := r.Context()
 		if tenantID != "" {
 			ctx = storage.WithTenant(ctx, tenantID)
@@ -144,26 +144,27 @@ func (h *BitbucketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.emit(r, logger, core.Event{
-			Provider:       "bitbucket",
-			Name:           eventName,
-			RequestID:      reqID,
-			Headers:        cloneHeaders(r.Header),
-			Data:           data,
-			RawPayload:     rawBody,
-			RawObject:      rawObject,
-			StateID:        stateID,
-			InstallationID: installationID,
-			NamespaceID:    namespaceID,
-			NamespaceName:  namespaceName,
+			Provider:            "bitbucket",
+			Name:                eventName,
+			RequestID:           reqID,
+			Headers:             cloneHeaders(r.Header),
+			Data:                data,
+			RawPayload:          rawBody,
+			RawObject:           rawObject,
+			StateID:             stateID,
+			InstallationID:      installationID,
+			ProviderInstanceKey: instanceKey,
+			NamespaceID:         namespaceID,
+			NamespaceName:       namespaceName,
 		})
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *BitbucketHandler) resolveStateID(ctx context.Context, raw []byte) (string, string, string) {
+func (h *BitbucketHandler) resolveStateID(ctx context.Context, raw []byte) (string, string, string, string) {
 	if h.namespaces == nil {
-		return "", "", ""
+		return "", "", "", ""
 	}
 	var payload struct {
 		Repository struct {
@@ -171,17 +172,17 @@ func (h *BitbucketHandler) resolveStateID(ctx context.Context, raw []byte) (stri
 		} `json:"repository"`
 	}
 	if err := json.Unmarshal(raw, &payload); err != nil {
-		return "", "", ""
+		return "", "", "", ""
 	}
 	repoID := strings.TrimSpace(payload.Repository.UUID)
 	if repoID == "" {
-		return "", "", ""
+		return "", "", "", ""
 	}
 	record, err := h.namespaces.GetNamespace(ctx, "bitbucket", repoID, "")
 	if err != nil || record == nil {
-		return "", "", ""
+		return "", "", "", ""
 	}
-	return record.TenantID, record.AccountID, record.InstallationID
+	return record.TenantID, record.AccountID, record.InstallationID, record.ProviderInstanceKey
 }
 
 func (h *BitbucketHandler) matchRules(ctx context.Context, event core.Event, tenantID string, logger *log.Logger) []core.MatchedRule {

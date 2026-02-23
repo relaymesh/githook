@@ -62,7 +62,7 @@ func TestDriversServiceLifecycle(t *testing.T) {
 	ctx := storage.WithTenant(context.Background(), "tenant-a")
 
 	if _, err := service.UpsertDriver(ctx, connect.NewRequest(&cloudv1.UpsertDriverRequest{
-		Driver: &cloudv1.DriverRecord{Name: "gochannel", ConfigJson: "{}", Enabled: true},
+		Driver: &cloudv1.DriverRecord{Name: "amqp", ConfigJson: "{\"url\":\"amqp://localhost\"}", Enabled: true},
 	})); err != nil {
 		t.Fatalf("upsert driver: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestRulesServiceCreateUpdateMatch(t *testing.T) {
 	ruleStore := storage.NewMockRuleStore()
 	driverStore := storage.NewMockDriverStore()
 	ctx := storage.WithTenant(context.Background(), "tenant-a")
-	driver, err := driverStore.UpsertDriver(ctx, storage.DriverRecord{Name: "gochannel", Enabled: true})
+	driver, err := driverStore.UpsertDriver(ctx, storage.DriverRecord{Name: "amqp", ConfigJSON: "{\"url\":\"amqp://localhost\"}", Enabled: true})
 	if err != nil {
 		t.Fatalf("upsert driver: %v", err)
 	}

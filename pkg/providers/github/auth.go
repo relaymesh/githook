@@ -56,6 +56,12 @@ type appAuthenticator struct {
 	keyError error
 }
 
+// InstallationToken contains an installation token and expiry.
+type InstallationToken struct {
+	Token     string
+	ExpiresAt *time.Time
+}
+
 func newAppAuthenticator(cfg AppConfig) *appAuthenticator {
 	return &appAuthenticator{
 		appID:   cfg.AppID,
@@ -121,39 +127,64 @@ func FetchInstallationAccount(ctx context.Context, cfg AppConfig, installationID
 }
 
 func (a *appAuthenticator) installationToken(ctx context.Context, installationID int64) (string, error) {
+	token, _, err := a.installationTokenWithExpiry(ctx, installationID)
+	return token, err
+}
+
+func (a *appAuthenticator) installationTokenWithExpiry(ctx context.Context, installationID int64) (string, *time.Time, error) {
 	jwt, err := a.jwt()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	endpoint := fmt.Sprintf("%s/app/installations/%d/access_tokens", a.baseURL, installationID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, nil)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+jwt)
 	req.Header.Set("Accept", "application/vnd.github+json")
 
 	resp, err := a.client.Do(req)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("github token exchange failed: %s", strings.TrimSpace(string(body)))
+		return "", nil, fmt.Errorf("github token exchange failed: %s", strings.TrimSpace(string(body)))
 	}
 
 	var out struct {
-		Token string `json:"token"`
+		Token     string `json:"token"`
+		ExpiresAt string `json:"expires_at"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	if out.Token == "" {
-		return "", errors.New("github installation token missing from response")
+		return "", nil, errors.New("github installation token missing from response")
 	}
-	return out.Token, nil
+	var expiresAt *time.Time
+	if out.ExpiresAt != "" {
+		if parsed, err := time.Parse(time.RFC3339, out.ExpiresAt); err == nil {
+			expiresAt = &parsed
+		}
+	}
+	return out.Token, expiresAt, nil
+}
+
+// FetchInstallationToken exchanges an installation token for the GitHub App.
+func FetchInstallationToken(ctx context.Context, cfg AppConfig, installationID int64) (InstallationToken, error) {
+	if installationID == 0 {
+		return InstallationToken{}, errors.New("installation id is required")
+	}
+	authenticator := newAppAuthenticator(cfg)
+	token, expiresAt, err := authenticator.installationTokenWithExpiry(ctx, installationID)
+	if err != nil {
+		return InstallationToken{}, err
+	}
+	return InstallationToken{Token: token, ExpiresAt: expiresAt}, nil
 }
 
 func (a *appAuthenticator) jwt() (string, error) {

@@ -1175,6 +1175,108 @@ var ProvidersService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
+	SCMService_GetSCMClient_FullMethodName = "/cloud.v1.SCMService/GetSCMClient"
+)
+
+// SCMServiceClient is the client API for SCMService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type SCMServiceClient interface {
+	GetSCMClient(ctx context.Context, in *GetSCMClientRequest, opts ...grpc.CallOption) (*GetSCMClientResponse, error)
+}
+
+type sCMServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewSCMServiceClient(cc grpc.ClientConnInterface) SCMServiceClient {
+	return &sCMServiceClient{cc}
+}
+
+func (c *sCMServiceClient) GetSCMClient(ctx context.Context, in *GetSCMClientRequest, opts ...grpc.CallOption) (*GetSCMClientResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSCMClientResponse)
+	err := c.cc.Invoke(ctx, SCMService_GetSCMClient_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// SCMServiceServer is the server API for SCMService service.
+// All implementations must embed UnimplementedSCMServiceServer
+// for forward compatibility.
+type SCMServiceServer interface {
+	GetSCMClient(context.Context, *GetSCMClientRequest) (*GetSCMClientResponse, error)
+	mustEmbedUnimplementedSCMServiceServer()
+}
+
+// UnimplementedSCMServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedSCMServiceServer struct{}
+
+func (UnimplementedSCMServiceServer) GetSCMClient(context.Context, *GetSCMClientRequest) (*GetSCMClientResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSCMClient not implemented")
+}
+func (UnimplementedSCMServiceServer) mustEmbedUnimplementedSCMServiceServer() {}
+func (UnimplementedSCMServiceServer) testEmbeddedByValue()                    {}
+
+// UnsafeSCMServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to SCMServiceServer will
+// result in compilation errors.
+type UnsafeSCMServiceServer interface {
+	mustEmbedUnimplementedSCMServiceServer()
+}
+
+func RegisterSCMServiceServer(s grpc.ServiceRegistrar, srv SCMServiceServer) {
+	// If the following call panics, it indicates UnimplementedSCMServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&SCMService_ServiceDesc, srv)
+}
+
+func _SCMService_GetSCMClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSCMClientRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SCMServiceServer).GetSCMClient(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SCMService_GetSCMClient_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SCMServiceServer).GetSCMClient(ctx, req.(*GetSCMClientRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// SCMService_ServiceDesc is the grpc.ServiceDesc for SCMService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var SCMService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "cloud.v1.SCMService",
+	HandlerType: (*SCMServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetSCMClient",
+			Handler:    _SCMService_GetSCMClient_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "cloud/v1/githooks.proto",
+}
+
+const (
 	EventLogsService_ListEventLogs_FullMethodName         = "/cloud.v1.EventLogsService/ListEventLogs"
 	EventLogsService_GetEventLogAnalytics_FullMethodName  = "/cloud.v1.EventLogsService/GetEventLogAnalytics"
 	EventLogsService_GetEventLogTimeseries_FullMethodName = "/cloud.v1.EventLogsService/GetEventLogTimeseries"

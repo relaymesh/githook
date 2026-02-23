@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ThreeDotsLabs/watermill/message"
+	relaymessage "github.com/relaymesh/relaybus/sdk/core/go/message"
 
 	"githook/pkg/auth"
 	"githook/pkg/storage"
@@ -17,7 +17,7 @@ import (
 // Worker is a message-processing worker that subscribes to topics, decodes
 // messages, and dispatches them to handlers.
 type Worker struct {
-	subscriber  message.Subscriber
+	subscriber  Subscriber
 	codec       Codec
 	retry       RetryPolicy
 	logger      Logger
@@ -31,7 +31,7 @@ type Worker struct {
 	clientProvider  ClientProvider
 	listeners       []Listener
 	allowedTopics   map[string]struct{}
-	driverSubs      map[string]message.Subscriber
+	driverSubs      map[string]Subscriber
 	endpoint        string
 	apiKey          string
 	oauth2Config    *auth.OAuth2Config
@@ -51,7 +51,7 @@ func New(opts ...Option) *Worker {
 		topicDrivers:  make(map[string]string),
 		typeHandlers:  make(map[string]Handler),
 		allowedTopics: make(map[string]struct{}),
-		driverSubs:    make(map[string]message.Subscriber),
+		driverSubs:    make(map[string]Subscriber),
 		tenantID:      envTenantID(),
 		ruleHandlers:  make(map[string]Handler),
 	}
@@ -63,12 +63,17 @@ func New(opts ...Option) *Worker {
 	return w
 }
 
-// bindClientProvider propagates the worker's resolved endpoint, API key, and
-// OAuth2 config into the SCMClientProvider so callers never have to duplicate
-// those values.
+// bindClientProvider propagates the worker's API settings into providers that opt in.
 func (w *Worker) bindClientProvider() {
-	if p, ok := w.clientProvider.(*SCMClientProvider); ok {
-		p.bindInstallationsClient(w.installationsClient())
+	if w == nil || w.clientProvider == nil {
+		return
+	}
+	if binder, ok := w.clientProvider.(apiClientBinder); ok {
+		binder.BindAPIClient(apiClientConfig{
+			BaseURL: w.apiBaseURL(),
+			APIKey:  w.apiKeyValue(),
+			OAuth2:  w.oauth2Value(),
+		})
 	}
 }
 
@@ -149,9 +154,11 @@ func (w *Worker) Run(ctx context.Context) error {
 	defer w.notifyExit(ctx)
 	sem := make(chan struct{}, w.concurrency)
 
-	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	errCh := make(chan error, len(driverTopics))
+	var wg sync.WaitGroup
 
 	for driverID, topics := range driverTopics {
 		sub := w.driverSubs[driverID]
@@ -159,41 +166,41 @@ func (w *Worker) Run(ctx context.Context) error {
 			return fmt.Errorf("subscriber not initialized for driver: %s", driverID)
 		}
 		for _, topic := range unique(topics) {
-			msgs, err := sub.Subscribe(ctx, topic)
-			if err != nil {
-				w.notifyError(ctx, nil, err)
-				return err
-			}
+			driverID := driverID
+			topic := topic
 			wg.Add(1)
-			go func(topic string, ch <-chan *message.Message) {
+			go func(sub Subscriber) {
 				defer wg.Done()
-				for {
-					select {
-					case <-ctx.Done():
-						return
-					case msg, ok := <-ch:
-						if !ok {
-							return
-						}
-						sem <- struct{}{}
-						wg.Add(1)
-						go func(msg *message.Message) {
-							defer wg.Done()
-							defer func() { <-sem }()
-							w.handleMessage(ctx, topic, msg)
-						}(msg)
+				err := sub.Start(ctx, topic, func(ctx context.Context, msg relaymessage.Message) error {
+					sem <- struct{}{}
+					defer func() { <-sem }()
+					shouldNack := w.handleMessage(ctx, topic, &msg)
+					if shouldNack && shouldRequeue(&msg) {
+						return errRelaybusNack
 					}
+					return nil
+				})
+				if err != nil && ctx.Err() == nil {
+					w.notifyError(ctx, nil, err)
+					errCh <- fmt.Errorf("driver %s topic %s: %w", driverID, topic, err)
+					cancel()
 				}
-			}(topic, msgs)
+			}(sub)
 		}
 	}
 
 	<-ctx.Done()
 	wg.Wait()
-	return nil
+
+	select {
+	case err := <-errCh:
+		return err
+	default:
+		return nil
+	}
 }
 
-func (w *Worker) runWithSubscriber(ctx context.Context, sub message.Subscriber, topics []string) error {
+func (w *Worker) runWithSubscriber(ctx context.Context, sub Subscriber, topics []string) error {
 	if sub == nil {
 		return errors.New("subscriber is required")
 	}
@@ -202,42 +209,42 @@ func (w *Worker) runWithSubscriber(ctx context.Context, sub message.Subscriber, 
 	defer w.notifyExit(ctx)
 	sem := make(chan struct{}, w.concurrency)
 
-	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	errCh := make(chan error, len(topics))
+	var wg sync.WaitGroup
+
 	for _, topic := range topics {
-		msgs, err := sub.Subscribe(ctx, topic)
-		if err != nil {
-			w.notifyError(ctx, nil, err)
-			return err
-		}
+		topic := topic
 		wg.Add(1)
-		go func(topic string, ch <-chan *message.Message) {
+		go func() {
 			defer wg.Done()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case msg, ok := <-ch:
-					if !ok {
-						return
-					}
-					sem <- struct{}{}
-					wg.Add(1)
-					go func(msg *message.Message) {
-						defer wg.Done()
-						defer func() { <-sem }()
-						w.handleMessage(ctx, topic, msg)
-					}(msg)
+			err := sub.Start(ctx, topic, func(ctx context.Context, msg relaymessage.Message) error {
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				shouldNack := w.handleMessage(ctx, topic, &msg)
+				if shouldNack && shouldRequeue(&msg) {
+					return errRelaybusNack
 				}
+				return nil
+			})
+			if err != nil && ctx.Err() == nil {
+				errCh <- err
+				cancel()
 			}
-		}(topic, msgs)
+		}()
 	}
 
 	<-ctx.Done()
 	wg.Wait()
-	return nil
+
+	select {
+	case err := <-errCh:
+		return err
+	default:
+		return nil
+	}
 }
 
 func (w *Worker) topicsByDriver() (map[string][]string, error) {
@@ -305,10 +312,12 @@ func (w *Worker) Close() error {
 	return w.subscriber.Close()
 }
 
-func (w *Worker) handleMessage(ctx context.Context, topic string, msg *message.Message) {
+func (w *Worker) handleMessage(ctx context.Context, topic string, msg *relaymessage.Message) bool {
 	logID := ""
 	if msg != nil {
-		logID = msg.Metadata.Get(MetadataKeyLogID)
+		if msg.Metadata != nil {
+			logID = msg.Metadata[MetadataKeyLogID]
+		}
 	}
 	evt, err := w.codec.Decode(topic, msg)
 	if err != nil {
@@ -316,12 +325,7 @@ func (w *Worker) handleMessage(ctx context.Context, topic string, msg *message.M
 		w.updateEventLogStatus(ctx, logID, EventLogStatusFailed, err)
 		w.notifyError(ctx, nil, err)
 		decision := w.retry.OnError(ctx, nil, err)
-		if decision.Retry || decision.Nack {
-			msg.Nack()
-			return
-		}
-		msg.Ack()
-		return
+		return decision.Retry || decision.Nack
 	}
 
 	if w.clientProvider != nil {
@@ -331,12 +335,7 @@ func (w *Worker) handleMessage(ctx context.Context, topic string, msg *message.M
 			w.updateEventLogStatus(ctx, logID, EventLogStatusFailed, err)
 			w.notifyError(ctx, evt, err)
 			decision := w.retry.OnError(ctx, evt, err)
-			if decision.Retry || decision.Nack {
-				msg.Nack()
-				return
-			}
-			msg.Ack()
-			return
+			return decision.Retry || decision.Nack
 		}
 		evt.Client = client
 	}
@@ -355,8 +354,7 @@ func (w *Worker) handleMessage(ctx context.Context, topic string, msg *message.M
 		w.logger.Printf("no handler for topic=%s type=%s", topic, evt.Type)
 		w.notifyMessageFinish(ctx, evt, nil)
 		w.updateEventLogStatus(ctx, logID, EventLogStatusSuccess, nil)
-		msg.Ack()
-		return
+		return false
 	}
 
 	wrapped := w.wrap(handler)
@@ -365,16 +363,11 @@ func (w *Worker) handleMessage(ctx context.Context, topic string, msg *message.M
 		w.notifyError(ctx, evt, err)
 		w.updateEventLogStatus(ctx, logID, EventLogStatusFailed, err)
 		decision := w.retry.OnError(ctx, evt, err)
-		if decision.Retry || decision.Nack {
-			msg.Nack()
-			return
-		}
-		msg.Ack()
-		return
+		return decision.Retry || decision.Nack
 	}
 	w.notifyMessageFinish(ctx, evt, nil)
 	w.updateEventLogStatus(ctx, logID, EventLogStatusSuccess, nil)
-	msg.Ack()
+	return false
 }
 
 func (w *Worker) wrap(h Handler) Handler {
@@ -396,6 +389,15 @@ func unique(values []string) []string {
 		out = append(out, value)
 	}
 	return out
+}
+
+var errRelaybusNack = errors.New("message nack requested")
+
+func shouldRequeue(msg *relaymessage.Message) bool {
+	if msg == nil || msg.Metadata == nil {
+		return false
+	}
+	return strings.ToLower(msg.Metadata[MetadataKeyDriver]) == "amqp"
 }
 
 func (w *Worker) validateTopics(ctx context.Context) error {

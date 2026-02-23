@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ThreeDotsLabs/watermill/message"
+	relaymessage "github.com/relaymesh/relaybus/sdk/core/go/message"
 )
 
 type testCodec struct{}
 
-func (testCodec) Decode(topic string, msg *message.Message) (*Event, error) { return nil, nil }
+func (testCodec) Decode(topic string, msg *relaymessage.Message) (*Event, error) { return nil, nil }
 
 type testRetry struct{}
 
@@ -61,7 +61,5 @@ func TestOptionsApply(t *testing.T) {
 
 type testSubscriber struct{}
 
-func (testSubscriber) Subscribe(ctx context.Context, topic string) (<-chan *message.Message, error) {
-	return nil, nil
-}
+func (testSubscriber) Start(ctx context.Context, topic string, handler MessageHandler) error { return nil }
 func (testSubscriber) Close() error { return nil }

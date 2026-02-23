@@ -14,6 +14,17 @@ const (
 	defaultTenantID    = "default"
 )
 
+type apiClientConfig struct {
+	BaseURL    string
+	APIKey     string
+	OAuth2     *auth.OAuth2Config
+	HTTPClient *http.Client
+}
+
+type apiClientBinder interface {
+	BindAPIClient(cfg apiClientConfig)
+}
+
 func resolveEndpoint(explicit string) string {
 	if trimmed := strings.TrimSpace(explicit); trimmed != "" {
 		return strings.TrimRight(trimmed, "/")

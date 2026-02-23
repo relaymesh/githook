@@ -63,7 +63,7 @@ type RuleRecord struct {
 	UpdatedAt        time.Time
 }
 
-// DriverRecord stores Watermill driver config (per-tenant).
+// DriverRecord stores Relaybus driver config (per-tenant).
 type DriverRecord struct {
 	TenantID   string
 	ID         string
@@ -262,6 +262,7 @@ type Store interface {
 	UpsertInstallation(ctx context.Context, record InstallRecord) error
 	GetInstallation(ctx context.Context, provider, accountID, installationID string) (*InstallRecord, error)
 	GetInstallationByInstallationID(ctx context.Context, provider, installationID string) (*InstallRecord, error)
+	GetInstallationByInstallationIDAndInstanceKey(ctx context.Context, provider, installationID, instanceKey string) (*InstallRecord, error)
 	// ListInstallations lists installations for a provider, optionally filtered by accountID.
 	ListInstallations(ctx context.Context, provider, accountID string) ([]InstallRecord, error)
 	DeleteInstallation(ctx context.Context, provider, accountID, installationID, instanceKey string) error

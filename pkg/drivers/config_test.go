@@ -9,11 +9,11 @@ import (
 )
 
 func TestRecordsFromConfig(t *testing.T) {
-	cfg := core.WatermillConfig{
+	cfg := core.RelaybusConfig{
 		Driver: "amqp",
 		AMQP: core.AMQPConfig{
-			URL:  "amqp://localhost",
-			Mode: "durable_queue",
+			URL:      "amqp://localhost",
+			Exchange: "events",
 		},
 	}
 	records, err := RecordsFromConfig(cfg)
@@ -29,7 +29,7 @@ func TestRecordsFromConfig(t *testing.T) {
 }
 
 func TestRecordsFromConfigUnsupported(t *testing.T) {
-	cfg := core.WatermillConfig{
+	cfg := core.RelaybusConfig{
 		Drivers: []string{"unsupported"},
 	}
 	if _, err := RecordsFromConfig(cfg); err == nil {
@@ -38,7 +38,7 @@ func TestRecordsFromConfigUnsupported(t *testing.T) {
 }
 
 func TestConfigFromRecords(t *testing.T) {
-	base := core.WatermillConfig{
+	base := core.RelaybusConfig{
 		AMQP: core.AMQPConfig{URL: "amqp://base"},
 	}
 	raw, err := json.Marshal(core.AMQPConfig{URL: "amqp://custom"})
@@ -70,7 +70,7 @@ func TestConfigFromRecords(t *testing.T) {
 }
 
 func TestMarshalDriverConfigUnsupported(t *testing.T) {
-	if _, err := marshalDriverConfig("unknown", core.WatermillConfig{}); err == nil {
+	if _, err := marshalDriverConfig("unknown", core.RelaybusConfig{}); err == nil {
 		t.Fatalf("expected unsupported driver error")
 	}
 }

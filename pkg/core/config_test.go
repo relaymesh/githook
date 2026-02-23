@@ -31,17 +31,11 @@ func TestLoadConfigDefaults(t *testing.T) {
 	if cfg.AppConfig.Providers.Bitbucket.Webhook.Path != "/webhooks/bitbucket" {
 		t.Fatalf("expected default bitbucket path, got %q", cfg.AppConfig.Providers.Bitbucket.Webhook.Path)
 	}
-	if cfg.AppConfig.Watermill.Driver != "gochannel" {
-		t.Fatalf("expected default watermill driver, got %q", cfg.AppConfig.Watermill.Driver)
+	if cfg.AppConfig.Relaybus.Driver != "" {
+		t.Fatalf("expected empty default relaybus driver, got %q", cfg.AppConfig.Relaybus.Driver)
 	}
-	if len(cfg.AppConfig.Watermill.Drivers) != 0 {
-		t.Fatalf("expected no default drivers, got %v", cfg.AppConfig.Watermill.Drivers)
-	}
-	if cfg.AppConfig.Watermill.GoChannel.OutputChannelBuffer != 64 {
-		t.Fatalf("expected default gochannel output buffer, got %d", cfg.AppConfig.Watermill.GoChannel.OutputChannelBuffer)
-	}
-	if cfg.AppConfig.Watermill.HTTP.Mode != "topic_url" {
-		t.Fatalf("expected default http mode topic_url, got %q", cfg.AppConfig.Watermill.HTTP.Mode)
+	if len(cfg.AppConfig.Relaybus.Drivers) != 0 {
+		t.Fatalf("expected no default drivers, got %v", cfg.AppConfig.Relaybus.Drivers)
 	}
 }
 
@@ -83,7 +77,7 @@ func TestLoadConfigTrimsFields(t *testing.T) {
 func TestLoadConfigEmitList(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")
-	content := "rules:\n  - when: action == \"opened\"\n    emit: [\"pr.opened\", \"audit.pr.opened\"]\n    driver_id: http\n"
+	content := "rules:\n  - when: action == \"opened\"\n    emit: [\"pr.opened\", \"audit.pr.opened\"]\n    driver_id: amqp\n"
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatalf("write rules config: %v", err)
 	}

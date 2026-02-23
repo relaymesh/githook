@@ -115,7 +115,7 @@ func (h *GitLabHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		rawObject, data := rawObjectAndFlatten(rawBody)
 		rawObject = annotatePayload(rawObject, data, "gitlab", eventName)
 		namespaceID, namespaceName := gitlabNamespaceInfo(rawBody)
-		tenantID, stateID, installationID := h.resolveStateID(r.Context(), rawBody)
+		tenantID, stateID, installationID, instanceKey := h.resolveStateID(r.Context(), rawBody)
 		if installationID == "" {
 			logger.Printf("gitlab webhook ignored: missing installation_id")
 			w.WriteHeader(http.StatusOK)
@@ -127,26 +127,27 @@ func (h *GitLabHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			r = r.WithContext(ctx)
 		}
 		h.emit(r, logger, core.Event{
-			Provider:       "gitlab",
-			Name:           eventName,
-			RequestID:      reqID,
-			Headers:        cloneHeaders(r.Header),
-			Data:           data,
-			RawPayload:     rawBody,
-			RawObject:      rawObject,
-			StateID:        stateID,
-			InstallationID: installationID,
-			NamespaceID:    namespaceID,
-			NamespaceName:  namespaceName,
+			Provider:            "gitlab",
+			Name:                eventName,
+			RequestID:           reqID,
+			Headers:             cloneHeaders(r.Header),
+			Data:                data,
+			RawPayload:          rawBody,
+			RawObject:           rawObject,
+			StateID:             stateID,
+			InstallationID:      installationID,
+			ProviderInstanceKey: instanceKey,
+			NamespaceID:         namespaceID,
+			NamespaceName:       namespaceName,
 		})
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *GitLabHandler) resolveStateID(ctx context.Context, raw []byte) (string, string, string) {
+func (h *GitLabHandler) resolveStateID(ctx context.Context, raw []byte) (string, string, string, string) {
 	if h.namespaces == nil {
-		return "", "", ""
+		return "", "", "", ""
 	}
 	var payload struct {
 		Project struct {
@@ -155,20 +156,20 @@ func (h *GitLabHandler) resolveStateID(ctx context.Context, raw []byte) (string,
 		ProjectID int64 `json:"project_id"`
 	}
 	if err := json.Unmarshal(raw, &payload); err != nil {
-		return "", "", ""
+		return "", "", "", ""
 	}
 	repoID := payload.Project.ID
 	if repoID == 0 {
 		repoID = payload.ProjectID
 	}
 	if repoID == 0 {
-		return "", "", ""
+		return "", "", "", ""
 	}
 	record, err := h.namespaces.GetNamespace(ctx, "gitlab", strconv.FormatInt(repoID, 10), "")
 	if err != nil || record == nil {
-		return "", "", ""
+		return "", "", "", ""
 	}
-	return record.TenantID, record.AccountID, record.InstallationID
+	return record.TenantID, record.AccountID, record.InstallationID, record.ProviderInstanceKey
 }
 
 func (h *GitLabHandler) emit(r *http.Request, logger *log.Logger, event core.Event) {

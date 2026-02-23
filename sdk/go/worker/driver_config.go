@@ -37,18 +37,12 @@ func applyDriverConfig(cfg *SubscriberConfig, name, raw string) error {
 		return errors.New("config is nil")
 	}
 	switch strings.ToLower(strings.TrimSpace(name)) {
-	case "gochannel":
-		return unmarshalJSON(raw, &cfg.GoChannel)
 	case "amqp":
 		return unmarshalJSON(raw, &cfg.AMQP)
 	case "nats":
 		return unmarshalJSON(raw, &cfg.NATS)
 	case "kafka":
 		return unmarshalJSON(raw, &cfg.Kafka)
-	case "sql":
-		return unmarshalJSON(raw, &cfg.SQL)
-	case "riverqueue":
-		return unmarshalJSON(raw, &cfg.RiverQueue)
 	default:
 		return errors.New("unsupported driver: " + name)
 	}

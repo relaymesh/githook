@@ -10,6 +10,7 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/validate"
 
+	"githook/pkg/auth"
 	"githook/pkg/auth/oidc"
 	"githook/pkg/core"
 )
@@ -28,7 +29,7 @@ func connectClientOptions() ([]connect.ClientOption, error) {
 		opts = append(opts, connect.WithInterceptors(apiKeyHeaderInterceptor(apiKey)))
 		return opts, nil
 	}
-	if !cfg.Auth.OAuth2.Enabled {
+	if !oauth2EnabledForCLI(cfg.Auth.OAuth2) {
 		return opts, nil
 	}
 	token, err := cliToken(context.Background(), cfg)
@@ -118,4 +119,26 @@ func tokenCachePath() string {
 		return ""
 	}
 	return path
+}
+
+func oauth2EnabledForCLI(cfg auth.OAuth2Config) bool {
+	if cfg.Enabled {
+		return true
+	}
+	if strings.TrimSpace(cfg.Issuer) != "" {
+		return true
+	}
+	if strings.TrimSpace(cfg.Audience) != "" {
+		return true
+	}
+	if strings.TrimSpace(cfg.ClientID) != "" || strings.TrimSpace(cfg.ClientSecret) != "" {
+		return true
+	}
+	if strings.TrimSpace(cfg.AuthorizeURL) != "" || strings.TrimSpace(cfg.TokenURL) != "" || strings.TrimSpace(cfg.JWKSURL) != "" {
+		return true
+	}
+	if len(cfg.RequiredScopes) > 0 || len(cfg.Scopes) > 0 {
+		return true
+	}
+	return false
 }

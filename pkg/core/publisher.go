@@ -2,23 +2,17 @@ package core
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill"
-	wmamaqp "github.com/ThreeDotsLabs/watermill-amqp/pkg/amqp"
-	wmhttp "github.com/ThreeDotsLabs/watermill-http/v2/pkg/http"
-	wmkafka "github.com/ThreeDotsLabs/watermill-kafka/pkg/kafka"
-	wmnats "github.com/ThreeDotsLabs/watermill-nats/pkg/nats"
-	wmsql "github.com/ThreeDotsLabs/watermill-sql/pkg/sql"
-	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
-	stan "github.com/nats-io/stan.go"
+	amqpadapter "github.com/relaymesh/relaybus/sdk/amqp/go"
+	relaycore "github.com/relaymesh/relaybus/sdk/core/go"
+	relaymessage "github.com/relaymesh/relaybus/sdk/core/go/message"
+	kafkaadapter "github.com/relaymesh/relaybus/sdk/kafka/go"
+	natsadapter "github.com/relaymesh/relaybus/sdk/nats/go"
 	"google.golang.org/protobuf/proto"
 
 	cloudv1 "githook/pkg/gen/cloud/v1"
@@ -34,18 +28,15 @@ type Publisher interface {
 	Close() error
 }
 
-// watermillPublisher is a wrapper around a Watermill message.Publisher.
-type watermillPublisher struct {
-	publisher message.Publisher
-	closeFn   func() error
+// relaybusPublisher wraps a Relaybus publisher and adapts it to the githook Publisher API.
+type relaybusPublisher struct {
+	publisher relaycore.Publisher
 }
 
-// PublisherFactory is a function that creates a new Watermill publisher.
-type PublisherFactory func(cfg WatermillConfig, logger watermill.LoggerAdapter) (message.Publisher, func() error, error)
+// PublisherFactory is a function that creates a custom publisher.
+type PublisherFactory func(cfg RelaybusConfig) (Publisher, error)
 
-var publisherFactories = map[string]PublisherFactory{
-	"gochannel": buildGoChannelPublisher,
-}
+var publisherFactories = map[string]PublisherFactory{}
 
 // RegisterPublisherDriver registers a new publisher driver.
 func RegisterPublisherDriver(name string, factory PublisherFactory) {
@@ -57,15 +48,10 @@ func RegisterPublisherDriver(name string, factory PublisherFactory) {
 
 // NewPublisher creates a new publisher based on the provided configuration.
 // It can create multiple publishers if multiple drivers are configured.
-func NewPublisher(cfg WatermillConfig) (Publisher, error) {
-	logger := watermill.NewStdLogger(false, false)
-
+func NewPublisher(cfg RelaybusConfig) (Publisher, error) {
 	drivers := cfg.Drivers
 	if len(drivers) == 0 && cfg.Driver != "" {
 		drivers = []string{cfg.Driver}
-	}
-	if len(drivers) == 0 {
-		drivers = []string{"gochannel"}
 	}
 
 	pubs := make(map[string]Publisher, len(drivers))
@@ -75,9 +61,6 @@ func NewPublisher(cfg WatermillConfig) (Publisher, error) {
 			return newSinglePublisher(cfg, driver)
 		})
 		if err != nil {
-			logger.Error("publisher init failed, skipping driver", err, watermill.LogFields{
-				"driver": driver,
-			})
 			continue
 		}
 		key := strings.ToLower(driver)
@@ -87,140 +70,125 @@ func NewPublisher(cfg WatermillConfig) (Publisher, error) {
 	if len(pubs) == 0 {
 		return nil, errors.New("no publishers available")
 	}
-	fmt.Println(pubs)
 	return &publisherMux{
 		publishers:     pubs,
 		defaultDrivers: builtDrivers,
-		retryAttempts:  cfg.PublishRetry.Attempts,
-		retryDelay:     time.Duration(cfg.PublishRetry.DelayMS) * time.Millisecond,
 		dlqDriver:      strings.ToLower(strings.TrimSpace(cfg.DLQDriver)),
 	}, nil
 }
 
-func newSinglePublisher(cfg WatermillConfig, driver string) (Publisher, error) {
-	logger := watermill.NewStdLogger(false, false)
-	fmt.Println(strings.ToLower(driver), "=========>>")
+// ValidatePublisherConfig validates driver config without connecting to brokers.
+func ValidatePublisherConfig(cfg RelaybusConfig) error {
+	drivers := cfg.Drivers
+	if len(drivers) == 0 && cfg.Driver != "" {
+		drivers = []string{cfg.Driver}
+	}
+	if len(drivers) == 0 {
+		return nil
+	}
+	for _, driver := range drivers {
+		if err := validatePublisherDriver(cfg, driver); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func newSinglePublisher(cfg RelaybusConfig, driver string) (Publisher, error) {
 	switch strings.ToLower(driver) {
-	case "http":
-		targetMode := strings.ToLower(cfg.HTTP.Mode)
-		if targetMode != "topic_url" && targetMode != "base_url" {
-			return nil, fmt.Errorf("unsupported http mode: %s", cfg.HTTP.Mode)
-		}
-		if targetMode == "base_url" && cfg.HTTP.BaseURL == "" {
-			return nil, fmt.Errorf("http base_url is required for base_url mode")
-		}
-		pub, err := wmhttp.NewPublisher(wmhttp.PublisherConfig{
-			MarshalMessageFunc: func(topic string, msg *message.Message) (*http.Request, error) {
-				target, err := httpTargetURL(cfg.HTTP, topic)
-				if err != nil {
-					return nil, err
-				}
-				return wmhttp.DefaultMarshalMessageFunc(target, msg)
-			},
-		}, logger)
-		if err != nil {
-			return nil, err
-		}
-		return &watermillPublisher{publisher: pub}, nil
 	case "kafka":
-		if len(cfg.Kafka.Brokers) == 0 {
+		brokers := cfg.Kafka.Brokers
+		if len(brokers) == 0 && cfg.Kafka.Broker != "" {
+			brokers = []string{cfg.Kafka.Broker}
+		}
+		if len(brokers) == 0 {
 			return nil, fmt.Errorf("kafka brokers are required")
 		}
-		pub, err := retryPublisher(func() (message.Publisher, error) {
-			return wmkafka.NewPublisher(cfg.Kafka.Brokers, wmkafka.DefaultMarshaler{}, nil, logger)
+		pub, err := relaycore.NewPublisher(relaycore.Config{
+			Destination: "kafka",
+			Retry:       relaybusRetryPolicy(cfg.PublishRetry),
+			Logger:      relaycore.NopLogger{},
+			Kafka: kafkaadapter.Config{
+				Brokers:     brokers,
+				TopicPrefix: cfg.Kafka.TopicPrefix,
+			},
 		})
 		if err != nil {
 			return nil, err
 		}
-		return &watermillPublisher{publisher: pub}, nil
+		return &relaybusPublisher{publisher: pub}, nil
 	case "nats":
-		if cfg.NATS.ClusterID == "" || cfg.NATS.ClientID == "" {
-			return nil, fmt.Errorf("nats cluster_id and client_id are required")
+		if cfg.NATS.URL == "" {
+			return nil, fmt.Errorf("nats url is required")
 		}
-		natsCfg := wmnats.StreamingPublisherConfig{
-			ClusterID: cfg.NATS.ClusterID,
-			ClientID:  cfg.NATS.ClientID,
-			Marshaler: wmnats.GobMarshaler{},
-		}
-		if cfg.NATS.URL != "" {
-			natsCfg.StanOptions = append(natsCfg.StanOptions, stan.NatsURL(cfg.NATS.URL))
-		}
-		pub, err := wmnats.NewStreamingPublisher(natsCfg, logger)
+		pub, err := relaycore.NewPublisher(relaycore.Config{
+			Destination: "nats",
+			Retry:       relaybusRetryPolicy(cfg.PublishRetry),
+			Logger:      relaycore.NopLogger{},
+			NATS: natsadapter.Config{
+				URL:           cfg.NATS.URL,
+				SubjectPrefix: cfg.NATS.SubjectPrefix,
+			},
+		})
 		if err != nil {
 			return nil, err
 		}
-		return &watermillPublisher{publisher: pub}, nil
+		return &relaybusPublisher{publisher: pub}, nil
 	case "amqp":
 		if cfg.AMQP.URL == "" {
 			return nil, fmt.Errorf("amqp url is required")
 		}
-		amqpCfg, err := amqpConfigFromMode(cfg.AMQP.URL, cfg.AMQP.Mode)
+		pub, err := relaycore.NewPublisher(relaycore.Config{
+			Destination: "amqp",
+			Retry:       relaybusRetryPolicy(cfg.PublishRetry),
+			Logger:      relaycore.NopLogger{},
+			AMQP: amqpadapter.Config{
+				URL:                cfg.AMQP.URL,
+				Exchange:           cfg.AMQP.Exchange,
+				RoutingKeyTemplate: cfg.AMQP.RoutingKeyTemplate,
+				Mandatory:          cfg.AMQP.Mandatory,
+				Immediate:          cfg.AMQP.Immediate,
+			},
+		})
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println(amqpCfg)
-		pub, err := wmamaqp.NewPublisher(amqpCfg, logger)
-		if err != nil {
-			return nil, err
-		}
-		return &watermillPublisher{publisher: pub}, nil
-	case "sql":
-		if cfg.SQL.Driver == "" || cfg.SQL.DSN == "" {
-			return nil, fmt.Errorf("sql driver and dsn are required")
-		}
-		schemaAdapter, err := sqlSchemaAdapter(cfg.SQL.Dialect)
-		if err != nil {
-			return nil, err
-		}
-		db, err := sql.Open(cfg.SQL.Driver, cfg.SQL.DSN)
-		if err != nil {
-			return nil, err
-		}
-		autoInit := cfg.SQL.AutoInitializeSchema || cfg.SQL.InitializeSchema
-		pub, err := wmsql.NewPublisher(db, wmsql.PublisherConfig{
-			SchemaAdapter:        schemaAdapter,
-			AutoInitializeSchema: autoInit,
-		}, logger)
-		if err != nil {
-			_ = db.Close()
-			return nil, err
-		}
-		return &watermillPublisher{
-			publisher: pub,
-			closeFn:   db.Close,
-		}, nil
-	case "riverqueue":
-		pub, err := newRiverQueuePublisher(cfg.RiverQueue)
-		if err != nil {
-			return nil, err
-		}
-		return pub, nil
+		return &relaybusPublisher{publisher: pub}, nil
 	default:
 		if factory, ok := publisherFactories[strings.ToLower(driver)]; ok {
-			pub, closeFn, err := factory(cfg, logger)
-			if err != nil {
-				return nil, err
-			}
-			return &watermillPublisher{publisher: pub, closeFn: closeFn}, nil
+			return factory(cfg)
 		}
-		return nil, fmt.Errorf("unsupported watermill driver: %s", driver)
+		return nil, fmt.Errorf("unsupported relaybus driver: %s", driver)
 	}
 }
 
-func retryPublisher(build func() (message.Publisher, error)) (message.Publisher, error) {
-	const attempts = 10
-	const delay = 2 * time.Second
-
-	var lastErr error
-	for i := 0; i < attempts; i++ {
-		pub, err := build()
-		if err == nil {
-			return pub, nil
+func validatePublisherDriver(cfg RelaybusConfig, driver string) error {
+	switch strings.ToLower(strings.TrimSpace(driver)) {
+	case "amqp":
+		if cfg.AMQP.URL == "" {
+			return fmt.Errorf("amqp url is required")
 		}
-		lastErr = err
-		time.Sleep(delay)
+		return nil
+	case "nats":
+		if cfg.NATS.URL == "" {
+			return fmt.Errorf("nats url is required")
+		}
+		return nil
+	case "kafka":
+		brokers := cfg.Kafka.Brokers
+		if len(brokers) == 0 && cfg.Kafka.Broker != "" {
+			brokers = []string{cfg.Kafka.Broker}
+		}
+		if len(brokers) == 0 {
+			return fmt.Errorf("kafka brokers are required")
+		}
+		return nil
+	default:
+		if _, ok := publisherFactories[strings.ToLower(driver)]; ok {
+			return nil
+		}
+		return fmt.Errorf("unsupported relaybus driver: %s", driver)
 	}
-	return nil, lastErr
 }
 
 func retryPublisherBuild(build func() (Publisher, error)) (Publisher, error) {
@@ -239,8 +207,8 @@ func retryPublisherBuild(build func() (Publisher, error)) (Publisher, error) {
 	return nil, lastErr
 }
 
-// Publish sends an event to a topic using the underlying Watermill publisher.
-func (w *watermillPublisher) Publish(ctx context.Context, topic string, event Event) error {
+// Publish sends an event to a topic using the underlying Relaybus publisher.
+func (w *relaybusPublisher) Publish(ctx context.Context, topic string, event Event) error {
 	rawPayload := event.RawPayload
 	if len(rawPayload) == 0 {
 		if event.RawObject != nil {
@@ -266,56 +234,56 @@ func (w *watermillPublisher) Publish(ctx context.Context, topic string, event Ev
 		return err
 	}
 
-	msg := message.NewMessage(watermill.NewUUID(), protoPayload)
-	if msg.Metadata == nil {
-		msg.Metadata = message.Metadata{}
-	}
+	metadata := make(map[string]string, 6)
 	if event.Provider != "" {
-		msg.Metadata.Set("provider", event.Provider)
+		metadata["provider"] = event.Provider
 	}
 	if event.Name != "" {
-		msg.Metadata.Set("event", event.Name)
+		metadata["event"] = event.Name
 	}
 	if event.RequestID != "" {
-		msg.Metadata.Set("request_id", event.RequestID)
+		metadata["request_id"] = event.RequestID
 	}
 	if event.StateID != "" {
-		msg.Metadata.Set("state_id", event.StateID)
+		metadata["state_id"] = event.StateID
 	}
 	if event.InstallationID != "" {
-		msg.Metadata.Set("installation_id", event.InstallationID)
+		metadata["installation_id"] = event.InstallationID
+	}
+	if event.ProviderInstanceKey != "" {
+		metadata["provider_instance_key"] = event.ProviderInstanceKey
 	}
 	if event.LogID != "" {
-		msg.Metadata.Set("log_id", event.LogID)
+		metadata["log_id"] = event.LogID
 	}
-	msg.Metadata.Set("content_type", "application/x-protobuf")
-	msg.Metadata.Set("schema", "cloud.v1.EventPayload")
-	return w.publisher.Publish(topic, msg)
-}
-
-// Close closes the underlying Watermill publisher.
-func (w *watermillPublisher) Close() error {
-	if w.publisher == nil {
-		return nil
+	metadata["content_type"] = "application/x-protobuf"
+	metadata["schema"] = "cloud.v1.EventPayload"
+	msg := relaymessage.Message{
+		Topic:       topic,
+		Payload:     protoPayload,
+		ContentType: "application/x-protobuf",
+		Metadata:    metadata,
 	}
-	err := w.publisher.Close()
-	if w.closeFn != nil {
-		return errors.Join(err, w.closeFn())
-	}
-	return err
+	return w.publisher.Publish(ctx, topic, msg)
 }
 
 // PublishForDrivers is a convenience method that calls Publish.
-func (w *watermillPublisher) PublishForDrivers(ctx context.Context, topic string, event Event, drivers []string) error {
+func (w *relaybusPublisher) PublishForDrivers(ctx context.Context, topic string, event Event, drivers []string) error {
 	return w.Publish(ctx, topic, event)
+}
+
+// Close closes the underlying Relaybus publisher.
+func (w *relaybusPublisher) Close() error {
+	if w.publisher == nil {
+		return nil
+	}
+	return w.publisher.Close()
 }
 
 // publisherMux multiplexes events to multiple publishers.
 type publisherMux struct {
 	publishers     map[string]Publisher
 	defaultDrivers []string
-	retryAttempts  int
-	retryDelay     time.Duration
 	dlqDriver      string
 }
 
@@ -339,36 +307,16 @@ func (m *publisherMux) PublishForDrivers(ctx context.Context, topic string, even
 			err = errors.Join(err, fmt.Errorf("unknown driver %s", driver))
 			continue
 		}
-		if publishErr := m.publishWithRetry(ctx, pub, topic, event); publishErr != nil {
+		if publishErr := pub.Publish(ctx, topic, event); publishErr != nil {
 			err = errors.Join(err, publishErr)
 			if m.dlqDriver != "" && m.dlqDriver != normalized {
 				if dlq, ok := m.publishers[m.dlqDriver]; ok {
-					_ = m.publishWithRetry(ctx, dlq, topic, event)
+					_ = dlq.Publish(ctx, topic, event)
 				}
 			}
 		}
 	}
 	return err
-}
-
-func (m *publisherMux) publishWithRetry(ctx context.Context, pub Publisher, topic string, event Event) error {
-	attempts := m.retryAttempts
-	if attempts <= 0 {
-		attempts = 1
-	}
-	delay := m.retryDelay
-	var lastErr error
-	for i := 0; i < attempts; i++ {
-		if i > 0 && delay > 0 {
-			time.Sleep(delay)
-		}
-		if err := pub.Publish(ctx, topic, event); err != nil {
-			lastErr = err
-			continue
-		}
-		return nil
-	}
-	return lastErr
 }
 
 // Close closes all underlying publishers.
@@ -380,60 +328,18 @@ func (m *publisherMux) Close() error {
 	return err
 }
 
-func buildGoChannelPublisher(cfg WatermillConfig, logger watermill.LoggerAdapter) (message.Publisher, func() error, error) {
-	pub := gochannel.NewGoChannel(
-		gochannel.Config{
-			OutputChannelBuffer:            cfg.GoChannel.OutputChannelBuffer,
-			Persistent:                     cfg.GoChannel.Persistent,
-			BlockPublishUntilSubscriberAck: cfg.GoChannel.BlockPublishUntilSubscriberAck,
-		},
-		logger,
-	)
-	return pub, nil, nil
-}
-
-func amqpConfigFromMode(url, mode string) (wmamaqp.Config, error) {
-	switch strings.ToLower(mode) {
-	case "", "durable_queue":
-		return wmamaqp.NewDurableQueueConfig(url), nil
-	case "nondurable_queue":
-		return wmamaqp.NewNonDurableQueueConfig(url), nil
-	case "durable_pubsub":
-		return wmamaqp.NewDurablePubSubConfig(url, nil), nil
-	case "nondurable_pubsub":
-		return wmamaqp.NewNonDurablePubSubConfig(url, nil), nil
-	default:
-		return wmamaqp.Config{}, fmt.Errorf("unsupported amqp mode: %s", mode)
+func relaybusRetryPolicy(cfg PublishRetryConfig) relaycore.RetryPolicy {
+	attempts := cfg.Attempts
+	if attempts <= 0 {
+		attempts = 1
 	}
-}
-
-func sqlSchemaAdapter(dialect string) (wmsql.SchemaAdapter, error) {
-	switch strings.ToLower(dialect) {
-	case "postgres", "postgresql":
-		return postgresBinarySchema{}, nil
-	case "mysql":
-		return wmsql.DefaultMySQLSchema{}, nil
-	default:
-		return nil, fmt.Errorf("unsupported sql dialect: %s", dialect)
+	delay := time.Duration(cfg.DelayMS) * time.Millisecond
+	if delay < 0 {
+		delay = 0
 	}
-}
-
-func httpTargetURL(cfg HTTPConfig, topic string) (string, error) {
-	switch strings.ToLower(cfg.Mode) {
-	case "topic_url":
-		if topic == "" {
-			return "", fmt.Errorf("http topic url is empty")
-		}
-		return topic, nil
-	case "base_url":
-		if cfg.BaseURL == "" {
-			return "", fmt.Errorf("http base_url is empty")
-		}
-		if topic == "" {
-			return strings.TrimRight(cfg.BaseURL, "/"), nil
-		}
-		return strings.TrimRight(cfg.BaseURL, "/") + "/" + strings.TrimLeft(topic, "/"), nil
-	default:
-		return "", fmt.Errorf("unsupported http mode: %s", cfg.Mode)
+	return relaycore.RetryPolicy{
+		MaxAttempts: attempts,
+		BaseDelay:   delay,
+		MaxDelay:    delay,
 	}
 }

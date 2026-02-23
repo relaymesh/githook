@@ -88,6 +88,33 @@ func (m *MockStore) GetInstallationByInstallationID(ctx context.Context, provide
 	return &copied, nil
 }
 
+func (m *MockStore) GetInstallationByInstallationIDAndInstanceKey(ctx context.Context, provider, installationID, instanceKey string) (*InstallRecord, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var (
+		found  bool
+		latest InstallRecord
+	)
+	tenantID := TenantFromContext(ctx)
+	for _, record := range m.values {
+		if record.Provider != provider || record.InstallationID != installationID || record.ProviderInstanceKey != instanceKey {
+			continue
+		}
+		if tenantID != "" && record.TenantID != tenantID {
+			continue
+		}
+		if !found || record.UpdatedAt.After(latest.UpdatedAt) {
+			latest = record
+			found = true
+		}
+	}
+	if !found {
+		return nil, nil
+	}
+	copied := latest
+	return &copied, nil
+}
+
 func (m *MockStore) ListInstallations(ctx context.Context, provider, accountID string) ([]InstallRecord, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

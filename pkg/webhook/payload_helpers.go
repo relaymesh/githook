@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ThreeDotsLabs/watermill"
+	"github.com/google/uuid"
 
 	"githook/pkg/core"
 )
@@ -100,7 +100,7 @@ func normalizeGitRef(value string) (string, bool) {
 
 func requestID(r *http.Request) string {
 	if r == nil {
-		return watermill.NewUUID()
+		return uuid.NewString()
 	}
 	if id := r.Header.Get("X-Request-Id"); id != "" {
 		return id
@@ -111,7 +111,7 @@ func requestID(r *http.Request) string {
 	if id := r.Header.Get("X-Correlation-Id"); id != "" {
 		return id
 	}
-	return watermill.NewUUID()
+	return uuid.NewString()
 }
 
 func cloneHeaders(headers http.Header) map[string][]string {

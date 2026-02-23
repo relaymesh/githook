@@ -62,7 +62,7 @@ redirect_base_url: https://app.example.com/success
 
 ```
 
-> Provider onboarding and webhook configuration are now handled via the Connect APIs; the open-source config only defines server/storage/auth.
+> Provider onboarding and webhook configuration are handled via the Connect APIs; the open-source config only defines server/storage/auth.
 
 ## Step 5: Start the Server
 
@@ -70,13 +70,35 @@ redirect_base_url: https://app.example.com/success
 go run ./main.go serve --config config.yaml
 ```
 
-## Step 6: Start a Worker
+## Step 6: Create the Provider Instance
+
+Create a provider config file (YAML):
+
+```yaml
+redirect_base_url: https://app.example.com/oauth/complete
+webhook:
+  secret: devsecret
+app:
+  app_id: 12345
+  private_key_path: ./github.pem
+oauth:
+  client_id: your-client-id
+  client_secret: your-client-secret
+```
+
+Create the provider instance:
+
+```bash
+githook --endpoint http://localhost:8080 providers set --provider github --config-file github.yaml
+```
+
+## Step 7: Start a Worker
 
 ```bash
 go run ./example/github/worker/main.go --rule-id RULE_ID --endpoint=https://<your-ngrok-url>
 ```
 
-## Step 7: Install the GitHub App
+## Step 8: Install the GitHub App
 
 Get the provider instance hash:
 ```bash
@@ -90,7 +112,7 @@ http://localhost:8080/?provider=github&instance=<instance-hash>
 
 Follow the GitHub authorization flow to complete installation.
 
-## Step 8: Trigger Events
+## Step 9: Trigger Events
 
 Create a pull request or push a commit to an installed repository. The worker will receive and process the events.
 
@@ -105,12 +127,10 @@ Create a pull request or push a commit to an installed repository. The worker wi
 
 ## GitHub Enterprise
 
-To use GitHub Enterprise, point the GitHub API base URL to your GHE host:
+To use GitHub Enterprise, set the GitHub API base URL in the provider instance config:
 
 ```yaml
-providers:
-  github:
-    api:
-      base_url: https://ghe.company.com/api/v3
-      web_base_url: https://ghe.company.com
+api:
+  base_url: https://ghe.company.com/api/v3
+  web_base_url: https://ghe.company.com
 ```

@@ -2,19 +2,12 @@ module githook
 
 go 1.24.0
 
-
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.10-20251209175733-2a1774d88802.1
 	connectrpc.com/connect v1.19.0
 	connectrpc.com/validate v0.6.0
 	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/PaesslerAG/jsonpath v0.1.1
-	github.com/ThreeDotsLabs/watermill v1.5.1
-	github.com/ThreeDotsLabs/watermill-amqp v1.1.4
-	github.com/ThreeDotsLabs/watermill-http/v2 v2.3.1
-	github.com/ThreeDotsLabs/watermill-kafka v1.0.1
-	github.com/ThreeDotsLabs/watermill-nats v1.0.7
-	github.com/ThreeDotsLabs/watermill-sql v1.4.0
 	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/glebarez/sqlite v1.10.0
 	github.com/go-playground/webhooks/v6 v6.2.0
@@ -23,9 +16,7 @@ require (
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/ktrysmt/go-bitbucket v0.9.88
 	github.com/lib/pq v1.3.0
-	github.com/nats-io/stan.go v0.10.0
-	github.com/riverqueue/river v0.29.0
-	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.29.0
+	github.com/relaymesh/relaybus v0.0.4
 	github.com/rs/cors v1.11.1
 	github.com/spf13/cobra v1.9.1
 	github.com/xanzy/go-gitlab v0.115.0
@@ -83,20 +74,20 @@ require (
 	github.com/minio/highwayhash v1.0.3 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/nats-io/jwt/v2 v2.8.0 // indirect
-	github.com/nats-io/nats.go v1.12.3 // indirect
+	github.com/nats-io/nats.go v1.37.0 // indirect
 	github.com/nats-io/nkeys v0.4.11 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pierrec/lz4 v2.2.6+incompatible // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190706150252-9beb055b7962 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/renstrom/shortuuid v3.0.0+incompatible // indirect
-	github.com/riverqueue/river/riverdriver v0.29.0 // indirect
-	github.com/riverqueue/river/rivershared v0.29.0 // indirect
-	github.com/riverqueue/river/rivertype v0.29.0 // indirect
+	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/streadway/amqp v1.0.0 // indirect

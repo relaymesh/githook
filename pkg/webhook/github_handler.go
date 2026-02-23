@@ -173,7 +173,7 @@ func (h *GitHubHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		rawObject, data := rawObjectAndFlatten(rawBody)
 		rawObject = annotatePayload(rawObject, data, "github", eventName)
 		namespaceID, namespaceName := githubNamespaceInfo(rawBody)
-		tenantID, stateID, installationID := h.resolveStateID(r.Context(), rawBody)
+		tenantID, stateID, installationID, instanceKey := h.resolveStateID(r.Context(), rawBody)
 		if installationID == "" {
 			logger.Printf("github webhook ignored: missing installation_id")
 			w.WriteHeader(http.StatusOK)
@@ -188,17 +188,18 @@ func (h *GitHubHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			logger.Printf("github install sync failed: %v", err)
 		}
 		h.emit(r, logger, core.Event{
-			Provider:       "github",
-			Name:           eventName,
-			RequestID:      reqID,
-			Headers:        cloneHeaders(r.Header),
-			Data:           data,
-			RawPayload:     rawBody,
-			RawObject:      rawObject,
-			StateID:        stateID,
-			InstallationID: installationID,
-			NamespaceID:    namespaceID,
-			NamespaceName:  namespaceName,
+			Provider:            "github",
+			Name:                eventName,
+			RequestID:           reqID,
+			Headers:             cloneHeaders(r.Header),
+			Data:                data,
+			RawPayload:          rawBody,
+			RawObject:           rawObject,
+			StateID:             stateID,
+			InstallationID:      installationID,
+			ProviderInstanceKey: instanceKey,
+			NamespaceID:         namespaceID,
+			NamespaceName:       namespaceName,
 		})
 	}
 

@@ -63,13 +63,32 @@ redirect_base_url: https://app.example.com/success
 go run ./main.go serve --config config.yaml
 ```
 
-## Step 6: Start a Worker
+## Step 6: Create the Provider Instance
+
+Create a provider config file (YAML):
+
+```yaml
+redirect_base_url: https://app.example.com/oauth/complete
+webhook:
+  secret: devsecret
+oauth:
+  client_id: your-client-id
+  client_secret: your-client-secret
+```
+
+Create the provider instance:
+
+```bash
+githook --endpoint http://localhost:8080 providers set --provider bitbucket --config-file bitbucket.yaml
+```
+
+## Step 7: Start a Worker
 
 ```bash
 go run ./example/bitbucket/worker/main.go --rule-id RULE_ID --endpoint=https://<your-ngrok-url>
 ```
 
-## Step 7: Complete OAuth Onboarding
+## Step 8: Complete OAuth Onboarding
 
 Get the provider instance hash:
 ```bash
@@ -83,7 +102,7 @@ http://localhost:8080/?provider=bitbucket&instance=<instance-hash>
 
 Authorize access to your Bitbucket workspace.
 
-## Step 8: Configure Webhooks
+## Step 9: Configure Webhooks
 
 Bitbucket allows webhooks at both repository and workspace levels.
 
@@ -118,7 +137,7 @@ Bitbucket allows webhooks at both repository and workspace levels.
 
 To enable webhooks across multiple workspaces or repositories, configure the webhook for each repository or workspace individually using the Bitbucket UI. Use the same webhook URL for all repositories.
 
-## Step 9: Trigger Events
+## Step 10: Trigger Events
 
 Create a pull request or push a commit. The worker will receive and process the events.
 
@@ -134,11 +153,9 @@ Create a pull request or push a commit. The worker will receive and process the 
 For Bitbucket Server instances:
 
 ```yaml
-providers:
-  bitbucket:
-    api:
-      base_url: https://bitbucket.company.com/rest/api/2.0
-      web_base_url: https://bitbucket.company.com
+api:
+  base_url: https://bitbucket.company.com/rest/api/2.0
+  web_base_url: https://bitbucket.company.com
 ```
 
 Configure OAuth consumer in your Bitbucket Server instance.

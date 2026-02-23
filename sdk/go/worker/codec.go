@@ -2,8 +2,10 @@ package worker
 
 import (
 	"encoding/json"
+	"errors"
+	"strings"
 
-	"github.com/ThreeDotsLabs/watermill/message"
+	relaymessage "github.com/relaymesh/relaybus/sdk/core/go/message"
 	"google.golang.org/protobuf/proto"
 
 	cloudv1 "githook/pkg/gen/cloud/v1"
@@ -11,16 +13,19 @@ import (
 
 // Codec is an interface for decoding messages from a message broker into an Event.
 type Codec interface {
-	// Decode transforms a Watermill message into an Event.
-	Decode(topic string, msg *message.Message) (*Event, error)
+	// Decode transforms a Relaybus message into an Event.
+	Decode(topic string, msg *relaymessage.Message) (*Event, error)
 }
 
 // DefaultCodec is the default implementation of the Codec interface.
 // It decodes a protobuf EventPayload into an Event, with a JSON fallback.
 type DefaultCodec struct{}
 
-// Decode unmarshals a Watermill message into an Event.
-func (DefaultCodec) Decode(topic string, msg *message.Message) (*Event, error) {
+// Decode unmarshals a Relaybus message into an Event.
+func (DefaultCodec) Decode(topic string, msg *relaymessage.Message) (*Event, error) {
+	if msg == nil {
+		return nil, errors.New("message is nil")
+	}
 	var (
 		provider   string
 		eventName  string
@@ -59,10 +64,10 @@ func (DefaultCodec) Decode(topic string, msg *message.Message) (*Event, error) {
 	}
 
 	if provider == "" {
-		provider = msg.Metadata.Get(MetadataKeyProvider)
+		provider = metadataValue(msg.Metadata, MetadataKeyProvider)
 	}
 	if eventName == "" {
-		eventName = msg.Metadata.Get(MetadataKeyEvent)
+		eventName = metadataValue(msg.Metadata, MetadataKeyEvent)
 	}
 
 	if normalized == nil {
@@ -80,9 +85,26 @@ func (DefaultCodec) Decode(topic string, msg *message.Message) (*Event, error) {
 	return &Event{
 		Provider:   provider,
 		Type:       eventName,
-		Topic:      topic,
+		Topic:      resolveTopic(topic, msg),
 		Metadata:   metadata,
 		Payload:    payload,
 		Normalized: normalized,
 	}, nil
+}
+
+func metadataValue(meta map[string]string, key string) string {
+	if meta == nil {
+		return ""
+	}
+	return meta[key]
+}
+
+func resolveTopic(topic string, msg *relaymessage.Message) string {
+	if strings.TrimSpace(topic) != "" {
+		return topic
+	}
+	if msg == nil {
+		return ""
+	}
+	return msg.Topic
 }

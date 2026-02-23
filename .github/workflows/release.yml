@@ -65,3 +65,27 @@ jobs:
           tags: |
             ghcr.io/relaymesh/githook:${{ github.ref_name }}
             ghcr.io/relaymesh/githook:latest
+
+  npm:
+    runs-on: ubuntu-latest
+    needs: goreleaser
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+      - name: Install dependencies
+        run: npm install
+        working-directory: sdk/typescript/worker
+      - name: Set package version
+        run: npm version --no-git-tag-version "${GITHUB_REF_NAME#v}"
+        working-directory: sdk/typescript/worker
+      - name: Build package
+        run: npm run build
+        working-directory: sdk/typescript/worker
+      - name: Publish package
+        run: npm publish --access public
+        working-directory: sdk/typescript/worker
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

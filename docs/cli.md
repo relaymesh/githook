@@ -21,9 +21,9 @@ The CLI reads `endpoint` from the config when `--endpoint` is not provided.
 
 ## Init
 
-The `server` profile includes the full provider and watermill sections. The `cli`
+The `server` profile includes the full provider and relaybus sections. The `cli`
 and `worker` profiles use `endpoint`
-for API calls; the worker profile includes the full watermill section, commented
+for API calls; the worker profile includes the full relaybus section, commented
 out, so you can enable it per data-plane deployment.
 
 ```bash

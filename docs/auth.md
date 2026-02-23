@@ -156,7 +156,9 @@ For machine token retrieval, use a service account exchange in your client code 
 ## Multi-instance deployments
 
 You can run separate servers for GitHub, GitLab, and Bitbucket against the same database and auth config.
-Each instance should enable only its provider(s) in `providers.*.enabled`.
+Each instance should create only the provider instances it needs (via `githook providers set`) and
+disable or delete any unused providers. Use `--enabled=false` on `providers set` to keep a provider
+instance inactive.
 
 When multiple providers are enabled, list APIs return results across those providers. When a provider
-is disabled, RPC calls for that provider return a `provider not enabled` error.
+instance is disabled, RPC calls for that provider return a `provider not enabled` error.

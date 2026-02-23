@@ -13,16 +13,16 @@ import (
 // Cache maintains driver configs and publishers.
 type Cache struct {
 	store  storage.DriverStore
-	base   core.WatermillConfig
+	base   core.RelaybusConfig
 	logger *log.Logger
-	config *cache.TenantCache[core.WatermillConfig]
+	config *cache.TenantCache[core.RelaybusConfig]
 	pub    *cache.TenantCache[core.Publisher]
 }
 
 const globalDriverKey = "global"
 
 // NewCache creates a new driver cache.
-func NewCache(store storage.DriverStore, base core.WatermillConfig, logger *log.Logger) *Cache {
+func NewCache(store storage.DriverStore, base core.RelaybusConfig, logger *log.Logger) *Cache {
 	if logger == nil {
 		logger = log.Default()
 	}
@@ -30,7 +30,7 @@ func NewCache(store storage.DriverStore, base core.WatermillConfig, logger *log.
 		store:  store,
 		base:   base,
 		logger: logger,
-		config: cache.NewTenantCache[core.WatermillConfig](),
+		config: cache.NewTenantCache[core.RelaybusConfig](),
 		pub:    cache.NewTenantCache[core.Publisher](),
 	}
 }

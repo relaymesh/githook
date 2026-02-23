@@ -37,45 +37,26 @@ auth:
   oauth2:
     enabled: false
 
-watermill:
-  # driver: gochannel
+relaybus:
+  # driver: amqp
   # drivers: []
-  # dlq_driver: ""
-  # publish_retry:
-  #   attempts: 0
-  #   delay_ms: 0
-  # gochannel:
-  #   output_buffer: 64
-  #   persistent: false
-  #   block_publish_until_subscriber_ack: false
   # kafka:
+  #   broker: ""
   #   brokers: []
+  #   group_id: ""
+  #   topic_prefix: ""
+  #   max_messages: 0
   # nats:
-  #   cluster_id: ""
-  #   client_id: ""
   #   url: ""
+  #   subject_prefix: ""
+  #   max_messages: 0
   # amqp:
   #   url: ""
-  #   mode: ""
-  # sql:
-  #   # SQL subscribers are for event queues only, not platform storage.
-  #   driver: ""
-  #   dsn: ""
-  #   dialect: ""
-  #   initialize_schema: false
-  #   auto_initialize_schema: false
-  # http:
-  #   base_url: ""
-  #   mode: ""
-  # riverqueue:
-  #   driver: ""
-  #   dsn: ""
-  #   table: ""
+  #   exchange: ""
+  #   routing_key_template: "{topic}"
   #   queue: ""
-  #   kind: ""
-  #   max_attempts: 0
-  #   priority: 0
-  #   tags: []
+  #   auto_ack: false
+  #   max_messages: 0
 `
 )
 

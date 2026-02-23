@@ -17,7 +17,7 @@ func newDriversCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "drivers",
 		Short: "Manage driver configs",
-		Long:  "Manage Watermill driver configs stored on the server.",
+		Long:  "Manage Relaybus driver configs stored on the server.",
 		Example: "  githook --endpoint http://localhost:8080 drivers list\n" +
 			"  githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml",
 	}
@@ -74,7 +74,7 @@ func newDriversGetCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&name, "name", "", "Driver name (amqp/nats/kafka/sql/http/...)")
+	cmd.Flags().StringVar(&name, "name", "", "Driver name (amqp/nats/kafka)")
 	return cmd
 }
 
@@ -117,7 +117,7 @@ func newDriversSetCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&name, "name", "", "Driver name (amqp/nats/kafka/sql/http/...)")
+	cmd.Flags().StringVar(&name, "name", "", "Driver name (amqp/nats/kafka)")
 	cmd.Flags().StringVar(&configFile, "config-file", "", "Path to driver YAML config")
 	cmd.Flags().BoolVar(&enabled, "enabled", true, "Enable this driver")
 	return cmd
@@ -147,6 +147,6 @@ func newDriversDeleteCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&name, "name", "", "Driver name (amqp/nats/kafka/sql/http/...)")
+	cmd.Flags().StringVar(&name, "name", "", "Driver name (amqp/nats/kafka)")
 	return cmd
 }

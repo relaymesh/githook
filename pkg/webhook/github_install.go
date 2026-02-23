@@ -13,20 +13,20 @@ import (
 	ghprovider "githook/pkg/providers/github"
 )
 
-func (h *GitHubHandler) resolveStateID(ctx context.Context, raw []byte) (string, string, string) {
+func (h *GitHubHandler) resolveStateID(ctx context.Context, raw []byte) (string, string, string, string) {
 	installationID, ok, err := ghprovider.InstallationIDFromPayload(raw)
 	if err != nil || !ok {
-		return "", "", ""
+		return "", "", "", ""
 	}
 	installationIDStr := strconv.FormatInt(installationID, 10)
 	if h.store == nil {
-		return "", "", installationIDStr
+		return "", "", installationIDStr, ""
 	}
 	record, err := h.store.GetInstallationByInstallationID(ctx, "github", installationIDStr)
 	if err != nil || record == nil {
-		return "", "", installationIDStr
+		return "", "", installationIDStr, ""
 	}
-	return record.TenantID, record.AccountID, installationIDStr
+	return record.TenantID, record.AccountID, installationIDStr, record.ProviderInstanceKey
 }
 
 func (h *GitHubHandler) applyInstallSystemRules(ctx context.Context, eventName string, raw []byte) error {

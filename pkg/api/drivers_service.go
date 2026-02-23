@@ -103,12 +103,7 @@ func ensureDriverBrokerReady(ctx context.Context, record *storage.DriverRecord) 
 	if err != nil {
 		return err
 	}
-	pub, err := core.NewPublisher(cfg)
-	if err != nil {
-		return err
-	}
-	defer pub.Close()
-	return nil
+	return core.ValidatePublisherConfig(cfg)
 }
 
 func (s *DriversService) DeleteDriver(

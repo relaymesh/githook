@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"githook/pkg/storage"
+
 	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -19,6 +21,7 @@ type Config struct {
 	Dialect     string
 	Table       string
 	AutoMigrate bool
+	Pool        storage.PoolConfig
 }
 
 // Store implements storage.EventLogStore on top of GORM.
@@ -69,6 +72,9 @@ func Open(cfg Config) (*Store, error) {
 	}
 	gormDB, err := openGorm(driver, cfg.DSN)
 	if err != nil {
+		return nil, err
+	}
+	if err := storage.ApplyPoolConfig(gormDB, cfg.Pool); err != nil {
 		return nil, err
 	}
 	table := cfg.Table

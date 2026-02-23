@@ -31,6 +31,8 @@ const (
 	DriversServiceName = "cloud.v1.DriversService"
 	// ProvidersServiceName is the fully-qualified name of the ProvidersService service.
 	ProvidersServiceName = "cloud.v1.ProvidersService"
+	// SCMServiceName is the fully-qualified name of the SCMService service.
+	SCMServiceName = "cloud.v1.SCMService"
 	// EventLogsServiceName is the fully-qualified name of the EventLogsService service.
 	EventLogsServiceName = "cloud.v1.EventLogsService"
 )
@@ -103,6 +105,8 @@ const (
 	// ProvidersServiceDeleteProviderProcedure is the fully-qualified name of the ProvidersService's
 	// DeleteProvider RPC.
 	ProvidersServiceDeleteProviderProcedure = "/cloud.v1.ProvidersService/DeleteProvider"
+	// SCMServiceGetSCMClientProcedure is the fully-qualified name of the SCMService's GetSCMClient RPC.
+	SCMServiceGetSCMClientProcedure = "/cloud.v1.SCMService/GetSCMClient"
 	// EventLogsServiceListEventLogsProcedure is the fully-qualified name of the EventLogsService's
 	// ListEventLogs RPC.
 	EventLogsServiceListEventLogsProcedure = "/cloud.v1.EventLogsService/ListEventLogs"
@@ -910,6 +914,76 @@ func (UnimplementedProvidersServiceHandler) UpsertProvider(context.Context, *con
 
 func (UnimplementedProvidersServiceHandler) DeleteProvider(context.Context, *connect.Request[v1.DeleteProviderRequest]) (*connect.Response[v1.DeleteProviderResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.ProvidersService.DeleteProvider is not implemented"))
+}
+
+// SCMServiceClient is a client for the cloud.v1.SCMService service.
+type SCMServiceClient interface {
+	GetSCMClient(context.Context, *connect.Request[v1.GetSCMClientRequest]) (*connect.Response[v1.GetSCMClientResponse], error)
+}
+
+// NewSCMServiceClient constructs a client for the cloud.v1.SCMService service. By default, it uses
+// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
+// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
+// connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewSCMServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) SCMServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	sCMServiceMethods := v1.File_cloud_v1_githooks_proto.Services().ByName("SCMService").Methods()
+	return &sCMServiceClient{
+		getSCMClient: connect.NewClient[v1.GetSCMClientRequest, v1.GetSCMClientResponse](
+			httpClient,
+			baseURL+SCMServiceGetSCMClientProcedure,
+			connect.WithSchema(sCMServiceMethods.ByName("GetSCMClient")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// sCMServiceClient implements SCMServiceClient.
+type sCMServiceClient struct {
+	getSCMClient *connect.Client[v1.GetSCMClientRequest, v1.GetSCMClientResponse]
+}
+
+// GetSCMClient calls cloud.v1.SCMService.GetSCMClient.
+func (c *sCMServiceClient) GetSCMClient(ctx context.Context, req *connect.Request[v1.GetSCMClientRequest]) (*connect.Response[v1.GetSCMClientResponse], error) {
+	return c.getSCMClient.CallUnary(ctx, req)
+}
+
+// SCMServiceHandler is an implementation of the cloud.v1.SCMService service.
+type SCMServiceHandler interface {
+	GetSCMClient(context.Context, *connect.Request[v1.GetSCMClientRequest]) (*connect.Response[v1.GetSCMClientResponse], error)
+}
+
+// NewSCMServiceHandler builds an HTTP handler from the service implementation. It returns the path
+// on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewSCMServiceHandler(svc SCMServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	sCMServiceMethods := v1.File_cloud_v1_githooks_proto.Services().ByName("SCMService").Methods()
+	sCMServiceGetSCMClientHandler := connect.NewUnaryHandler(
+		SCMServiceGetSCMClientProcedure,
+		svc.GetSCMClient,
+		connect.WithSchema(sCMServiceMethods.ByName("GetSCMClient")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/cloud.v1.SCMService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case SCMServiceGetSCMClientProcedure:
+			sCMServiceGetSCMClientHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedSCMServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedSCMServiceHandler struct{}
+
+func (UnimplementedSCMServiceHandler) GetSCMClient(context.Context, *connect.Request[v1.GetSCMClientRequest]) (*connect.Response[v1.GetSCMClientResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.SCMService.GetSCMClient is not implemented"))
 }
 
 // EventLogsServiceClient is a client for the cloud.v1.EventLogsService service.

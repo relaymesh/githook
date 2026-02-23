@@ -1,0 +1,27 @@
+{
+  "name": "@relaymesh/githook",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "gen"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^1.10.0",
+    "@relaymesh/relaybus-amqp": "^0.0.4",
+    "@relaymesh/relaybus-kafka": "^0.0.4",
+    "@relaymesh/relaybus-nats": "^0.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

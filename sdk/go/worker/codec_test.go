@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/ThreeDotsLabs/watermill/message"
+	relaymessage "github.com/relaymesh/relaybus/sdk/core/go/message"
 	"google.golang.org/protobuf/proto"
 
 	cloudv1 "githook/pkg/gen/cloud/v1"
@@ -20,7 +20,7 @@ func TestDefaultCodecDecodeProto(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
-	msg := message.NewMessage("id", raw)
+	msg := &relaymessage.Message{Payload: raw}
 
 	event, err := (DefaultCodec{}).Decode("topic", msg)
 	if err != nil {
@@ -46,7 +46,7 @@ func TestDefaultCodecDecodeJSONFallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal json: %v", err)
 	}
-	msg := message.NewMessage("id", raw)
+	msg := &relaymessage.Message{Payload: raw}
 	event, err := (DefaultCodec{}).Decode("topic", msg)
 	if err != nil {
 		t.Fatalf("decode: %v", err)

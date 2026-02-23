@@ -1,10 +1,10 @@
 # SDK DSL (Portable Worker Spec)
 
-This document proposes a language-agnostic DSL that future SDKs can consume to bootstrap workers consistently across languages. It is **not** a runtime requirement for Go today, but it provides a standard contract for multi-language SDKs.
+This document proposes a language-agnostic DSL that SDKs can consume to bootstrap workers consistently across languages. It is **not** a runtime requirement for the current Go/TypeScript/Python SDKs, but it provides a standard contract for multi-language SDKs.
 
 ## Goals
 
-- **Portable**: Works across Go, Node, Python, Rust.
+- **Portable**: Works across Go, Node/TypeScript, Python, Rust.
 - **Minimal**: Only describes worker behavior and handler routing.
 - **Consistent**: Mirrors the existing event envelope and rules engine.
 - **Composable**: Lets SDKs generate skeletons or wire handlers by name.
@@ -74,7 +74,7 @@ driver_id: <driver-id>
 
 `when` supports JSONPath expressions, boolean logic, and helper functions like `contains()` and `like()`.
 
-## SDK Contract (Future)
+## SDK Contract (Cross-language)
 
 SDKs in other languages can:
 

@@ -40,7 +40,7 @@ func TestCacheKeyFromContext(t *testing.T) {
 }
 
 func TestCachePublisherForMissingStore(t *testing.T) {
-	cache := NewCache(nil, core.WatermillConfig{}, nil)
+	cache := NewCache(nil, core.RelaybusConfig{}, nil)
 	if _, err := cache.PublisherFor(context.Background()); err == nil {
 		t.Fatalf("expected error for missing store")
 	}
@@ -48,7 +48,7 @@ func TestCachePublisherForMissingStore(t *testing.T) {
 
 func TestTenantPublisherFallback(t *testing.T) {
 	fallback := &stubPublisher{}
-	tenantPub := NewTenantPublisher(NewCache(nil, core.WatermillConfig{}, nil), fallback)
+	tenantPub := NewTenantPublisher(NewCache(nil, core.RelaybusConfig{}, nil), fallback)
 	if err := tenantPub.Publish(context.Background(), "topic", core.Event{}); err != nil {
 		t.Fatalf("publish: %v", err)
 	}
@@ -58,7 +58,7 @@ func TestTenantPublisherFallback(t *testing.T) {
 }
 
 func TestCacheClose(t *testing.T) {
-	cache := NewCache(nil, core.WatermillConfig{}, nil)
+	cache := NewCache(nil, core.RelaybusConfig{}, nil)
 	cache.pub.Set(globalDriverKey, &stubPublisher{})
 	cache.Close()
 	pub, ok := cache.pub.Get(globalDriverKey)
@@ -68,7 +68,7 @@ func TestCacheClose(t *testing.T) {
 }
 
 func TestTenantPublisherNoFallback(t *testing.T) {
-	tenantPub := NewTenantPublisher(NewCache(nil, core.WatermillConfig{}, nil), nil)
+	tenantPub := NewTenantPublisher(NewCache(nil, core.RelaybusConfig{}, nil), nil)
 	if err := tenantPub.Publish(context.Background(), "topic", core.Event{}); err == nil {
 		t.Fatalf("expected error")
 	}

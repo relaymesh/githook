@@ -63,13 +63,32 @@ redirect_base_url: https://app.example.com/success
 go run ./main.go serve --config config.yaml
 ```
 
-## Step 6: Start a Worker
+## Step 6: Create the Provider Instance
+
+Create a provider config file (YAML):
+
+```yaml
+redirect_base_url: https://app.example.com/oauth/complete
+webhook:
+  secret: devsecret
+oauth:
+  client_id: your-client-id
+  client_secret: your-client-secret
+```
+
+Create the provider instance:
+
+```bash
+githook --endpoint http://localhost:8080 providers set --provider gitlab --config-file gitlab.yaml
+```
+
+## Step 7: Start a Worker
 
 ```bash
 go run ./example/gitlab/worker/main.go --rule-id RULE_ID --endpoint=https://<your-ngrok-url>
 ```
 
-## Step 7: Complete OAuth Onboarding
+## Step 8: Complete OAuth Onboarding
 
 Get the provider instance hash:
 ```bash
@@ -83,7 +102,7 @@ http://localhost:8080/?provider=gitlab&instance=<instance-hash>
 
 Authorize access to your GitLab account.
 
-## Step 8: Configure Webhooks
+## Step 9: Configure Webhooks
 
 GitLab requires webhooks to be configured per project or group.
 
@@ -117,7 +136,7 @@ GitLab requires webhooks to be configured per project or group.
 
 To enable webhooks across multiple namespaces or projects, configure the webhook for each project or group individually using the GitLab UI. Use the same webhook URL and secret for all projects.
 
-## Step 9: Trigger Events
+## Step 10: Trigger Events
 
 Create a merge request or push a commit. The worker will receive and process the events.
 
@@ -133,11 +152,9 @@ Create a merge request or push a commit. The worker will receive and process the
 For self-hosted GitLab instances:
 
 ```yaml
-providers:
-  gitlab:
-    api:
-      base_url: https://gitlab.company.com/api/v4
-      web_base_url: https://gitlab.company.com
+api:
+  base_url: https://gitlab.company.com/api/v4
+  web_base_url: https://gitlab.company.com
 ```
 
 Configure OAuth application in your self-hosted instance.

@@ -23,6 +23,7 @@ type Config struct {
 	Dialect     string
 	Table       string
 	AutoMigrate bool
+	Pool        storage.PoolConfig
 }
 
 // Store implements storage.Store on top of GORM.
@@ -68,6 +69,9 @@ func Open(cfg Config) (*Store, error) {
 
 	gormDB, err := openGorm(driver, cfg.DSN)
 	if err != nil {
+		return nil, err
+	}
+	if err := storage.ApplyPoolConfig(gormDB, cfg.Pool); err != nil {
 		return nil, err
 	}
 	table := cfg.Table
@@ -160,6 +164,35 @@ func (s *Store) GetInstallationByInstallationID(ctx context.Context, provider, i
 	query := s.tableDB().
 		WithContext(ctx).
 		Where("provider = ? AND installation_id = ?", provider, installationID)
+	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	err := query.Order("updated_at desc").Take(&data).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	record := fromRow(data)
+	return &record, nil
+}
+
+// GetInstallationByInstallationIDAndInstanceKey fetches the latest installation record for a provider instance.
+func (s *Store) GetInstallationByInstallationIDAndInstanceKey(ctx context.Context, provider, installationID, instanceKey string) (*storage.InstallRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("store is not initialized")
+	}
+	provider = strings.TrimSpace(provider)
+	installationID = strings.TrimSpace(installationID)
+	instanceKey = strings.TrimSpace(instanceKey)
+	if provider == "" || installationID == "" || instanceKey == "" {
+		return nil, errors.New("provider, installation_id, and provider_instance_key are required")
+	}
+	var data row
+	query := s.tableDB().
+		WithContext(ctx).
+		Where("provider = ? AND installation_id = ? AND provider_instance_key = ?", provider, installationID, instanceKey)
 	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
 	}

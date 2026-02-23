@@ -25,7 +25,7 @@
 
 ## About
 
-githook is an event automation layer for GitHub, GitLab, and Bitbucket. It receives webhooks from these providers, evaluates configurable rules against the payload, and publishes matching events to your message broker using [Watermill](https://watermill.io/).
+githook is an event automation layer for GitHub, GitLab, and Bitbucket. It receives webhooks from these providers, evaluates configurable rules against the payload, and publishes matching events to your message broker using [Relaybus](https://github.com/relaymesh/relaybus).
 
 **What problem does it solve?**
 
@@ -39,14 +39,14 @@ githook solves this by providing:
 - A unified webhook receiver for all three providers
 - A rule-based event routing system using JSONPath expressions
 - Automatic payload normalization
-- Provider-aware SCM clients injected into your workers
-- Multi-broker support (AMQP, NATS, Kafka, SQL, HTTP, etc.)
+- Provider-aware SCM clients injected into your workers (Go/TypeScript/Python)
+- Multi-broker support (AMQP, NATS, Kafka)
 
 **Architecture Overview:**
 
 githook consists of two main components:
 1. **Server**: Receives webhooks, validates signatures, evaluates rules, and publishes events to message brokers
-2. **Worker SDK**: Consumes events from brokers with provider-aware API clients pre-configured and ready to use
+2. **Worker SDKs**: Consume events from brokers and optionally resolve SCM clients via the server (Go/TypeScript/Python)
 
 ---
 
@@ -58,7 +58,7 @@ githook consists of two main components:
 │   GitLab    │─────▶│  githook    │─────▶│   Broker    │─────▶│  (Your App) │
 │  Bitbucket  │      │   Server     │      │   (AMQP)    │      │             │
 └─────────────┘      └──────────────┘      └─────────────┘      └─────────────┘
-   Webhooks           Rules Engine          Watermill           Business Logic
+   Webhooks           Rules Engine          Relaybus            Business Logic
                       + Publishing                              + SCM Clients
 ```
 
@@ -74,7 +74,7 @@ githook consists of two main components:
 
 5. **Event Publishing**: If a rule matches, the event is published to the configured message broker(s) with the specified topic name
 
-6. **Worker Consumption**: Workers subscribe to topics, receive events, and execute business logic with provider-aware API clients (GitHub SDK, GitLab SDK, Bitbucket SDK) automatically injected
+6. **Worker Consumption**: Workers subscribe to topics and execute business logic, optionally using server-resolved SCM clients
 
 7. **API Interactions**: Workers can interact with the provider's API using the injected client, which is pre-authenticated using GitHub App installation tokens or OAuth tokens
 
@@ -83,8 +83,8 @@ githook consists of two main components:
 - **CLI**: Manage provider instances, list installations, configure the system
 - **Server**: HTTP server that receives webhooks and publishes to brokers
 - **Storage**: PostgreSQL database storing OAuth tokens and installation metadata
-- **Message Brokers**: AMQP, NATS, Kafka, SQL, HTTP, or any Watermill-supported broker
-- **Worker SDK**: Go library for consuming events with provider clients injected
+- **Message Brokers**: AMQP, NATS, Kafka
+- **Worker SDKs**: Go + TypeScript + Python workers for consuming events with optional client injection
 
 ---
 
@@ -92,10 +92,10 @@ githook consists of two main components:
 
 - **Multi-Provider Support**: GitHub, GitLab, Bitbucket webhooks unified
 - **Rule Engine**: JSONPath + boolean expressions for event routing
-- **Multi-Broker Publishing**: AMQP, NATS, Kafka, HTTP, SQL, GoChannel, RiverQueue
+- **Multi-Broker Publishing**: AMQP, NATS, Kafka
 - **API-First Architecture**: Connect RPC (gRPC) API for all operations
 - **Multi-Tenant Ready**: Provider instance management with OAuth onboarding
-- **Worker SDK**: Go SDK with auto-injected provider API clients
+- **Worker SDKs**: Go, TypeScript, Python (aligned APIs + optional SCM injection)
 - **SCM Client Injection**: Pre-authenticated GitHub, GitLab, Bitbucket clients
 - **Event Normalization**: Common payload structure across providers
 - **Request Tracing**: End-to-end tracing with `X-Request-ID`
@@ -110,8 +110,8 @@ githook consists of two main components:
 - **Declarative Routing**: JSONPath rules instead of hardcoded logic
 - **API-First Design**: Connect RPC (gRPC) API for programmatic control
 - **Multi-Tenant**: Support multiple organizations with isolated configurations
-- **Broker Agnostic**: AMQP, NATS, Kafka, SQL, HTTP - use any broker
-- **Auto-Authenticated**: Workers get pre-configured API clients
+- **Broker Agnostic**: AMQP, NATS, Kafka
+- **Auto-Authenticated (SDKs)**: Workers can fetch pre-configured SCM clients from the server
 - **Event-Driven**: Decouple webhook processing from business logic
 
 ---
@@ -452,7 +452,7 @@ Organizational units within a provider:
 Webhooks can be configured at namespace level (affects all repos) or individual repository level.
 
 ### Drivers
-Message brokers: `amqp`, `nats`, `kafka`, `sql`, `http`, `gochannel`, `riverqueue`.
+Message brokers: `amqp`, `nats`, `kafka`.
 
 ### Rules
 JSONPath conditions that route events to topics. Has `when` (condition), `emit` (topic), and optional `drivers`.
@@ -493,7 +493,7 @@ Webhook URL schema: `<base-url>/webhooks/<provider>`
 
 Drivers are the message broker backends where events are published. Manage them through the CLI (stored on the server, per tenant); you do not configure drivers in `config.yaml`.
 
-**Supported drivers:** `amqp`, `nats`, `kafka`, `sql`, `http`, `gochannel`, `riverqueue`.
+**Supported drivers:** `amqp`, `nats`, `kafka`.
 
 **CLI examples:**
 ```sh
@@ -506,8 +506,8 @@ githook --endpoint http://localhost:8080 drivers delete --name amqp
 **Multiple drivers example:**
 ```sh
 githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml
-githook --endpoint http://localhost:8080 drivers set --name http --config-file http.yaml
-githook --endpoint http://localhost:8080 drivers set --name sql --config-file sql.yaml
+githook --endpoint http://localhost:8080 drivers set --name nats --config-file nats.yaml
+githook --endpoint http://localhost:8080 drivers set --name kafka --config-file kafka.yaml
 ```
 
 To publish to multiple brokers, create multiple drivers via the CLI. Each rule targets one driver via `driver_id`; to fan-out across drivers, create multiple rules with the same `when`/`emit` and different `driver_id` values.
@@ -638,7 +638,9 @@ See [docs/rules.md](docs/rules.md) for advanced rule patterns.
 
 ## SDK
 
-The githook Worker SDK provides a Go library for consuming events from message brokers with provider-aware API clients injected.
+The githook Worker SDKs provide Go, TypeScript, and Python libraries for consuming events from message brokers. Each SDK mirrors the same worker API (rules, drivers, middleware, retries) and supports optional server-resolved SCM client injection.
+
+### Go SDK
 
 ### Installation
 
@@ -663,12 +665,10 @@ func main() {
     wk := worker.New(
         worker.WithEndpoint(os.Getenv("GITHOOK_ENDPOINT")),
         worker.WithAPIKey(os.Getenv("GITHOOK_API_KEY")),
-        worker.WithDefaultDriver("driver-id"),
-        worker.WithTopics("pr.opened.ready", "pr.merged"),
     )
 
-    wk.HandleTopic("pr.opened.ready", "driver-id", func(ctx context.Context, evt *worker.Event) error {
-        log.Printf("PR opened: %s/%s", evt.Provider, evt.Type)
+    wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
+        log.Printf("event topic=%s provider=%s type=%s", evt.Topic, evt.Provider, evt.Type)
         return nil
     })
 
@@ -694,11 +694,11 @@ type Event struct {
 
 ### Using Provider Clients
 
-The SDK automatically injects authenticated API clients:
+If you configure a client provider, the SDK can attach authenticated SCM clients per event:
 
 **GitHub:**
 ```go
-wk.HandleTopic("pr.merged", "driver-id", func(ctx context.Context, evt *worker.Event) error {
+wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
     if evt.Provider != "github" {
         return nil
     }
@@ -721,7 +721,7 @@ wk.HandleTopic("pr.merged", "driver-id", func(ctx context.Context, evt *worker.E
 
 **GitLab:**
 ```go
-wk.HandleTopic("gitlab.mr.opened", "driver-id", func(ctx context.Context, evt *worker.Event) error {
+wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
     if evt.Client != nil {
         glClient := evt.Client.(*gitlab.Client)
         // Use GitLab SDK
@@ -732,7 +732,7 @@ wk.HandleTopic("gitlab.mr.opened", "driver-id", func(ctx context.Context, evt *w
 
 **Bitbucket:**
 ```go
-wk.HandleTopic("bitbucket.pr.opened", "driver-id", func(ctx context.Context, evt *worker.Event) error {
+wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
     if evt.Client != nil {
         bbClient := evt.Client.(*bitbucket.Client)
         // Use Bitbucket SDK
@@ -741,18 +741,91 @@ wk.HandleTopic("bitbucket.pr.opened", "driver-id", func(ctx context.Context, evt
 })
 ```
 
-### Client Provider Configuration
+### Client Provider (optional)
 
-Enable client injection by passing provider config:
+Attach your own client instances to events (for example, a thin client that calls your server-side API):
 
 ```go
-appCfg, _ := core.LoadConfig("config.yaml")
-
 wk := worker.New(
     worker.WithSubscriber(sub),
-    worker.WithTopics("pr.opened.ready"),
-    worker.WithClientProvider(worker.NewSCMClientProvider(appCfg.Providers)),
+    worker.WithClientProvider(worker.ClientProviderFunc(func(ctx context.Context, evt *worker.Event) (interface{}, error) {
+        return newSCMProxyClient(os.Getenv("SCM_PROXY_URL")), nil
+    })),
 )
+
+wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
+    return nil
+})
+```
+
+### Server-resolved SCM clients
+
+Fetch SCM credentials from the server and build provider clients in the worker. The provider caches up to 10 clients by default and uses the provider instance key to resolve enterprise vs. cloud.
+
+```go
+wk := worker.New(
+    worker.WithSubscriber(sub),
+    worker.WithClientProvider(worker.NewRemoteSCMClientProvider()),
+)
+
+wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
+    if gh, ok := worker.GitHubClient(evt); ok {
+        _, _, _ = gh.Repositories.List(ctx, "", nil)
+    }
+    return nil
+})
+```
+
+### TypeScript SDK
+
+The TypeScript worker lives in `sdk/typescript/worker` and uses Relaybus JS adapters.
+
+```ts
+import * as worker from "@relaymesh/githook";
+
+async function main() {
+  const wk = worker.New(
+    worker.WithEndpoint("http://localhost:8080"),
+  );
+  wk.HandleRule("rule-id", (ctx, event) => {
+    console.log(ctx.tenantId, event.provider, event.type, event.topic);
+  });
+
+  await wk.Run();
+}
+
+main().catch(console.error);
+```
+
+### Python SDK
+
+The Python worker lives in `sdk/python/worker` and uses Relaybus Python adapters.
+
+```python
+import signal
+import threading
+
+from relaymesh_githook import New, NewRemoteSCMClientProvider, WithClientProvider, WithEndpoint
+
+stop = threading.Event()
+
+def shutdown(_signum, _frame):
+    stop.set()
+
+signal.signal(signal.SIGINT, shutdown)
+signal.signal(signal.SIGTERM, shutdown)
+
+wk = New(
+    WithEndpoint("http://localhost:8080"),
+    WithClientProvider(NewRemoteSCMClientProvider()),
+)
+
+def handle(ctx, evt):
+    print(f"topic={evt.topic} provider={evt.provider} type={evt.type}")
+
+wk.HandleRule("rule-id", handle)
+
+wk.Run(stop)
 ```
 
 ### Concurrency
@@ -767,17 +840,16 @@ wk := worker.New(
 
 ### Middleware
 
-Use Watermill middleware for retry, logging, throttling:
+Wrap handlers with custom middleware:
 
 ```go
-import wmmw "github.com/ThreeDotsLabs/watermill/message/router/middleware"
-
-retryMiddleware := worker.MiddlewareFromWatermill(
-    wmmw.Retry{MaxRetries: 3}.Middleware,
-)
-
 wk := worker.New(
-    worker.WithMiddleware(retryMiddleware),
+    worker.WithMiddleware(func(next worker.Handler) worker.Handler {
+        return func(ctx context.Context, evt *worker.Event) error {
+            // add logging/metrics/etc
+            return next(ctx, evt)
+        }
+    }),
 )
 ```
 
