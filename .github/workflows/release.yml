@@ -94,16 +94,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Python install
+        run: |
+          python -m pip install --upgrade pip setuptools wheel build twine
       - name: Build package
         run: |
           rm -rf dist
-          python -m pip install --upgrade pip setuptools wheel
           python setup.py sdist bdist_wheel
         working-directory: sdk/python/worker
         env:
           GITHOOK_PY_VERSION: ${{ github.ref_name }}
-      - name: Publish package
-        uses: pypa/gh-action-pypi-publish@v1.9.0
-        with:
-          packages-dir: sdk/python/worker/dist
-          password: ${{ secrets.PYPI_TOKEN }}
+      - name: Publish PyPI package
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          if [ -z "${TWINE_PASSWORD:-}" ]; then
+            echo "PYPI_TOKEN not set; skipping PyPI publish."
+            exit 0
+          fi
+          python -m twine upload sdk/python/worker/dist/*
