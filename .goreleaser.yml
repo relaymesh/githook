@@ -35,7 +35,7 @@ brews:
     license: "MIT"
     directory: Formula
     repository:
-      owner: "yindia"
+      owner: "relaymesh"
       name: "homebrew-formula"
     test: |
       system "#{bin}/githook", "--help"
