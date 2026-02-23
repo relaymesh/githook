@@ -36,7 +36,7 @@ brews:
     directory: Formula
     repository:
       owner: "yindia"
-      name: "homebrew-yindia"
+      name: "homebrew-formula"
     test: |
       system "#{bin}/githook", "--help"
     install: |
