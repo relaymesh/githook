@@ -87,7 +87,7 @@ func (s *relaybusSubscriber) Start(ctx context.Context, topic string, handler Me
 			URL:                s.cfg.AMQP.URL,
 			Exchange:           s.cfg.AMQP.Exchange,
 			RoutingKeyTemplate: s.cfg.AMQP.RoutingKeyTemplate,
-			Queue:              s.cfg.AMQP.Queue,
+			Queue:              s.cfg.AMQP.Exchange,
 			AutoAck:            s.cfg.AMQP.AutoAck,
 			MaxMessages:        s.cfg.AMQP.MaxMessages,
 			Handler:            handler,

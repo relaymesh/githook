@@ -113,11 +113,11 @@ func (s *Store) ListRules(ctx context.Context) ([]storage.RuleRecord, error) {
 	var data []ruleWithDriver
 	join := "LEFT JOIN githook_drivers ON githook_rules.driver_id = githook_drivers.id AND githook_rules.tenant_id = githook_drivers.tenant_id"
 	query := s.tableDB().WithContext(ctx).
-		Select("github.com/relaymesh/githook_rules.*, githook_drivers.name as driver_name, githook_drivers.config_json as driver_config_json, githook_drivers.enabled as driver_enabled").
+		Select("githook_rules.*, githook_drivers.name as driver_name, githook_drivers.config_json as driver_config_json, githook_drivers.enabled as driver_enabled").
 		Joins(join).
-		Order("github.com/relaymesh/githook_rules.created_at asc")
+		Order("githook_rules.created_at asc")
 	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("github.com/relaymesh/githook_rules.tenant_id = ?", tenantID)
+		query = query.Where("githook_rules.tenant_id = ?", tenantID)
 	}
 	if err := query.Find(&data).Error; err != nil {
 		return nil, err
@@ -137,11 +137,11 @@ func (s *Store) GetRule(ctx context.Context, id string) (*storage.RuleRecord, er
 	var data ruleWithDriver
 	join := "LEFT JOIN githook_drivers ON githook_rules.driver_id = githook_drivers.id AND githook_rules.tenant_id = githook_drivers.tenant_id"
 	query := s.tableDB().WithContext(ctx).
-		Select("github.com/relaymesh/githook_rules.*, githook_drivers.name as driver_name, githook_drivers.config_json as driver_config_json, githook_drivers.enabled as driver_enabled").
+		Select("githook_rules.*, githook_drivers.name as driver_name, githook_drivers.config_json as driver_config_json, githook_drivers.enabled as driver_enabled").
 		Joins(join).
-		Where("github.com/relaymesh/githook_rules.id = ?", id)
+		Where("githook_rules.id = ?", id)
 	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("github.com/relaymesh/githook_rules.tenant_id = ?", tenantID)
+		query = query.Where("githook_rules.tenant_id = ?", tenantID)
 	}
 	err := query.Take(&data).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {

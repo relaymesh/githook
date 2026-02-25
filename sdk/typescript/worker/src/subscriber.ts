@@ -74,7 +74,7 @@ class RelaybusSubscriber implements Subscriber {
       url: cfg.url,
       exchange: cfg.exchange,
       routingKeyTemplate: cfg.routingKeyTemplate,
-      queue: cfg.queue,
+      queue: cfg.exchange,
       autoAck: cfg.autoAck,
       maxMessages: cfg.maxMessages,
       onMessage: (msg: RelaybusMessage) => handler(msg),

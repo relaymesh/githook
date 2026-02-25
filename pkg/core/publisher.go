@@ -145,6 +145,7 @@ func newSinglePublisher(cfg RelaybusConfig, driver string) (Publisher, error) {
 			AMQP: amqpadapter.Config{
 				URL:                cfg.AMQP.URL,
 				Exchange:           cfg.AMQP.Exchange,
+				Queue:              cfg.AMQP.Exchange,
 				RoutingKeyTemplate: cfg.AMQP.RoutingKeyTemplate,
 				Mandatory:          cfg.AMQP.Mandatory,
 				Immediate:          cfg.AMQP.Immediate,
