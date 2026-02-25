@@ -29,7 +29,6 @@ func TestOptionsApply(t *testing.T) {
 	listener := Listener{}
 	worker := New(
 		WithSubscriber(sub),
-		WithTopics("a", "b"),
 		WithConcurrency(3),
 		WithCodec(codec),
 		WithRetry(retry),
@@ -38,9 +37,6 @@ func TestOptionsApply(t *testing.T) {
 	)
 	if worker.subscriber != sub {
 		t.Fatalf("expected subscriber set")
-	}
-	if len(worker.topics) != 2 {
-		t.Fatalf("expected topics set")
 	}
 	if worker.concurrency != 3 {
 		t.Fatalf("expected concurrency set")
@@ -61,5 +57,7 @@ func TestOptionsApply(t *testing.T) {
 
 type testSubscriber struct{}
 
-func (testSubscriber) Start(ctx context.Context, topic string, handler MessageHandler) error { return nil }
+func (testSubscriber) Start(ctx context.Context, topic string, handler MessageHandler) error {
+	return nil
+}
 func (testSubscriber) Close() error { return nil }

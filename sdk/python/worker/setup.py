@@ -25,11 +25,8 @@ setup(
     packages=find_packages(where=".", include=["relaymesh_githook*", "cloud*"]),
     install_requires=[
         "protobuf>=4.21.0",
+        "relaybus-amqp",
+        "relaybus-kafka",
+        "relaybus-nats",
     ],
-    extras_require={
-        "amqp": ["relaybus-amqp"],
-        "kafka": ["relaybus-kafka"],
-        "nats": ["relaybus-nats"],
-        "all": ["relaybus-amqp", "relaybus-kafka", "relaybus-nats"],
-    },
 )

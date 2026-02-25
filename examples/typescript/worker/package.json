@@ -1,0 +1,17 @@
+{
+  "name": "githook-worker-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "ts-node --esm index.ts"
+  },
+  "dependencies": {
+    "@relaymesh/githook": "*",
+    "@relaymesh/relaybus-amqp": "^0.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.0"
+  }
+}

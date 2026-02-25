@@ -11,13 +11,7 @@ Supported drivers: amqp, kafka, nats.
 npm install @relaymesh/githook
 ```
 
-Install the Relaybus adapter(s) you plan to use:
-
-```sh
-npm install @relaymesh/relaybus-amqp
-npm install @relaymesh/relaybus-kafka
-npm install @relaymesh/relaybus-nats
-```
+No additional packages are required.
 
 ## Githook Worker Example (rule-id only)
 

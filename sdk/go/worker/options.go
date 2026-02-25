@@ -16,19 +16,6 @@ func WithSubscriber(sub Subscriber) Option {
 	}
 }
 
-// WithTopics adds a list of topics for the worker to subscribe to.
-func WithTopics(topics ...string) Option {
-	return func(w *Worker) {
-		for _, topic := range topics {
-			if topic == "" {
-				continue
-			}
-			w.topics = append(w.topics, topic)
-			w.allowedTopics[topic] = struct{}{}
-		}
-	}
-}
-
 // WithConcurrency sets the number of concurrent message processors.
 func WithConcurrency(n int) Option {
 	return func(w *Worker) {
@@ -105,13 +92,6 @@ func WithOAuth2Config(cfg auth.OAuth2Config) Option {
 	return func(w *Worker) {
 		copyCfg := cfg
 		w.oauth2Config = &copyCfg
-	}
-}
-
-// WithDefaultDriver configures a fallback driver ID when topics omit a driver.
-func WithDefaultDriver(driver string) Option {
-	return func(w *Worker) {
-		w.defaultDriverID = strings.TrimSpace(driver)
 	}
 }
 

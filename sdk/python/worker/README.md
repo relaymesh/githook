@@ -8,13 +8,7 @@ The Python worker SDK mirrors the Go/TypeScript worker interfaces and connects t
 pip install relaymesh-githook
 ```
 
-Install the relaybus adapter you need:
-
-```bash
-pip install relaybus-amqp
-pip install relaybus-kafka
-pip install relaybus-nats
-```
+No additional packages are required.
 
 ## Quick Start
 

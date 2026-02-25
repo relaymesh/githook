@@ -1,1 +1,10 @@
 bin/
+.env
+.env.development
+.envrc
+coverage.out
+github.pem
+package-lock.json
+test.json
+test.yaml
+.DS_Store

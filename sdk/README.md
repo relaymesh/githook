@@ -35,11 +35,9 @@ func main() {
   wk := worker.New(
     worker.WithEndpoint(os.Getenv("GITHOOK_ENDPOINT")),
     worker.WithAPIKey(os.Getenv("GITHOOK_API_KEY")),
-    worker.WithDefaultDriver("driver-id"),
-    worker.WithTopics("pr.opened.ready"),
   )
 
-  wk.HandleTopic("pr.opened.ready", "driver-id", func(ctx context.Context, evt *worker.Event) error {
+  wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
     return nil
   })
 

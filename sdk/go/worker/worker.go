@@ -24,20 +24,18 @@ type Worker struct {
 	concurrency int
 	topics      []string
 
-	topicHandlers   map[string]Handler
-	topicDrivers    map[string]string
-	typeHandlers    map[string]Handler
-	middleware      []Middleware
-	clientProvider  ClientProvider
-	listeners       []Listener
-	allowedTopics   map[string]struct{}
-	driverSubs      map[string]Subscriber
-	endpoint        string
-	apiKey          string
-	oauth2Config    *auth.OAuth2Config
-	defaultDriverID string
-	tenantID        string
-	ruleHandlers    map[string]Handler
+	topicHandlers  map[string]Handler
+	topicDrivers   map[string]string
+	typeHandlers   map[string]Handler
+	middleware     []Middleware
+	clientProvider ClientProvider
+	listeners      []Listener
+	driverSubs     map[string]Subscriber
+	endpoint       string
+	apiKey         string
+	oauth2Config   *auth.OAuth2Config
+	tenantID       string
+	ruleHandlers   map[string]Handler
 }
 
 // New creates a new Worker with the given options.
@@ -50,7 +48,6 @@ func New(opts ...Option) *Worker {
 		topicHandlers: make(map[string]Handler),
 		topicDrivers:  make(map[string]string),
 		typeHandlers:  make(map[string]Handler),
-		allowedTopics: make(map[string]struct{}),
 		driverSubs:    make(map[string]Subscriber),
 		tenantID:      envTenantID(),
 		ruleHandlers:  make(map[string]Handler),
@@ -75,32 +72,6 @@ func (w *Worker) bindClientProvider() {
 			OAuth2:  w.oauth2Value(),
 		})
 	}
-}
-
-// HandleTopic registers a handler for a specific topic and driver.
-func (w *Worker) HandleTopic(topic, driverID string, h Handler) {
-	if h == nil || topic == "" {
-		return
-	}
-	if len(w.allowedTopics) > 0 {
-		if _, ok := w.allowedTopics[topic]; !ok {
-			w.logger.Printf("handler topic not subscribed: %s", topic)
-			return
-		}
-	}
-	driverID = strings.TrimSpace(driverID)
-	if driverID == "" {
-		driverID = strings.TrimSpace(w.defaultDriverID)
-	}
-	if driverID == "" && w.subscriber == nil {
-		w.logger.Printf("driver id required for topic: %s", topic)
-		return
-	}
-	w.topicHandlers[topic] = h
-	if driverID != "" {
-		w.topicDrivers[topic] = driverID
-	}
-	w.topics = append(w.topics, topic)
 }
 
 // HandleRule registers a handler for the specified rule id.
@@ -133,17 +104,11 @@ func (w *Worker) Run(ctx context.Context) error {
 		return errors.New("at least one topic is required")
 	}
 	if w.subscriber != nil {
-		if err := w.validateTopics(ctx); err != nil {
-			return err
-		}
 		return w.runWithSubscriber(ctx, w.subscriber, unique(w.topics))
 	}
 
 	driverTopics, err := w.topicsByDriver()
 	if err != nil {
-		return err
-	}
-	if err := w.validateTopics(ctx); err != nil {
 		return err
 	}
 	if err := w.buildDriverSubscribers(ctx, driverTopics); err != nil {
@@ -249,9 +214,6 @@ func (w *Worker) runWithSubscriber(ctx context.Context, sub Subscriber, topics [
 
 func (w *Worker) topicsByDriver() (map[string][]string, error) {
 	if len(w.topicDrivers) == 0 {
-		if defaultDriver := strings.TrimSpace(w.defaultDriverID); defaultDriver != "" {
-			return map[string][]string{defaultDriver: unique(w.topics)}, nil
-		}
 		return nil, errors.New("driver id is required for topics")
 	}
 	out := make(map[string][]string, len(w.topicDrivers))
@@ -398,68 +360,6 @@ func shouldRequeue(msg *relaymessage.Message) bool {
 		return false
 	}
 	return strings.ToLower(msg.Metadata[MetadataKeyDriver]) == "amqp"
-}
-
-func (w *Worker) validateTopics(ctx context.Context) error {
-	client := w.rulesClient()
-	rules, err := client.ListRules(ctx)
-	if err != nil {
-		return err
-	}
-	if len(rules) == 0 {
-		return errors.New("no rules available from api")
-	}
-
-	allowedTopics := map[string]struct{}{}
-	allowedByDriver := map[string]map[string]struct{}{}
-	for _, record := range rules {
-		for _, topic := range record.Emit {
-			trimmed := strings.TrimSpace(topic)
-			if trimmed == "" {
-				continue
-			}
-			allowedTopics[trimmed] = struct{}{}
-			driverID := strings.TrimSpace(record.DriverID)
-			if driverID == "" {
-				continue
-			}
-			if _, ok := allowedByDriver[driverID]; !ok {
-				allowedByDriver[driverID] = map[string]struct{}{}
-			}
-			allowedByDriver[driverID][trimmed] = struct{}{}
-		}
-	}
-	if len(allowedTopics) == 0 {
-		return errors.New("no topics available from rules")
-	}
-
-	topics := unique(w.topics)
-	if w.subscriber != nil {
-		for _, topic := range topics {
-			if _, ok := allowedTopics[topic]; !ok {
-				return fmt.Errorf("unknown topic: %s", topic)
-			}
-		}
-		return nil
-	}
-
-	for _, topic := range topics {
-		driverID := strings.TrimSpace(w.topicDrivers[topic])
-		if driverID == "" {
-			driverID = strings.TrimSpace(w.defaultDriverID)
-		}
-		if driverID == "" {
-			return fmt.Errorf("driver id is required for topic: %s", topic)
-		}
-		allowed := allowedByDriver[driverID]
-		if allowed == nil {
-			return fmt.Errorf("driver not configured on any rule: %s", driverID)
-		}
-		if _, ok := allowed[topic]; !ok {
-			return fmt.Errorf("topic %s not configured for driver %s", topic, driverID)
-		}
-	}
-	return nil
 }
 
 func (w *Worker) prepareRuleSubscriptions(ctx context.Context) error {
