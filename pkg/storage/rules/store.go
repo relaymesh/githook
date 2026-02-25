@@ -82,7 +82,7 @@ func Open(cfg Config) (*Store, error) {
 	}
 	table := cfg.Table
 	if table == "" {
-		table = "github.com/relaymesh/githook_rules"
+		table = "githook_rules"
 	}
 	store := &Store{db: gormDB, table: table}
 	if cfg.AutoMigrate {

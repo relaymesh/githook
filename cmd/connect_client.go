@@ -25,7 +25,7 @@ func connectClientOptions() ([]connect.ClientOption, error) {
 		return opts, err
 	}
 	apiBaseURL = resolveEndpoint(cfg)
-	if apiKey := strings.TrimSpace(os.Getenv("github.com/relaymesh/githook_API_KEY")); apiKey != "" {
+	if apiKey := strings.TrimSpace(os.Getenv("GITHOOK_API_KEY")); apiKey != "" {
 		opts = append(opts, connect.WithInterceptors(apiKeyHeaderInterceptor(apiKey)))
 		return opts, nil
 	}

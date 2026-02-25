@@ -76,7 +76,7 @@ func Open(cfg Config) (*Store, error) {
 	}
 	table := cfg.Table
 	if table == "" {
-		table = "github.com/relaymesh/githook_installations"
+		table = "githook_installations"
 	}
 	store := &Store{
 		db:    gormDB,
