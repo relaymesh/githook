@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/core"
 )
 
 // rawObjectAndFlatten unmarshals a raw JSON byte slice into both an interface{}

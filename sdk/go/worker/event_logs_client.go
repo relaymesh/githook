@@ -11,9 +11,9 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/validate"
 
-	"githook/pkg/auth"
-	cloudv1 "githook/pkg/gen/cloud/v1"
-	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
+	"github.com/relaymesh/githook/pkg/auth"
+	cloudv1 "github.com/relaymesh/githook/pkg/gen/cloud/v1"
+	cloudv1connect "github.com/relaymesh/githook/pkg/gen/cloud/v1/cloudv1connect"
 )
 
 // EventLogsClient updates event log status via the server API.

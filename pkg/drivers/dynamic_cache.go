@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/core"
 )
 
 // DynamicPublisherCache caches publishers built from driver config JSON.

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 // GetEventLogTimeseries returns time-series buckets grouped by interval.

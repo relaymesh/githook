@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/auth"
 )
 
 func TestRefreshGitLabToken(t *testing.T) {

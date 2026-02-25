@@ -6,7 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func newTenantInterceptor() connect.UnaryInterceptorFunc {

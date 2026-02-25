@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 // ListEventLogs returns event logs matching the filter.

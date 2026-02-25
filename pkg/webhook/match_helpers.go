@@ -3,7 +3,7 @@ package webhook
 import (
 	"strings"
 
-	"githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/core"
 )
 
 func ruleMatchesFromRules(rules []core.MatchedRule) []core.RuleMatch {

@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"githook/pkg/server"
+	"github.com/relaymesh/githook/pkg/server"
 )
 
 func newServeCmd() *cobra.Command {

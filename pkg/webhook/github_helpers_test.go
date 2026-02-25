@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func TestVerifyGitHubSHA1(t *testing.T) {

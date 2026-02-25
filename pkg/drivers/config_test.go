@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"githook/pkg/core"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func TestRecordsFromConfig(t *testing.T) {

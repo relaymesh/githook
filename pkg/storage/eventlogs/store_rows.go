@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func toRow(record storage.EventLogRecord) (row, error) {

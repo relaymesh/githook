@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/auth"
 )
 
 func TestResolveEndpointsConfigured(t *testing.T) {
@@ -78,7 +78,7 @@ func TestClientCredentialsToken(t *testing.T) {
 		AuthorizeURL: "https://issuer/auth",
 		JWKSURL:      "https://issuer/jwks",
 		RequiredScopes: []string{
-			"githook.read",
+			"github.com/relaymesh/githook.read",
 		},
 	}
 	token, err := ClientCredentialsToken(context.Background(), cfg)

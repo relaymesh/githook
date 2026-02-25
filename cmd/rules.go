@@ -10,9 +10,9 @@ import (
 	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
 
-	"githook/pkg/core"
-	cloudv1 "githook/pkg/gen/cloud/v1"
-	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
+	"github.com/relaymesh/githook/pkg/core"
+	cloudv1 "github.com/relaymesh/githook/pkg/gen/cloud/v1"
+	cloudv1connect "github.com/relaymesh/githook/pkg/gen/cloud/v1/cloudv1connect"
 )
 
 func newRulesCmd() *cobra.Command {

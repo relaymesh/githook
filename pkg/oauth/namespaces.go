@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"githook/pkg/auth"
-	ghprovider "githook/pkg/providers/github"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/auth"
+	ghprovider "github.com/relaymesh/githook/pkg/providers/github"
+	"github.com/relaymesh/githook/pkg/storage"
 
 	gh "github.com/google/go-github/v57/github"
 )

@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"testing"
 
-	"githook/pkg/core"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func TestRawObjectAndFlatten(t *testing.T) {

@@ -7,10 +7,10 @@ import (
 	"sort"
 	"strings"
 
-	"githook/pkg/auth"
-	"githook/pkg/core"
-	"githook/pkg/drivers"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/drivers"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 // HandlerOptions holds dependencies used to build webhook handlers.

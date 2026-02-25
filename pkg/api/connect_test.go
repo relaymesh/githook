@@ -9,8 +9,8 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	cloudv1 "githook/pkg/gen/cloud/v1"
-	"githook/pkg/storage"
+	cloudv1 "github.com/relaymesh/githook/pkg/gen/cloud/v1"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func TestInstallationsServiceLifecycle(t *testing.T) {

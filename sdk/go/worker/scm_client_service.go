@@ -12,10 +12,10 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/validate"
 
-	"githook/pkg/auth"
-	cloudv1 "githook/pkg/gen/cloud/v1"
-	cloudv1connect "githook/pkg/gen/cloud/v1/cloudv1connect"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/auth"
+	cloudv1 "github.com/relaymesh/githook/pkg/gen/cloud/v1"
+	cloudv1connect "github.com/relaymesh/githook/pkg/gen/cloud/v1/cloudv1connect"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 // SCMClientRecord holds server-issued credentials for building SCM clients.

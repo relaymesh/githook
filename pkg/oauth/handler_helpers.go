@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"githook/pkg/auth"
-	"githook/pkg/providerinstance"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/providerinstance"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func (h *Handler) redirectOrJSON(w http.ResponseWriter, r *http.Request, params map[string]string, instanceRedirect string) {

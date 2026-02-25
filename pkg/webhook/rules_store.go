@@ -7,8 +7,8 @@ import (
 	"log"
 	"strings"
 
-	"githook/pkg/core"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func matchRulesFromStore(ctx context.Context, event core.Event, tenantID string, ruleStore storage.RuleStore, driverStore storage.DriverStore, strict bool, logger *log.Logger) []core.MatchedRule {

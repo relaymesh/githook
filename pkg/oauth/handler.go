@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"githook/pkg/auth"
-	"githook/pkg/providerinstance"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/providerinstance"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 // Handler handles OAuth callbacks and persists installation data.

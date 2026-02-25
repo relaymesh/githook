@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/auth"
 
 	bb "github.com/ktrysmt/go-bitbucket"
 )

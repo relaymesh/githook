@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/auth"
 )
 
 type gitHubProvider struct{}

@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"githook/pkg/core"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func logDebugEvent(logger *log.Logger, provider string, event string, body []byte) {

@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"strings"
 
-	"githook/pkg/auth"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func (h *Handler) handleGitLab(w http.ResponseWriter, r *http.Request, logger *log.Logger, cfg auth.ProviderConfig) {

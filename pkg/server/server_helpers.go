@@ -9,10 +9,10 @@ import (
 	"sort"
 	"strings"
 
-	"githook/pkg/storage"
-	"githook/pkg/storage/installations"
-	"githook/pkg/storage/namespaces"
-	providerinstancestore "githook/pkg/storage/provider_instances"
+	"github.com/relaymesh/githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage/installations"
+	"github.com/relaymesh/githook/pkg/storage/namespaces"
+	providerinstancestore "github.com/relaymesh/githook/pkg/storage/provider_instances"
 )
 
 func resolveRuleDriverName(ctx context.Context, store storage.DriverStore, driverID string) (string, error) {

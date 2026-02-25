@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/auth"
 
 	oidclib "github.com/coreos/go-oidc/v3/oidc"
 )

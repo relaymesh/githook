@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func TestServerHelperFunctions(t *testing.T) {

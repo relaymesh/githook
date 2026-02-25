@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 // CreateEventLogs inserts event log records.

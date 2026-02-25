@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"githook/pkg/core"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 type stubPublisher struct {

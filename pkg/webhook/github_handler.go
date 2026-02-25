@@ -9,9 +9,9 @@ import (
 
 	"github.com/go-playground/webhooks/v6/github"
 
-	"githook/pkg/core"
-	"githook/pkg/drivers"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/drivers"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 // GitHubHandler handles incoming webhooks from GitHub.

@@ -10,8 +10,8 @@ import (
 
 	relaymessage "github.com/relaymesh/relaybus/sdk/core/go/message"
 
-	"githook/pkg/auth"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 // Worker is a message-processing worker that subscribes to topics, decodes

@@ -9,9 +9,9 @@ import (
 
 	"connectrpc.com/connect"
 
-	"githook/pkg/core"
-	cloudv1 "githook/pkg/gen/cloud/v1"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/core"
+	cloudv1 "github.com/relaymesh/githook/pkg/gen/cloud/v1"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 // RulesService implements rule matching over a payload with inline rules.

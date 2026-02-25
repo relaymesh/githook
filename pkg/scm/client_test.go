@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/auth"
 )
 
 func TestFactoryNewClientUnsupported(t *testing.T) {

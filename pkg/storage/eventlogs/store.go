@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
@@ -79,7 +79,7 @@ func Open(cfg Config) (*Store, error) {
 	}
 	table := cfg.Table
 	if table == "" {
-		table = "githook_event_logs"
+		table = "github.com/relaymesh/githook_event_logs"
 	}
 	store := &Store{db: gormDB, table: table}
 	if cfg.AutoMigrate {

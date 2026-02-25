@@ -4,15 +4,15 @@
 package main
 
 import (
-    "fmt"
-    "os"
+	"fmt"
+	"os"
 
-    "githook/cmd"
+	"github.com/relaymesh/githook/cmd"
 )
 
 func main() {
-    if err := cmd.NewRootCmd().Execute(); err != nil {
-        fmt.Fprintf(os.Stderr, "error: %v\n", err)
-        os.Exit(1)
-    }
+	if err := cmd.NewRootCmd().Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
 }

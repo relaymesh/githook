@@ -8,10 +8,10 @@ import (
 
 	"connectrpc.com/connect"
 
-	"githook/pkg/core"
-	driverspkg "githook/pkg/drivers"
-	cloudv1 "githook/pkg/gen/cloud/v1"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/core"
+	driverspkg "github.com/relaymesh/githook/pkg/drivers"
+	cloudv1 "github.com/relaymesh/githook/pkg/gen/cloud/v1"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 // DriversService handles CRUD for driver configs.

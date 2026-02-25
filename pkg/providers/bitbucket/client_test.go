@@ -3,7 +3,7 @@ package bitbucket
 import (
 	"testing"
 
-	"githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/auth"
 )
 
 func TestNormalizeBaseURL(t *testing.T) {

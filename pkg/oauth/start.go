@@ -10,9 +10,9 @@ import (
 	"net/url"
 	"strings"
 
-	"githook/pkg/auth"
-	"githook/pkg/providerinstance"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/providerinstance"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 // StartHandler redirects users into provider install/authorize flows.

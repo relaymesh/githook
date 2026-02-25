@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"githook/pkg/auth"
-	ghprovider "githook/pkg/providers/github"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/auth"
+	ghprovider "github.com/relaymesh/githook/pkg/providers/github"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func (h *Handler) handleGitHubApp(w http.ResponseWriter, r *http.Request, logger *log.Logger, cfg auth.ProviderConfig) {

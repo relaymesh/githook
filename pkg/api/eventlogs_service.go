@@ -10,8 +10,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	cloudv1 "githook/pkg/gen/cloud/v1"
-	"githook/pkg/storage"
+	cloudv1 "github.com/relaymesh/githook/pkg/gen/cloud/v1"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 const (

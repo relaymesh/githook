@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"githook/pkg/storage"
-	"githook/pkg/storage/drivers"
+	"github.com/relaymesh/githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage/drivers"
 )
 
 func TestRulesStoreCRUD(t *testing.T) {

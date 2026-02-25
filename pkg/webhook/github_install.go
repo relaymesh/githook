@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage"
 
-	ghprovider "githook/pkg/providers/github"
+	ghprovider "github.com/relaymesh/githook/pkg/providers/github"
 )
 
 func (h *GitHubHandler) resolveStateID(ctx context.Context, raw []byte) (string, string, string, string) {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func TestInstallationsStoreCRUD(t *testing.T) {

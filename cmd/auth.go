@@ -16,8 +16,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"githook/pkg/auth/oidc"
-	"githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/auth/oidc"
+	"github.com/relaymesh/githook/pkg/core"
 
 	"golang.org/x/oauth2"
 )

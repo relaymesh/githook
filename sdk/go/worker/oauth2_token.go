@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"githook/pkg/auth"
-	"githook/pkg/auth/oidc"
-	"githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/auth/oidc"
+	"github.com/relaymesh/githook/pkg/core"
 )
 
 type tokenCache struct {
@@ -80,7 +80,7 @@ func loadOAuth2Config() (auth.OAuth2Config, bool, error) {
 }
 
 func tokenCachePath() string {
-	if path := strings.TrimSpace(os.Getenv("GITHOOK_TOKEN_CACHE")); path != "" {
+	if path := strings.TrimSpace(os.Getenv("github.com/relaymesh/githook_TOKEN_CACHE")); path != "" {
 		return path
 	}
 	path, err := oidc.DefaultCachePath()
@@ -91,8 +91,8 @@ func tokenCachePath() string {
 }
 
 func configPathFromEnv() string {
-	if path := strings.TrimSpace(os.Getenv("GITHOOK_CONFIG_PATH")); path != "" {
+	if path := strings.TrimSpace(os.Getenv("github.com/relaymesh/githook_CONFIG_PATH")); path != "" {
 		return path
 	}
-	return strings.TrimSpace(os.Getenv("GITHOOK_CONFIG"))
+	return strings.TrimSpace(os.Getenv("github.com/relaymesh/githook_CONFIG"))
 }

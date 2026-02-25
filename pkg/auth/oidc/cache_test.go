@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/auth"
 )
 
 func TestCacheKey(t *testing.T) {

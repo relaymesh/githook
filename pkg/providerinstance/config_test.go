@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"githook/pkg/auth"
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func TestNormalizeProviderConfigJSON(t *testing.T) {

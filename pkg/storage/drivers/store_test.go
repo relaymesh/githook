@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/storage"
 )
 
 func TestDriverStoreCRUD(t *testing.T) {

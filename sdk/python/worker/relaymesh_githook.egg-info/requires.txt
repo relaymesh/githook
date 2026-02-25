@@ -1,0 +1,15 @@
+protobuf>=4.21.0
+
+[all]
+relaybus-amqp
+relaybus-kafka
+relaybus-nats
+
+[amqp]
+relaybus-amqp
+
+[kafka]
+relaybus-kafka
+
+[nats]
+relaybus-nats

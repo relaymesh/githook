@@ -3,7 +3,7 @@ package api
 import (
 	"strings"
 
-	"githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/auth"
 )
 
 func enabledProvidersList(cfg auth.Config) []string {

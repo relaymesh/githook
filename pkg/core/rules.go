@@ -9,7 +9,7 @@ import (
 	"github.com/Knetic/govaluate"
 	"gopkg.in/yaml.v3"
 
-	"githook/pkg/cache"
+	"github.com/relaymesh/githook/pkg/cache"
 )
 
 // Rule defines a condition and an action to take when the condition is met.
