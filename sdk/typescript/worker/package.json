@@ -1,6 +1,6 @@
 {
   "name": "@relaymesh/githook",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,9 +15,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^1.10.0"
-  },
-  "optionalDependencies": {
+    "@bufbuild/protobuf": "^1.10.0",
     "@relaymesh/relaybus-amqp": "^0.0.5",
     "@relaymesh/relaybus-kafka": "^0.0.5",
     "@relaymesh/relaybus-nats": "^0.0.5"
