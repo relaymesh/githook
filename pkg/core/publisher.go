@@ -138,6 +138,7 @@ func newSinglePublisher(cfg RelaybusConfig, driver string) (Publisher, error) {
 		if cfg.AMQP.URL == "" {
 			return nil, fmt.Errorf("amqp url is required")
 		}
+		fmt.Println(cfg.AMQP)
 		pub, err := relaycore.NewPublisher(relaycore.Config{
 			Destination: "amqp",
 			Retry:       relaybusRetryPolicy(cfg.PublishRetry),
@@ -145,7 +146,6 @@ func newSinglePublisher(cfg RelaybusConfig, driver string) (Publisher, error) {
 			AMQP: amqpadapter.Config{
 				URL:                cfg.AMQP.URL,
 				Exchange:           cfg.AMQP.Exchange,
-				Queue:              cfg.AMQP.Exchange,
 				RoutingKeyTemplate: cfg.AMQP.RoutingKeyTemplate,
 				Mandatory:          cfg.AMQP.Mandatory,
 				Immediate:          cfg.AMQP.Immediate,

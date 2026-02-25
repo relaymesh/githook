@@ -53,7 +53,7 @@ def apply_amqp_config(cfg: AmqpConfig, data: Dict[str, object]) -> None:
     cfg.url = read_string(data, "url")
     cfg.exchange = read_string(data, "exchange")
     cfg.routing_key_template = read_string(data, "routing_key_template", "routingKeyTemplate")
-    cfg.queue = read_string(data, "exchange")
+    cfg.queue = read_string(data, "queue")
     cfg.auto_ack = read_bool(data, "auto_ack", "autoAck")
     cfg.max_messages = read_int(data, "max_messages", "maxMessages")
 
