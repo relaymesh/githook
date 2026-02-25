@@ -2,6 +2,7 @@ package provider_instances
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -234,11 +235,135 @@ func (s *Store) DeleteProviderInstanceForTenant(ctx context.Context, provider, k
 }
 
 func (s *Store) migrate() error {
-	return s.tableDB().AutoMigrate(&row{})
+	if err := s.tableDB().AutoMigrate(&row{}); err != nil {
+		return err
+	}
+	if err := s.backfillIDs(); err != nil {
+		return err
+	}
+	if err := s.ensurePrimaryKey(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *Store) tableDB() *gorm.DB {
 	return s.db.Table(s.table)
+}
+
+func (s *Store) backfillIDs() error {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	var data []row
+	if err := s.tableDB().Where("id = '' OR id IS NULL").Find(&data).Error; err != nil {
+		return err
+	}
+	for _, item := range data {
+		record := fromRow(item)
+		if strings.TrimSpace(record.ID) == "" {
+			record.ID = storage.ProviderInstanceRecordID(record)
+		}
+		if strings.TrimSpace(record.ID) == "" {
+			continue
+		}
+		err := s.tableDB().
+			Where("tenant_id = ? AND provider = ? AND instance_key = ?", item.TenantID, item.Provider, item.Key).
+			Update("id", record.ID).Error
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Store) ensurePrimaryKey() error {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	dialect := s.db.Dialector.Name()
+	hasPK, err := hasPrimaryKey(s.db, s.table, dialect)
+	if err != nil {
+		return err
+	}
+	if hasPK {
+		return nil
+	}
+	if dialect == "sqlite" {
+		return nil
+	}
+	table := quoteQualifiedIdent(dialect, s.table)
+	return s.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD PRIMARY KEY (id)", table)).Error
+}
+
+func hasPrimaryKey(db *gorm.DB, table, dialect string) (bool, error) {
+	switch dialect {
+	case "postgres":
+		var one int
+		err := db.Raw(
+			`SELECT 1 FROM information_schema.table_constraints
+WHERE table_schema = current_schema()
+  AND table_name = ?
+  AND constraint_type = 'PRIMARY KEY'
+LIMIT 1`,
+			table,
+		).Row().Scan(&one)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return false, err
+		}
+		return one == 1, nil
+	case "mysql":
+		var one int
+		err := db.Raw(
+			`SELECT 1 FROM information_schema.table_constraints
+WHERE table_schema = database()
+  AND table_name = ?
+  AND constraint_type = 'PRIMARY KEY'
+LIMIT 1`,
+			table,
+		).Row().Scan(&one)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return false, err
+		}
+		return one == 1, nil
+	case "sqlite":
+		type columnInfo struct {
+			CID     int
+			Name    string
+			Type    string
+			NotNull int
+			Default *string
+			Primary int
+		}
+		var cols []columnInfo
+		if err := db.Raw(fmt.Sprintf("PRAGMA table_info(%s)", quoteQualifiedIdent(dialect, table))).Scan(&cols).Error; err != nil {
+			return false, err
+		}
+		for _, col := range cols {
+			if col.Primary == 1 {
+				return true, nil
+			}
+		}
+		return false, nil
+	default:
+		return false, nil
+	}
+}
+
+func quoteQualifiedIdent(dialect, value string) string {
+	quote := `"`
+	if dialect == "mysql" {
+		quote = "`"
+	}
+	parts := strings.Split(value, ".")
+	for i, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		parts[i] = quote + part + quote
+	}
+	return strings.Join(parts, ".")
 }
 
 func normalizeDriver(value string) string {

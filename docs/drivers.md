@@ -1,11 +1,11 @@
 # Driver Configuration
 
-githook uses [Relaybus](https://github.com/relaymesh/relaybus) for publishing and subscribing. Drivers are configured via the CLI and stored on the server per tenant.
+Drivers describe how githook publishes events and how workers subscribe to them.
+Driver configs are stored on the server per tenant and managed via the CLI.
 
-Driver config files contain only the driver-specific fields (no `relaybus:` wrapper). The CLI expects
-YAML and converts it to the JSON payload required by the API.
+Driver config files contain only driver fields (no `relaybus:` wrapper). The CLI reads YAML and sends JSON to the API.
 
-## Supported Drivers
+## Supported drivers
 
 - `amqp`
 - `nats`
@@ -26,13 +26,14 @@ Worker-only fields:
 - `max_messages`
 
 Example:
+
 ```yaml
 url: amqp://guest:guest@localhost:5672/
 exchange: githook.events
 routing_key_template: "{topic}"
-queue: githook.worker
-auto_ack: false
 ```
+
+Ensure the exchange exists in your broker.
 
 ## NATS
 
@@ -42,6 +43,7 @@ Fields:
 - `max_messages` (worker only)
 
 Example:
+
 ```yaml
 url: nats://localhost:4222
 subject_prefix: githook
@@ -56,6 +58,7 @@ Fields:
 - `max_messages` (worker only)
 
 Example:
+
 ```yaml
 brokers:
   - localhost:29092
@@ -63,21 +66,12 @@ topic_prefix: githook.
 group_id: githook-worker
 ```
 
-## CLI Usage
+## CLI usage
 
-```sh
-githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml
-githook --endpoint http://localhost:8080 drivers set --name nats --config-file nats.yaml
-githook --endpoint http://localhost:8080 drivers set --name kafka --config-file kafka.yaml
-```
-
-## Publish Retry/DLQ
-
-Server-wide publish retry settings live in `config.yaml`:
-```yaml
-relaybus:
-  publish_retry:
-    attempts: 3
-    delay_ms: 500
-  dlq_driver: amqp
+```bash
+githook --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml
+githook --endpoint http://localhost:8080 drivers update --name amqp --config-file amqp.yaml
+githook --endpoint http://localhost:8080 drivers list
+githook --endpoint http://localhost:8080 drivers get --name amqp
+githook --endpoint http://localhost:8080 drivers delete --name amqp
 ```

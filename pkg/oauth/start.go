@@ -116,11 +116,6 @@ func (h *StartHandler) resolveProviderConfig(ctx context.Context, provider, inst
 	return fallback, ""
 }
 
-func providerConfigFromAuth(cfg auth.Config, provider string) auth.ProviderConfig {
-	config, _ := cfg.ProviderConfigFor(provider)
-	return config
-}
-
 func githubInstallURL(cfg auth.ProviderConfig, state string) (string, error) {
 	appSlug := strings.TrimSpace(cfg.App.AppSlug)
 	if appSlug == "" {

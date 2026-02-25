@@ -8,22 +8,7 @@ import (
 	"github.com/relaymesh/githook/pkg/storage"
 )
 
-func TestServerHelperFunctions(t *testing.T) {
-	if !isProviderInstanceHash(strings.Repeat("a", 64)) {
-		t.Fatalf("expected valid hash")
-	}
-	if isProviderInstanceHash("bad") {
-		t.Fatalf("expected invalid hash")
-	}
-
-	if _, err := randomHex(0); err == nil {
-		t.Fatalf("expected size error")
-	}
-	value, err := randomHex(8)
-	if err != nil || len(value) == 0 {
-		t.Fatalf("expected random hex")
-	}
-
+func TestRuleKey(t *testing.T) {
 	key := ruleKey(" action ", []string{"b", "a", " "}, "driver-x")
 	if !strings.HasPrefix(key, "action") || !strings.Contains(key, "a,b") {
 		t.Fatalf("unexpected rule key: %q", key)

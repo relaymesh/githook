@@ -1,45 +1,61 @@
 # API Authentication (OAuth2/OIDC)
 
-Githooks can protect all Connect RPC endpoints with OAuth2/OIDC JWT validation.
-Webhooks and SCM install callbacks remain public.
+Githook validates OAuth2/OIDC JWTs on all Connect RPC endpoints. Webhooks and OAuth callbacks remain public.
 
-## Minimal server config
+## Server configuration
+
+Minimal server config:
 
 ```yaml
 auth:
   oauth2:
     enabled: true
-    issuer: https://<your-okta-domain>/oauth2/default
+    issuer: https://<your-idp>/oauth2/default
     audience: api://githook
 ```
 
-The server discovers JWKS/authorize/token endpoints from the issuer.
+- `issuer` is required for auto-discovery.
+- `audience` is required unless your IdP omits `aud` checks.
+- If you prefer manual endpoints, set `jwks_url`, `authorize_url`, and `token_url`.
 
+## CLI behavior
 
-## CLI (machine)
+The CLI reads `auth.oauth2` from `--config` (default: `config.yaml`) and applies auth automatically:
+
+1) If `GITHOOK_API_KEY` is set, the CLI uses `x-api-key` and skips OAuth2.
+2) If OAuth2 is enabled, the CLI uses a cached access token if available.
+3) If no cached token exists:
+   - `mode: client_credentials` or `mode: auto` → the CLI requests a token and caches it.
+   - `mode: auth_code` → run `githook auth` to login and cache a token.
+4) The CLI sends `Authorization: Bearer <token>` for all RPC calls.
+
+The token cache lives under your OS cache directory, for example:
+`~/.cache/github.com/relaymesh/githook/token.json`.
+
+## CLI config examples
+
+Client credentials:
 
 ```yaml
+endpoint: http://localhost:8080
 auth:
   oauth2:
     enabled: true
-    issuer: https://<your-okta-domain>/oauth2/default
+    issuer: https://<your-idp>/oauth2/default
     audience: api://githook
     mode: client_credentials
     client_id: ${OAUTH_CLIENT_ID}
     client_secret: ${OAUTH_CLIENT_SECRET}
 ```
 
-The CLI uses client credentials automatically and injects `Authorization: Bearer <token>`.
-
-## Human login (browser)
+Auth code (browser login):
 
 ```yaml
-endpoint: https://app.example.com
-
+endpoint: http://localhost:8080
 auth:
   oauth2:
     enabled: true
-    issuer: https://<your-okta-domain>/oauth2/default
+    issuer: https://<your-idp>/oauth2/default
     audience: api://githook
     mode: auth_code
     client_id: ${OAUTH_CLIENT_ID}
@@ -47,118 +63,23 @@ auth:
     # redirect_url defaults to https://app.example.com/auth/callback
 ```
 
-Endpoints:
-- `GET /auth/login` (server-hosted login redirect)
-- `GET /auth/callback` (server-hosted callback for auth_code)
+Run:
 
-CLI helper:
-- `githook auth` (single command for login, token fetch, and cache)
-  - uses a loopback callback (`http://127.0.0.1:<port>/auth/callback`) and prints a browser URL for auth_code
-  - ensure your IdP allows the loopback redirect URI (register a localhost callback)
-  - opens the browser automatically when possible
+```bash
+githook auth
+```
+
+This opens a browser, completes login via a local loopback callback, and stores the token for later CLI calls.
+
+## Server login endpoints
+
+When OAuth2 is enabled, the server exposes:
+
+- `GET /auth/login` (login redirect)
+- `GET /auth/callback` (auth_code callback)
 
 ## Optional fields
 
-- `required_scopes`: scopes enforced by the server (space-separated in token).
-- `jwks_url`, `authorize_url`, `token_url`: auto-discovered if omitted.
-- `scopes`: defaults to `openid profile email`.
-
-## Okta (client_credentials + auth_code)
-
-1) Create an Authorization Server:
-- Security → API → Authorization Servers → Add
-- Note the issuer, e.g. `https://<your-okta-domain>/oauth2/default`
-
-2) Create scopes (optional):
-- Authorization Server → Scopes → Add `githook.rpc`
-
-3) Create apps:
-- API Service app for machine use (client credentials)
-- Web app for human login (auth code + PKCE)
-
-4) Enable client_credentials and auth_code in policy rules.
-
-Minimal config:
-
-```yaml
-auth:
-  oauth2:
-    enabled: true
-    issuer: https://<your-okta-domain>/oauth2/default
-    audience: api://githook
-    required_roles: ["admin"] # optional
-    required_groups: ["platform"] # optional
-    required_scopes: ["githook.rpc"]
-
-    mode: auto
-    client_id: ${OKTA_CLIENT_ID}
-    client_secret: ${OKTA_CLIENT_SECRET}
-    scopes: ["openid","profile","email"]
-```
-
-## Azure AD (client_credentials + auth_code)
-
-1) Register an app:
-- Azure Portal → Entra ID → App registrations → New registration
-- Note Tenant ID and Application (client) ID
-
-2) Create a client secret:
-- Certificates & secrets → New client secret
-
-3) Expose an API (audience):
-- Expose an API → Set Application ID URI (e.g. `api://githook`)
-
-4) Add permissions/scopes if needed.
-
-Issuer/JWKS:
-- Issuer: `https://login.microsoftonline.com/<tenant-id>/v2.0`
-- JWKS: `https://login.microsoftonline.com/<tenant-id>/discovery/v2.0/keys`
-
-Minimal config:
-
-```yaml
-auth:
-  oauth2:
-    enabled: true
-    issuer: https://login.microsoftonline.com/<tenant-id>/v2.0
-    audience: api://githook
-    mode: auto
-    client_id: ${AZURE_CLIENT_ID}
-    client_secret: ${AZURE_CLIENT_SECRET}
-```
-
-## Google (service account / JWT access tokens)
-
-Google doesn’t support standard client_credentials for most APIs. Use a service account:
-
-1) Create a service account:
-- Google Cloud Console → IAM & Admin → Service Accounts
-- Create key (JSON)
-
-2) Generate access tokens using the service account JWT flow.
-
-Issuer/JWKS:
-- Issuer: `https://accounts.google.com`
-- JWKS: `https://www.googleapis.com/oauth2/v3/certs`
-
-Minimal config (JWT verification on server):
-
-```yaml
-auth:
-  oauth2:
-    enabled: true
-    issuer: https://accounts.google.com
-    audience: <your-google-client-id>
-```
-
-For machine token retrieval, use a service account exchange in your client code (outside githook).
-
-## Multi-instance deployments
-
-You can run separate servers for GitHub, GitLab, and Bitbucket against the same database and auth config.
-Each instance should create only the provider instances it needs (via `githook providers set`) and
-disable or delete any unused providers. Use `--enabled=false` on `providers set` to keep a provider
-instance inactive.
-
-When multiple providers are enabled, list APIs return results across those providers. When a provider
-instance is disabled, RPC calls for that provider return a `provider not enabled` error.
+- `required_scopes`: scopes enforced by the server.
+- `required_groups`, `required_roles`: claims enforced by the server.
+- `scopes`: defaults to `openid profile email` for auth_code.

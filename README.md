@@ -1,942 +1,161 @@
 # githook ⚡
 
-> **⚠️ Warning:** This project is for research and development only and is **not production-ready**. Do not deploy it in production environments.
+> **⚠️ Warning:** Research and development only. Not production-ready.
 
-## Table of Contents
+githook is a webhook router for GitHub/GitLab/Bitbucket. It receives events, evaluates rules, and publishes matching events to AMQP/NATS/Kafka. Workers consume events and can fetch SCM clients (GitHub/GitLab/Bitbucket) from the server.
 
-1. [About](#about)
-2. [How It Works](#how-it-works)
-3. [Features](#features)
-4. [Why githook](#why-githook)
-5. [Installing the CLI](#installing-the-cli)
-6. [Quick Start Guide (GitHub Apps)](#quick-start-guide-github-apps)
-7. [OAuth Onboarding Flow](#oauth-onboarding-flow)
-8. [SCM-Specific Documentation](#scm-specific-documentation)
-9. [Terminology](#terminology)
-10. [Storage](#storage)
-11. [Webhook URLs](#webhook-urls)
-12. [Drivers](#drivers)
-13. [Rules](#rules)
-14. [SDK](#sdk)
-15. [Examples](#examples)
-16. [Documentation](#documentation)
+## What it includes ✨
 
----
+- Unified webhook endpoints for GitHub, GitLab, Bitbucket
+- Rule-based routing (`when` + `emit`) with stored rules
+- Driver configs stored per tenant (AMQP/NATS/Kafka)
+- Worker SDKs (Go/TypeScript/Python) using rule IDs
+- Optional OAuth2-authenticated API
+- Event log storage with headers/body + body hash
 
-## About
-
-githook is an event automation layer for GitHub, GitLab, and Bitbucket. It receives webhooks from these providers, evaluates configurable rules against the payload, and publishes matching events to your message broker using [Relaybus](https://github.com/relaymesh/relaybus).
-
-**What problem does it solve?**
-
-Managing webhooks across multiple Git providers (GitHub, GitLab, Bitbucket) typically requires:
-- Writing provider-specific webhook handlers for each platform
-- Manually normalizing different payload formats
-- Hardcoding event routing logic in your application
-- Managing authentication for each provider's API separately
-
-githook solves this by providing:
-- A unified webhook receiver for all three providers
-- A rule-based event routing system using JSONPath expressions
-- Automatic payload normalization
-- Provider-aware SCM clients injected into your workers (Go/TypeScript/Python)
-- Multi-broker support (AMQP, NATS, Kafka)
-
-**Architecture Overview:**
-
-githook consists of two main components:
-1. **Server**: Receives webhooks, validates signatures, evaluates rules, and publishes events to message brokers
-2. **Worker SDKs**: Consume events from brokers and optionally resolve SCM clients via the server (Go/TypeScript/Python)
-
----
-
-## How It Works
-
-```
-┌─────────────┐      ┌──────────────┐      ┌─────────────┐      ┌─────────────┐
-│   GitHub    │      │              │      │   Message   │      │   Workers   │
-│   GitLab    │─────▶│  githook    │─────▶│   Broker    │─────▶│  (Your App) │
-│  Bitbucket  │      │   Server     │      │   (AMQP)    │      │             │
-└─────────────┘      └──────────────┘      └─────────────┘      └─────────────┘
-   Webhooks           Rules Engine          Relaybus            Business Logic
-                      + Publishing                              + SCM Clients
-```
-
-### Workflow
-
-1. **Webhook Received**: A webhook arrives from GitHub, GitLab, or Bitbucket at the configured endpoint (e.g., `/webhooks/github`)
-
-2. **Signature Validation**: The server validates the webhook signature using the provider's secret to ensure authenticity
-
-3. **Payload Normalization**: The raw JSON payload is parsed and normalized into a common structure
-
-4. **Rule Evaluation**: Each configured rule is evaluated against the normalized payload using JSONPath expressions and boolean logic
-
-5. **Event Publishing**: If a rule matches, the event is published to the configured message broker(s) with the specified topic name
-
-6. **Worker Consumption**: Workers subscribe to topics and execute business logic, optionally using server-resolved SCM clients
-
-7. **API Interactions**: Workers can interact with the provider's API using the injected client, which is pre-authenticated using GitHub App installation tokens or OAuth tokens
-
-### Component Interaction
-
-- **CLI**: Manage provider instances, list installations, configure the system
-- **Server**: HTTP server that receives webhooks and publishes to brokers
-- **Storage**: PostgreSQL database storing OAuth tokens and installation metadata
-- **Message Brokers**: AMQP, NATS, Kafka
-- **Worker SDKs**: Go + TypeScript + Python workers for consuming events with optional client injection
-
----
-
-## Features
-
-- **Multi-Provider Support**: GitHub, GitLab, Bitbucket webhooks unified
-- **Rule Engine**: JSONPath + boolean expressions for event routing
-- **Multi-Broker Publishing**: AMQP, NATS, Kafka
-- **API-First Architecture**: Connect RPC (gRPC) API for all operations
-- **Multi-Tenant Ready**: Provider instance management with OAuth onboarding
-- **Worker SDKs**: Go, TypeScript, Python (aligned APIs + optional SCM injection)
-- **SCM Client Injection**: Pre-authenticated GitHub, GitLab, Bitbucket clients
-- **Event Normalization**: Common payload structure across providers
-- **Request Tracing**: End-to-end tracing with `X-Request-ID`
-
----
-
-## Why githook
-
-**Stop reinventing the wheel.** Every company builds the same webhook infrastructure over and over. We built it once, so you can reuse it.
-
-- **Unified Webhooks**: One platform for GitHub, GitLab, and Bitbucket
-- **Declarative Routing**: JSONPath rules instead of hardcoded logic
-- **API-First Design**: Connect RPC (gRPC) API for programmatic control
-- **Multi-Tenant**: Support multiple organizations with isolated configurations
-- **Broker Agnostic**: AMQP, NATS, Kafka
-- **Auto-Authenticated (SDKs)**: Workers can fetch pre-configured SCM clients from the server
-- **Event-Driven**: Decouple webhook processing from business logic
-
----
-
-## Installing the CLI
-
-### Homebrew (macOS/Linux)
+## Install 🧰
 
 ```bash
 brew install relaymesh/homebrew-formula/githook
 ```
 
-### Install Script (Linux/macOS)
+Or from source:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/relaymesh/githook/refs/heads/main/install.sh | sh
-```
-
-### From Source
-
-```bash
-git clone https://github.com/relaymesh/githook.git
-cd githook
 go build -o githook ./main.go
 ```
 
-### Verify Installation
+## Quick start (local) 🚀
+
+1) Start the server:
 
 ```bash
-githook --version
+githook serve --config config.yaml
 ```
 
----
-
-## Quick Start Guide (GitHub Apps)
-
-Get githook running locally with GitHub Apps in 4 steps:
-
-### Prerequisites
-
-- **Go 1.24+**
-- **Docker + Docker Compose**
-- **PostgreSQL** (started via Docker Compose)
-- **RabbitMQ** (started via Docker Compose)
-- **ngrok** (for local development - [download here](https://ngrok.com/download))
-- **GitHub App** (create one at https://github.com/settings/apps)
-
-### Step 1: Start Dependencies
-
-```bash
-docker compose up -d
-```
-
-This starts PostgreSQL and RabbitMQ.
-
-### Step 2: Expose Local Server with ngrok
-
-For local development, use ngrok to expose your local server to the internet:
-
-```bash
-ngrok http 8080
-```
-
-Copy the HTTPS forwarding URL (e.g., `https://abc123.ngrok-free.app`) - you'll need this for the next steps.
-
-**Note:** Keep this ngrok terminal running throughout your testing session.
-
-### Step 3: Configure GitHub App
-
-Create a GitHub App with these settings:
-- **Webhook URL**: `https://<your-ngrok-url>/webhooks/github` (use the URL from ngrok)
-- **Webhook Secret**: `devsecret` (for local testing)
-- **Permissions**: Repository metadata (read), Pull requests (read & write)
-- **Subscribe to events**: Pull request, Push, Check suite
-
-Download the private key and note your App ID.
-
-### Step 4: Configure githook
-
-Edit `config.yaml` and replace `<your-ngrok-url>` with your actual ngrok URL:
+Minimal `config.yaml`:
 
 ```yaml
 server:
   port: 8080
-endpoint: https://<your-ngrok-url>
+
+endpoint: http://localhost:8080
 
 storage:
   driver: postgres
   dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
   dialect: postgres
   auto_migrate: true
-
-auth:
-  oauth2:
-    enabled: false
-
-redirect_base_url: https://app.example.com/success
-
 ```
 
-> The per-provider configuration (app IDs, webhook secrets, driver settings) is no longer stored in `config.yaml`. Use the `githook` CLI to bootstrap providers/drivers/rules before the worker starts.
-
-#### Bootstrap with the CLI
-
-1. **Create a driver** (e.g., AMQP) so rules can publish to your broker:
+2) Register a provider instance (YAML):
 
 ```bash
-githook --endpoint http://localhost:8080 drivers set \
-  --tenant-id default \
-  --name amqp \
-  --config-file drivers/amqp.yaml
-```
-
-`drivers/amqp.yaml`:
-
-```yaml
-url: amqp://guest:guest@localhost:5672/
-mode: durable_queue
-```
-
-2. **Create a provider instance** with OAuth/webhook metadata:
-
-```bash
-githook --endpoint http://localhost:8080 providers set \
-  --tenant-id default \
+githook --endpoint http://localhost:8080 providers create \
   --provider github \
-  --config-file providers/github.yaml
+  --config-file github.yaml
 ```
 
-`providers/github.yaml` can include the `redirect_base_url` field:
+Example `github.yaml`:
 
 ```yaml
-redirect_base_url: https://app.example.com/oauth/complete
 app:
   app_id: 12345
   private_key_path: ./github.pem
+oauth:
+  client_id: your-client-id
+  client_secret: your-client-secret
 webhook:
   secret: your-webhook-secret
-oauth:
-  client_id: "..."
-  client_secret: "..."
 ```
 
-After OAuth completes, users are redirected to this URL with query parameters containing the installation details. If not specified, the global `redirect_base_url` from server config is used.
+3) Create a driver config (YAML):
 
-3. **Create a rule** that emits a single topic and points at the driver:
+```bash
+githook --endpoint http://localhost:8080 drivers create \
+  --name amqp \
+  --config-file amqp.yaml
+```
+
+Example `amqp.yaml`:
+
+```yaml
+url: amqp://guest:guest@localhost:5672/
+exchange: githook.events
+routing_key_template: "{topic}"
+```
+
+Make sure the exchange exists in your broker.
+
+4) Create a rule:
 
 ```bash
 githook --endpoint http://localhost:8080 rules create \
-  --tenant-id default \
-  --driver-id default:amqp \
   --when 'action == "opened"' \
-  --emit github.main
-```
-
-4. **List resources** to confirm:
-
-```bash
-githook --endpoint http://localhost:8080 providers list
-githook --endpoint http://localhost:8080 drivers list
-githook --endpoint http://localhost:8080 rules list
-```
-
-Each rule must emit exactly one topic, which the worker will subscribe to using the rule’s `emit` value and resolved driver ID.
-
-
-### Step 5: Start the Server
-
-```bash
-go run ./main.go serve --config config.yaml
-```
-
-The server should start on `http://localhost:8080` and be accessible via your ngrok URL.
-
-### Step 6: Start a Worker
-
-In another terminal (replace `RULE_ID` with a rule you created through the API):
-
-```bash
-go run ./example/github/worker/main.go --rule-id RULE_ID \
-  --endpoint https://<your-ngrok-url>
-```
-
-### Step 7: Install the GitHub App
-
-Get the provider instance hash:
-```bash
-githook --endpoint http://localhost:8080 providers list --provider github
-# Copy the instance hash (e.g., a1b2c3d4)
-```
-
-Visit the OAuth installation URL:
-```
-http://localhost:8080/?provider=github&instance=<instance-hash>
-```
-
-Follow the GitHub authorization flow to complete installation. See [OAuth Onboarding Flow](#oauth-onboarding-flow) for detailed steps.
-
-### Step 8: Trigger Events
-
-Now test the integration by performing actions on an installed repository:
-
-**Create a Pull Request:**
-1. Open a repository where the GitHub App is installed
-2. Create a new branch and make some changes
-3. Open a pull request
-4. The worker should log: `PR opened: github/pull_request`
-
-**Push a Commit:**
-1. Make a commit and push to the repository
-2. The worker should log: `github.commit.created: repo=owner/repo commit=abc123...`
-
-**Troubleshooting:**
-- If webhooks aren't being received, check that ngrok is still running
-- Verify your `endpoint` in `config.yaml` matches your ngrok URL
-- Check GitHub App webhook delivery logs in GitHub App settings → Advanced → Recent Deliveries
-- Ensure OAuth credentials (`client_id` and `client_secret`) are configured in `config.yaml`
-
----
-
-## OAuth Onboarding Flow
-
-OAuth onboarding allows users to connect their GitLab or Bitbucket accounts (or GitHub with user authorization) to githook.
-
-### When to Use
-
-- **GitLab**: Required for all GitLab integrations
-- **Bitbucket**: Required for all Bitbucket integrations
-- **GitHub**: Optional (only if "Request user authorization" is enabled in GitHub App)
-
-### Configuration
-
-Configure OAuth credentials and redirect URL:
-
-```yaml
-endpoint: https://your-domain.com  # Your public URL
-
-redirect_base_url: https://app.example.com/success  # Global fallback for post-OAuth redirect
-```
-
-You can also set a per-provider-instance redirect URL in the config file:
-
-```json
-{
-  "redirect_base_url": "https://app.example.com/oauth/github/complete",
-  "app": { ... },
-  "oauth": { ... }
-}
-```
-
-Per-instance redirect URLs take precedence over the global `redirect_base_url` setting.
-
-**Callback URLs** (configure in provider settings):
-- **GitHub**: `https://your-domain.com/auth/github/callback`
-- **GitLab**: `https://your-domain.com/auth/gitlab/callback`
-- **Bitbucket**: `https://your-domain.com/auth/bitbucket/callback`
-
-### How It Works
-
-**Step 1: Get Instance Hash**
-
-```bash
-githook --endpoint https://your-domain.com providers list --provider github
-# Output: Instance: a1b2c3d4
-```
-
-**Step 2: Redirect User to OAuth URL**
-
-```
-https://your-domain.com/?provider=github&instance=a1b2c3d4
-```
-
-**Step 3: Complete Authorization**
-
-1. User is redirected to provider (GitHub/GitLab/Bitbucket)
-2. User authorizes the application
-3. Provider redirects back to githook with authorization code
-4. githook exchanges code for access token
-5. Token stored in PostgreSQL
-6. User redirected to `redirect_base_url`
-
-**Step 4: Done!**
-
-- ✅ Installation created in database
-- ✅ Webhooks will be processed
-- ✅ Workers get authenticated API clients
-- ✅ User redirected to `redirect_base_url` (if configured)
-
-### Flow Diagram
-
-```
-User → githook → Provider OAuth → Callback → Store Token → Redirect to App
-```
-
-See [docs/oauth-callbacks.md](docs/oauth-callbacks.md) for detailed OAuth documentation.
-
----
-
-## SCM-Specific Documentation
-
-Detailed setup guides for each supported Git provider:
-
-- **[GitHub Setup Guide](docs/getting-started-github.md)** - GitHub Apps, OAuth, webhook configuration
-- **[GitLab Setup Guide](docs/getting-started-gitlab.md)** - OAuth application, webhook setup, namespaces
-- **[Bitbucket Setup Guide](docs/getting-started-bitbucket.md)** - OAuth consumer, webhook configuration
-
-Each guide includes:
-- Provider-specific prerequisites
-- Step-by-step configuration
-- Webhook payload examples
-- Testing instructions
-
----
-
-## Terminology
-
-### Providers
-Git platforms: `github`, `gitlab`, or `bitbucket`.
-
-### Provider Instances
-Specific configurations of a provider (e.g., GitHub.com vs GitHub Enterprise). Each instance has a unique hash (e.g., `a1b2c3d4`) and separate credentials.
-
-### Installation
-The relationship between a provider instance, an account (org/user), and authentication credentials.
-
-### Account ID
-Unique identifier for the organization or user:
-- **GitHub**: Login/username (e.g., `octocat`)
-- **GitLab**: Group/user ID
-- **Bitbucket**: Workspace slug
-
-### Namespaces
-Organizational units within a provider:
-- **GitHub**: Organizations and user accounts
-- **GitLab**: Groups and subgroups (hierarchical)
-- **Bitbucket**: Workspaces
-
-Webhooks can be configured at namespace level (affects all repos) or individual repository level.
-
-### Drivers
-Message brokers: `amqp`, `nats`, `kafka`.
-
-### Rules
-JSONPath conditions that route events to topics. Has `when` (condition), `emit` (topic), and optional `drivers`.
-
-### Topics
-Message broker queues/subjects that events are published to. Workers subscribe to topics.
-
----
-
-## Storage
-
-githook uses PostgreSQL to persist OAuth tokens, GitHub App installation metadata, and provider instance configurations.
-
-```yaml
-storage:
-  driver: postgres
-  dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
-  dialect: postgres
-  auto_migrate: true
-```
-
-See [docs/storage.md](docs/storage.md) for advanced storage configuration.
-
----
-
-## Webhook URLs
-
-Webhook URL schema: `<base-url>/webhooks/<provider>`
-
-**Default webhook paths:**
-- **GitHub:** `/webhooks/github`
-- **GitLab:** `/webhooks/gitlab`
-- **Bitbucket:** `/webhooks/bitbucket`
-
----
-
-## Drivers
-
-Drivers are the message broker backends where events are published. Manage them through the CLI (stored on the server, per tenant); you do not configure drivers in `config.yaml`.
-
-**Supported drivers:** `amqp`, `nats`, `kafka`.
-
-**CLI examples:**
-```sh
-githook --endpoint http://localhost:8080 drivers list
-githook --endpoint http://localhost:8080 drivers get --name amqp
-githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml
-githook --endpoint http://localhost:8080 drivers delete --name amqp
-```
-
-**Multiple drivers example:**
-```sh
-githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml
-githook --endpoint http://localhost:8080 drivers set --name nats --config-file nats.yaml
-githook --endpoint http://localhost:8080 drivers set --name kafka --config-file kafka.yaml
-```
-
-To publish to multiple brokers, create multiple drivers via the CLI. Each rule targets one driver via `driver_id`; to fan-out across drivers, create multiple rules with the same `when`/`emit` and different `driver_id` values.
-
-See [docs/drivers.md](docs/drivers.md) for driver config file formats.
-
----
-
-## Rules
-
-Rules are stored on the server and managed via the CLI/API (not `config.yaml`). They define which webhook events to publish and where to send them.
-
-**CLI example:**
-```sh
-githook --endpoint http://localhost:8080 rules create \
-  --when 'action == "opened"' \
-  --emit pr.opened.ready \
+  --emit pr.opened \
   --driver-id <driver-id>
 ```
 
-### Rule Structure
+5) Point your provider webhook to:
 
-```yaml
-when: <boolean-expression>
-emit: <topic-name>            # or a list of topics
-driver_id: <driver-id>
 ```
-Use `githook drivers list` to find the driver record ID.
-
-### Rule Evaluation
-
-1. A webhook is received and validated
-2. The payload is normalized
-3. Each rule's `when` condition is evaluated against the normalized payload
-4. If the condition is `true`, the event is published to the `emit` topic
-5. Multiple rules can match the same event (multi-match)
-
-### JSONPath Expressions
-
-The `when` field uses JSONPath with boolean operators:
-
-**Simple field access:**
-```yaml
-when: action == "opened"
+http://<server-host>/webhooks/github
+http://<server-host>/webhooks/gitlab
+http://<server-host>/webhooks/bitbucket
 ```
 
-**Nested fields:**
-```yaml
-when: pull_request.draft == false
-```
+## CLI essentials 🧭
 
-**Full JSONPath syntax:**
-```yaml
-when: $.pull_request.head.ref == "main"
-```
+- Providers: `providers list|get|create|update|delete`
+- Drivers: `drivers list|get|create|update|delete`
+- Rules: `rules list|get|create|update|delete|match`
+- Namespaces: `namespaces list|update` and `namespaces webhook get|update`
+- Installations: `installations list|get`
 
-**Boolean operators:**
-```yaml
-when: action == "opened" && pull_request.draft == false
-when: action == "closed" || action == "merged"
-when: pull_request.draft != true
-```
+## Worker SDKs (rule id) 🛠️
 
-**Helper functions:**
-```yaml
-# Check if string contains substring
-when: contains(pull_request.title, "[WIP]")
-
-# Pattern matching with wildcards
-when: like(pull_request.head.ref, "feature/%")
-```
-
-### Multi-Topic Publishing
-
-Publish the same event to multiple topics:
-
-```yaml
-when: action == "closed" && pull_request.merged == true
-emit: [pr.merged, audit.pr.merged, notifications.pr.merged]
-driver_id: <driver-id>
-```
-
-### Strict Mode
-
-By default, rules with missing fields won't match. Strict mode is a server setting; use `githook rules match --strict` to test locally.
-
-```yaml
-when: nonexistent.field == "value"
-emit: will.never.match
-driver_id: <driver-id>
-```
-
-### Example Rules
-
-**Pull request events:**
-```yaml
-# Non-draft PR opened
-when: action == "opened" && pull_request.draft == false
-emit: pr.opened.ready
-driver_id: <driver-id>
-```
-
-**Commit/push events:**
-```yaml
-# Single commit pushed
-when: head_commit.id != "" && commits[0].id != "" && commits[1] == null
-emit: github.commit.created
-driver_id: <driver-id>
-```
-
-**Tag events:**
-```yaml
-when: ref_type == "tag"
-emit: github.tag.created
-driver_id: <driver-id>
-```
-
-**Branch-specific rules:**
-```yaml
-when: pull_request.base.ref == "main"
-emit: pr.targeting.main
-driver_id: <driver-id>
-```
-
-See [docs/rules.md](docs/rules.md) for advanced rule patterns.
-
----
-
-## SDK
-
-The githook Worker SDKs provide Go, TypeScript, and Python libraries for consuming events from message brokers. Each SDK mirrors the same worker API (rules, drivers, middleware, retries) and supports optional server-resolved SCM client injection.
-
-### Go SDK
-
-### Installation
-
-```bash
-go get githook/sdk/go/worker
-```
-
-### Basic Usage
+Go:
 
 ```go
-package main
+wk := worker.New(worker.WithEndpoint("http://localhost:8080"))
 
-import (
-    "context"
-    "log"
-    "os"
-
-    "githook/sdk/go/worker"
-)
-
-func main() {
-    wk := worker.New(
-        worker.WithEndpoint(os.Getenv("GITHOOK_ENDPOINT")),
-        worker.WithAPIKey(os.Getenv("GITHOOK_API_KEY")),
-    )
-
-    wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
-        log.Printf("event topic=%s provider=%s type=%s", evt.Topic, evt.Provider, evt.Type)
-        return nil
-    })
-
-    if err := wk.Run(context.Background()); err != nil {
-        log.Fatal(err)
-    }
-}
-```
-
-### Event Structure
-
-```go
-type Event struct {
-    Topic      string                 // Topic name (e.g., "pr.opened.ready")
-    Provider   string                 // Provider name ("github", "gitlab", "bitbucket")
-    Type       string                 // Event type (e.g., "pull_request")
-    Payload    []byte                 // Raw JSON payload from webhook
-    Normalized map[string]interface{} // Normalized payload
-    Metadata   map[string]string      // Additional metadata (driver, request ID)
-    Client     interface{}            // Provider API client (if configured)
-}
-```
-
-### Using Provider Clients
-
-If you configure a client provider, the SDK can attach authenticated SCM clients per event:
-
-**GitHub:**
-```go
-wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
-    if evt.Provider != "github" {
-        return nil
-    }
-
-    if evt.Client != nil {
-        ghClient := evt.Client.(*github.Client)
-
-        // Use the GitHub SDK
-        repo, _, err := ghClient.Repositories.Get(ctx, "owner", "repo")
-        if err != nil {
-            return err
-        }
-
-        log.Printf("Repository: %s, Stars: %d", repo.GetName(), repo.GetStargazersCount())
-    }
-
-    return nil
+wk.HandleRule("<rule-id>", func(ctx context.Context, evt *worker.Event) error {
+	if evt == nil {
+		return nil
+	}
+	log.Printf("topic=%s provider=%s type=%s", evt.Topic, evt.Provider, evt.Type)
+	return nil
 })
+
+_ = wk.Run(ctx)
 ```
 
-**GitLab:**
-```go
-wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
-    if evt.Client != nil {
-        glClient := evt.Client.(*gitlab.Client)
-        // Use GitLab SDK
-    }
-    return nil
-})
-```
-
-**Bitbucket:**
-```go
-wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
-    if evt.Client != nil {
-        bbClient := evt.Client.(*bitbucket.Client)
-        // Use Bitbucket SDK
-    }
-    return nil
-})
-```
-
-### Client Provider (optional)
-
-Attach your own client instances to events (for example, a thin client that calls your server-side API):
-
-```go
-wk := worker.New(
-    worker.WithSubscriber(sub),
-    worker.WithClientProvider(worker.ClientProviderFunc(func(ctx context.Context, evt *worker.Event) (interface{}, error) {
-        return newSCMProxyClient(os.Getenv("SCM_PROXY_URL")), nil
-    })),
-)
-
-wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
-    return nil
-})
-```
-
-### Server-resolved SCM clients
-
-Fetch SCM credentials from the server and build provider clients in the worker. The provider caches up to 10 clients by default and uses the provider instance key to resolve enterprise vs. cloud.
-
-```go
-wk := worker.New(
-    worker.WithSubscriber(sub),
-    worker.WithClientProvider(worker.NewRemoteSCMClientProvider()),
-)
-
-wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
-    if gh, ok := worker.GitHubClient(evt); ok {
-        _, _, _ = gh.Repositories.List(ctx, "", nil)
-    }
-    return nil
-})
-```
-
-### TypeScript SDK
-
-The TypeScript worker lives in `sdk/typescript/worker` and uses Relaybus JS adapters.
+TypeScript:
 
 ```ts
-import * as worker from "@relaymesh/githook";
+import { New, WithEndpoint } from "@relaymesh/githook";
 
-async function main() {
-  const wk = worker.New(
-    worker.WithEndpoint("http://localhost:8080"),
-  );
-  wk.HandleRule("rule-id", (ctx, event) => {
-    console.log(ctx.tenantId, event.provider, event.type, event.topic);
-  });
+const worker = New(WithEndpoint("http://localhost:8080"));
 
-  await wk.Run();
-}
+worker.HandleRule("<rule-id>", async (evt) => {
+  console.log(evt.topic, evt.provider, evt.type);
+});
 
-main().catch(console.error);
+await worker.Run();
 ```
 
-### Python SDK
-
-The Python worker lives in `sdk/python/worker` and uses Relaybus Python adapters.
+Python:
 
 ```python
-import signal
-import threading
+from relaymesh_githook import New, WithEndpoint
 
-from relaymesh_githook import New, NewRemoteSCMClientProvider, WithClientProvider, WithEndpoint
+wk = New(WithEndpoint("http://localhost:8080"))
 
-stop = threading.Event()
+wk.HandleRule("<rule-id>", lambda ctx, evt: print(evt.topic, evt.provider, evt.type))
 
-def shutdown(_signum, _frame):
-    stop.set()
-
-signal.signal(signal.SIGINT, shutdown)
-signal.signal(signal.SIGTERM, shutdown)
-
-wk = New(
-    WithEndpoint("http://localhost:8080"),
-    WithClientProvider(NewRemoteSCMClientProvider()),
-)
-
-def handle(ctx, evt):
-    print(f"topic={evt.topic} provider={evt.provider} type={evt.type}")
-
-wk.HandleRule("rule-id", handle)
-
-wk.Run(stop)
+wk.Run()
 ```
 
-### Concurrency
+## Docs 📚
 
-Control how many events are processed simultaneously:
-
-```go
-wk := worker.New(
-    worker.WithConcurrency(20), // Process 20 events in parallel
-)
-```
-
-### Middleware
-
-Wrap handlers with custom middleware:
-
-```go
-wk := worker.New(
-    worker.WithMiddleware(func(next worker.Handler) worker.Handler {
-        return func(ctx context.Context, evt *worker.Event) error {
-            // add logging/metrics/etc
-            return next(ctx, evt)
-        }
-    }),
-)
-```
-
-### Error Handling
-
-Implement custom retry logic:
-
-```go
-type retryOnce struct{}
-
-func (retryOnce) OnError(ctx context.Context, evt *worker.Event, err error) worker.RetryDecision {
-    // Retry once, then nack
-    return worker.RetryDecision{Retry: true, Nack: true}
-}
-
-wk := worker.New(
-    worker.WithRetry(retryOnce{}),
-)
-```
-
-### Lifecycle Hooks
-
-```go
-wk := worker.New(
-    worker.WithListener(worker.Listener{
-        OnStart: func(ctx context.Context) {
-            log.Println("Worker started")
-        },
-        OnExit: func(ctx context.Context) {
-            log.Println("Worker stopped")
-        },
-        OnError: func(ctx context.Context, evt *worker.Event, err error) {
-            log.Printf("Error processing event: %v", err)
-        },
-        OnMessageFinish: func(ctx context.Context, evt *worker.Event, err error) {
-            log.Printf("Finished: provider=%s type=%s err=%v", evt.Provider, evt.Type, err)
-        },
-    }),
-)
-```
-
-### Worker invocation
-
-Workers already resolve the driver and topic from a rule, so you only need the rule ID:
-
-```bash
-go run ./worker/main.go --rule-id RULE_ID --endpoint https://your-domain.com
-```
-
-Use `subCfg.RuleID` or custom handler wiring when building reusable worker logic, and consult [docs/sdk_clients.md](docs/sdk_clients.md) for advanced SDK helpers (HTTP clients, middleware, API clients, etc.).
-## Documentation
-
-## Architecture: Control Plane vs Data Plane
-
-Githooks is split into a **control plane** and a **data plane**:
-
-- **Control Plane (Server)**: Hosts the Connect RPC API, stores configuration and installation data, manages rules, and publishes events to the message bus. This is the source of truth for providers, drivers, and rules.
-- **Data Plane (Worker)**: Subscribes to topics and processes events. It resolves provider clients via the server API and focuses on business logic. Workers should not access platform storage directly.
-
-This separation lets you scale event processing independently while keeping configuration centralized.
-
-### Configuration Guides
-- [API Reference](https://buf.build/githook/cloud) - Connect RPC API documentation
-- [Driver Configuration](docs/drivers.md) - Message broker setup
-- [Rules Engine](docs/rules.md) - Event routing patterns
-- [Storage](docs/storage.md) - Database configuration
-- [OAuth Callbacks](docs/oauth-callbacks.md) - OAuth flow details
-- [Webhook Setup](docs/webhooks.md) - Provider webhook configuration
-
-### Provider Guides
-- [GitHub Setup](docs/getting-started-github.md) - GitHub Apps, OAuth, webhooks
-- [GitLab Setup](docs/getting-started-gitlab.md) - GitLab OAuth, webhooks, namespaces
-- [Bitbucket Setup](docs/getting-started-bitbucket.md) - Bitbucket OAuth, webhooks
-
-### SDK & Integration
-- [SDK Client Injection](docs/sdk_clients.md) - Using provider API clients in workers
-- [SDK DSL](docs/sdk-dsl.md) - Portable worker specification
-- [CLI Usage](docs/cli.md) - Command-line interface reference
-
-### Advanced Topics
-- [API Authentication](docs/auth.md) - OAuth2/OIDC for Connect RPC
-- [SCM Authentication](docs/scm-auth.md) - GitHub App, GitLab/Bitbucket tokens
-- [Event Compatibility](docs/events.md) - Event payload formats
-- [Observability](docs/observability.md) - Logging, metrics, tracing
-
----
-
-**Made with ❤️ for developers who automate Git workflows**
-
-Questions? Issues? Check the [documentation](docs/) or [open an issue](https://github.com/relaymesh/githook/issues).
+See `docs/` for provider setup, OAuth flows, rules, drivers, event logs, and SDK details.

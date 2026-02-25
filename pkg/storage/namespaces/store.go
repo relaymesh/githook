@@ -77,7 +77,11 @@ func Open(cfg Config) (*Store, error) {
 	}
 	table := cfg.Table
 	if table == "" {
-		table = "git_namespaces"
+		table = "githook_namespaces"
+		migrator := gormDB.Migrator()
+		if migrator.HasTable("git_namespaces") && !migrator.HasTable(table) {
+			table = "git_namespaces"
+		}
 	}
 	store := &Store{
 		db:    gormDB,
@@ -89,6 +93,14 @@ func Open(cfg Config) (*Store, error) {
 		}
 	}
 	return store, nil
+}
+
+// TableName returns the resolved table name.
+func (s *Store) TableName() string {
+	if s == nil {
+		return ""
+	}
+	return s.table
 }
 
 // Close closes the underlying DB connection.

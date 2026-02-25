@@ -1,23 +1,21 @@
 # Getting Started: Bitbucket
 
-Build a working Bitbucket webhook pipeline: start the broker stack, run the server, run a worker, and connect Bitbucket via OAuth.
+Set up a Bitbucket webhook pipeline: run the server, create a provider instance, authorize OAuth, and receive events.
 
 ## Prerequisites
 
 - Go 1.24+
 - Docker + Docker Compose
-- ngrok (for local development - [download here](https://ngrok.com/download))
+- ngrok (for local dev): https://ngrok.com/download
 - A Bitbucket account
 
-## Step 1: Start Dependencies
+## 1) Start dependencies
 
 ```bash
 docker compose up -d
 ```
 
-This starts PostgreSQL and RabbitMQ.
-
-## Step 2: Expose with ngrok
+## 2) Expose with ngrok (local only)
 
 ```bash
 ngrok http 8080
@@ -25,18 +23,17 @@ ngrok http 8080
 
 Copy the HTTPS forwarding URL (e.g., `https://abc123.ngrok-free.app`). Keep ngrok running.
 
-## Step 3: Create a Bitbucket OAuth Consumer
+## 3) Create a Bitbucket OAuth consumer
 
-1. Go to: **Workspace Settings** → **OAuth consumers** → **Add consumer**
+1. **Workspace settings** → **OAuth consumers** → **Add consumer**
 2. **Name**: `githook-local`
 3. **Callback URL**: `https://<your-ngrok-url>/auth/bitbucket/callback`
-   - Path must be `/auth/bitbucket/callback`
-4. **Permissions**: Check `repository` (read/write)
-5. Save consumer and copy the **Key** and **Secret**
+4. **Permissions**: `repository` (read/write)
+5. Save and copy the **Key** and **Secret**
 
-## Step 4: Configure githook
+## 4) Configure the server
 
-Edit `config.yaml` and keep only the core sections:
+`config.yaml`:
 
 ```yaml
 server:
@@ -53,19 +50,19 @@ auth:
   oauth2:
     enabled: false
 
+# Used when a provider instance does not set its own redirect_base_url
 redirect_base_url: https://app.example.com/success
-
 ```
 
-## Step 5: Start the Server
+Start the server:
 
 ```bash
 go run ./main.go serve --config config.yaml
 ```
 
-## Step 6: Create the Provider Instance
+## 5) Create the provider instance
 
-Create a provider config file (YAML):
+Create `bitbucket.yaml`:
 
 ```yaml
 redirect_base_url: https://app.example.com/oauth/complete
@@ -76,86 +73,58 @@ oauth:
   client_secret: your-client-secret
 ```
 
-Create the provider instance:
+Create the instance:
 
 ```bash
-githook --endpoint http://localhost:8080 providers set --provider bitbucket --config-file bitbucket.yaml
+githook --endpoint http://localhost:8080 providers create \
+  --provider bitbucket \
+  --config-file bitbucket.yaml
 ```
 
-## Step 7: Start a Worker
+You can override the redirect URL with `--redirect-base-url` if needed.
+
+## 6) Create a driver + rule
 
 ```bash
-go run ./example/bitbucket/worker/main.go --rule-id RULE_ID --endpoint=https://<your-ngrok-url>
+githook --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml
+
+githook --endpoint http://localhost:8080 rules create \
+  --when 'action == "opened"' \
+  --emit pr.opened \
+  --driver-id <driver-id>
 ```
 
-## Step 8: Complete OAuth Onboarding
+## 7) Complete OAuth onboarding
 
 Get the provider instance hash:
+
 ```bash
 githook --endpoint http://localhost:8080 providers list --provider bitbucket
 ```
 
-Visit the OAuth installation URL:
+Open the OAuth URL:
+
 ```
 http://localhost:8080/?provider=bitbucket&instance=<instance-hash>
 ```
 
-Authorize access to your Bitbucket workspace.
+Authorize access.
 
-## Step 9: Configure Webhooks
+## 8) Configure webhooks
 
-Bitbucket allows webhooks at both repository and workspace levels.
+Bitbucket allows webhooks at repository or workspace level.
 
-### Repository-Level Webhook
+- **URL**: `https://<your-ngrok-url>/webhooks/bitbucket`
+- **Secret**: `devsecret`
 
-1. Open your Bitbucket repository
-2. Go to **Repository settings** → **Webhooks** → **Add webhook**
-3. **Title**: `githook-local`
-4. **URL**: `https://<your-ngrok-url>/webhooks/bitbucket`
-5. **Status**: Active (checked)
-6. **Triggers**:
-   - Pull request (created, updated, approved, merged)
-   - Repository push
-   - Tag push (optional)
-7. Click **Save**
+## 9) Trigger events
 
-### Workspace-Level Webhook (For All Repositories in Workspace)
+Create a pull request or push a commit to a repo with the webhook enabled.
 
-1. Go to **Workspace settings** → **Webhooks** → **Add webhook**
-2. **Title**: `githook-workspace`
-3. **URL**: `https://<your-ngrok-url>/webhooks/bitbucket`
-4. **Status**: Active (checked)
-5. **Triggers**:
-   - Pull request (created, updated, approved, merged)
-   - Repository push
-   - Tag push (optional)
-6. Click **Save**
-
-**Note:** Workspace webhooks send events for all repositories in the workspace. Use repository webhooks for granular control.
-
-### Multiple Workspaces/Repositories
-
-To enable webhooks across multiple workspaces or repositories, configure the webhook for each repository or workspace individually using the Bitbucket UI. Use the same webhook URL for all repositories.
-
-## Step 10: Trigger Events
-
-Create a pull request or push a commit. The worker will receive and process the events.
-
-## Troubleshooting
-
-- **Webhooks not received**: Check ngrok is running, verify URL matches
-- **401 unauthorized**: OAuth credentials incorrect
-- **Callback failed**: Callback URL must be `/auth/bitbucket/callback`
-- **Connection refused**: Ensure Docker Compose is running
-
-## Bitbucket Server (Self-Hosted)
-
-For Bitbucket Server instances:
+## Bitbucket Server
 
 ```yaml
 api:
   base_url: https://bitbucket.company.com/rest/api/2.0
   web_base_url: https://bitbucket.company.com
 ```
-
-Configure OAuth consumer in your Bitbucket Server instance.

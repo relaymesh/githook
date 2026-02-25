@@ -23,10 +23,12 @@ func newProvidersCmd() *cobra.Command {
 		Long:  "Manage per-tenant provider instances stored on the server.",
 		Example: "  githook --endpoint http://localhost:8080 providers list\n" +
 			"  githook --endpoint http://localhost:8080 providers list --provider github\n" +
-			"  githook --endpoint http://localhost:8080 providers set --provider github --config-file github.yaml",
+			"  githook --endpoint http://localhost:8080 providers create --provider github --config-file github.yaml",
 	}
 	cmd.AddCommand(newProviderInstancesListCmd())
 	cmd.AddCommand(newProviderInstancesGetCmd())
+	cmd.AddCommand(newProviderInstancesCreateCmd())
+	cmd.AddCommand(newProviderInstancesUpdateCmd())
 	cmd.AddCommand(newProviderInstancesSetCmd())
 	cmd.AddCommand(newProviderInstancesDeleteCmd())
 	return cmd
@@ -94,24 +96,51 @@ func newProviderInstancesGetCmd() *cobra.Command {
 	return cmd
 }
 
+func newProviderInstancesCreateCmd() *cobra.Command {
+	return newProviderInstancesUpsertCmd(
+		"create",
+		"Create a provider instance",
+		"  githook --endpoint http://localhost:8080 providers create --provider github --config-file github.yaml\n"+
+			"  # With redirect_base_url and private_key_path in the config file:\n"+
+			"  # github.yaml:\n"+
+			"  # redirect_base_url: https://app.example.com/oauth/complete\n"+
+			"  # app:\n"+
+			"  #   app_id: 12345\n"+
+			"  #   private_key_path: ./github.pem\n"+
+			"  # oauth:\n"+
+			"  #   client_id: your-client-id\n"+
+			"  #   client_secret: your-client-secret",
+	)
+}
+
+func newProviderInstancesUpdateCmd() *cobra.Command {
+	return newProviderInstancesUpsertCmd(
+		"update",
+		"Update a provider instance",
+		"  githook --endpoint http://localhost:8080 providers update --provider github --config-file github.yaml",
+	)
+}
+
 func newProviderInstancesSetCmd() *cobra.Command {
+	cmd := newProviderInstancesUpsertCmd(
+		"set",
+		"Create a provider instance",
+		"  githook --endpoint http://localhost:8080 providers set --provider github --config-file github.yaml",
+	)
+	cmd.Hidden = true
+	cmd.Deprecated = "use create or update"
+	return cmd
+}
+
+func newProviderInstancesUpsertCmd(action, short, example string) *cobra.Command {
 	var provider string
 	var configFile string
 	var enabled bool
 	var redirectBaseURL string
 	cmd := &cobra.Command{
-		Use:   "set",
-		Short: "Create a provider instance",
-		Example: "  githook --endpoint http://localhost:8080 providers set --provider github --config-file github.yaml\n" +
-			"  # With redirect_base_url and private_key_path in the config file:\n" +
-			"  # github.yaml:\n" +
-			"  # redirect_base_url: https://app.example.com/oauth/complete\n" +
-			"  # app:\n" +
-			"  #   app_id: 12345\n" +
-			"  #   private_key_path: ./github.pem\n" +
-			"  # oauth:\n" +
-			"  #   client_id: your-client-id\n" +
-			"  #   client_secret: your-client-secret",
+		Use:     action,
+		Short:   short,
+		Example: example,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(provider) == "" {
 				return fmt.Errorf("provider is required")

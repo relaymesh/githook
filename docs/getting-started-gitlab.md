@@ -1,23 +1,21 @@
 # Getting Started: GitLab
 
-Build a working GitLab webhook pipeline: start the broker stack, run the server, run a worker, and connect GitLab via OAuth.
+Set up a GitLab webhook pipeline: run the server, create a provider instance, authorize OAuth, and receive events.
 
 ## Prerequisites
 
 - Go 1.24+
 - Docker + Docker Compose
-- ngrok (for local development - [download here](https://ngrok.com/download))
+- ngrok (for local dev): https://ngrok.com/download
 - A GitLab account
 
-## Step 1: Start Dependencies
+## 1) Start dependencies
 
 ```bash
 docker compose up -d
 ```
 
-This starts PostgreSQL and RabbitMQ.
-
-## Step 2: Expose with ngrok
+## 2) Expose with ngrok (local only)
 
 ```bash
 ngrok http 8080
@@ -25,18 +23,17 @@ ngrok http 8080
 
 Copy the HTTPS forwarding URL (e.g., `https://abc123.ngrok-free.app`). Keep ngrok running.
 
-## Step 3: Create a GitLab OAuth Application
+## 3) Create a GitLab OAuth application
 
-1. Go to: **GitLab User Settings** → **Applications**: https://gitlab.com/-/user_settings/applications
+1. **User Settings** → **Applications**: https://gitlab.com/-/user_settings/applications
 2. **Name**: `githook-local`
 3. **Redirect URI**: `https://<your-ngrok-url>/auth/gitlab/callback`
-   - Path must be `/auth/gitlab/callback`
 4. **Scopes**: `read_api`, `read_repository`
-5. Save application and copy the **Application ID** and **Secret**
+5. Save and copy the **Application ID** and **Secret**
 
-## Step 4: Configure githook
+## 4) Configure the server
 
-Edit `config.yaml` and keep only the core sections:
+`config.yaml`:
 
 ```yaml
 server:
@@ -53,19 +50,19 @@ auth:
   oauth2:
     enabled: false
 
+# Used when a provider instance does not set its own redirect_base_url
 redirect_base_url: https://app.example.com/success
-
 ```
 
-## Step 5: Start the Server
+Start the server:
 
 ```bash
 go run ./main.go serve --config config.yaml
 ```
 
-## Step 6: Create the Provider Instance
+## 5) Create the provider instance
 
-Create a provider config file (YAML):
+Create `gitlab.yaml`:
 
 ```yaml
 redirect_base_url: https://app.example.com/oauth/complete
@@ -76,85 +73,58 @@ oauth:
   client_secret: your-client-secret
 ```
 
-Create the provider instance:
+Create the instance:
 
 ```bash
-githook --endpoint http://localhost:8080 providers set --provider gitlab --config-file gitlab.yaml
+githook --endpoint http://localhost:8080 providers create \
+  --provider gitlab \
+  --config-file gitlab.yaml
 ```
 
-## Step 7: Start a Worker
+You can override the redirect URL with `--redirect-base-url` if needed.
+
+## 6) Create a driver + rule
 
 ```bash
-go run ./example/gitlab/worker/main.go --rule-id RULE_ID --endpoint=https://<your-ngrok-url>
+githook --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml
+
+githook --endpoint http://localhost:8080 rules create \
+  --when 'action == "opened"' \
+  --emit pr.opened \
+  --driver-id <driver-id>
 ```
 
-## Step 8: Complete OAuth Onboarding
+## 7) Complete OAuth onboarding
 
 Get the provider instance hash:
+
 ```bash
 githook --endpoint http://localhost:8080 providers list --provider gitlab
 ```
 
-Visit the OAuth installation URL:
+Open the OAuth URL:
+
 ```
 http://localhost:8080/?provider=gitlab&instance=<instance-hash>
 ```
 
-Authorize access to your GitLab account.
+Authorize access.
 
-## Step 9: Configure Webhooks
+## 8) Configure webhooks
 
-GitLab requires webhooks to be configured per project or group.
+GitLab requires webhooks per project or group.
 
-### Project-Level Webhook
+- **URL**: `https://<your-ngrok-url>/webhooks/gitlab`
+- **Secret token**: `devsecret`
 
-1. Open your GitLab project
-2. Go to **Settings** → **Webhooks**
-3. **URL**: `https://<your-ngrok-url>/webhooks/gitlab`
-4. **Secret token**: `devsecret`
-5. **Trigger events**:
-   - Merge request events
-   - Push events
-   - Tag push events (optional)
-6. Click **Add webhook**
+## 9) Trigger events
 
-### Group-Level Webhook (For All Projects in Group)
+Create a merge request or push a commit to a repo with the webhook enabled.
 
-1. Open your GitLab group
-2. Go to **Settings** → **Webhooks**
-3. **URL**: `https://<your-ngrok-url>/webhooks/gitlab`
-4. **Secret token**: `devsecret`
-5. **Trigger events**:
-   - Merge request events
-   - Push events
-   - Tag push events (optional)
-6. Click **Add webhook**
-
-**Note:** Group webhooks require GitLab Premium/Ultimate. For free tier, configure webhooks on each project individually.
-
-### Multiple Namespaces/Projects
-
-To enable webhooks across multiple namespaces or projects, configure the webhook for each project or group individually using the GitLab UI. Use the same webhook URL and secret for all projects.
-
-## Step 10: Trigger Events
-
-Create a merge request or push a commit. The worker will receive and process the events.
-
-## Troubleshooting
-
-- **Webhooks not received**: Check ngrok is running, verify URL matches
-- **401 unauthorized**: OAuth credentials incorrect
-- **Callback failed**: Callback URL must be `/auth/gitlab/callback`
-- **Connection refused**: Ensure Docker Compose is running
-
-## Self-Hosted GitLab
-
-For self-hosted GitLab instances:
+## Self-hosted GitLab
 
 ```yaml
 api:
   base_url: https://gitlab.company.com/api/v4
   web_base_url: https://gitlab.company.com
 ```
-
-Configure OAuth application in your self-hosted instance.

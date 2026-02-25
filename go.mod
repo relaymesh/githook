@@ -14,7 +14,7 @@ require (
 	github.com/google/go-github/v57 v57.0.0
 	github.com/google/uuid v1.6.0
 	github.com/ktrysmt/go-bitbucket v0.9.88
-	github.com/relaymesh/relaybus v0.0.4
+	github.com/relaymesh/relaybus v0.0.8
 	github.com/rs/cors v1.11.1
 	github.com/spf13/cobra v1.9.1
 	github.com/xanzy/go-gitlab v0.115.0

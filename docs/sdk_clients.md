@@ -1,41 +1,20 @@
 # SDK Client Injection
 
-Use the SDK to attach client instances to each event. The worker can request SCM client credentials from the server and build provider clients locally (with a small LRU cache), or you can inject your own client resolver.
+Workers can attach SCM clients (GitHub/GitLab/Bitbucket) to each event. The default approach is to ask the server for credentials and build clients locally with a small LRU cache.
 
-## Pattern
+## Remote SCM clients (recommended)
 
-Use a `ClientProviderFunc` to supply your own client resolution logic:
+The worker uses the event metadata (installation + provider instance key) to request credentials from the server. The server decides cloud vs. enterprise and returns the correct auth details.
 
-```go
-wk := worker.New(
-  worker.WithSubscriber(sub),
-  worker.WithTopics("pr.opened.ready", "pr.merged"),
-  worker.WithClientProvider(worker.ClientProviderFunc(func(ctx context.Context, evt *worker.Event) (interface{}, error) {
-    // Example: return a thin client that calls your own API.
-    return newSCMProxyClient(os.Getenv("SCM_PROXY_URL")), nil
-  })),
-)
-
-wk.HandleTopic("pr.opened.ready", "driver-id", func(ctx context.Context, evt *worker.Event) error {
-  _ = evt.Client
-  return nil
-})
-```
-
-## Server-resolved SCM clients (recommended)
-
-Use the remote SCM client provider to fetch credentials from the server and build
-provider SDK clients locally. The provider caches up to 10 clients by default.
-The server resolves enterprise vs. cloud based on the provider instance key in the event metadata.
+Go:
 
 ```go
 wk := worker.New(
-  worker.WithSubscriber(sub),
-  worker.WithTopics("pr.opened.ready", "pr.merged"),
+  worker.WithEndpoint("http://localhost:8080"),
   worker.WithClientProvider(worker.NewRemoteSCMClientProvider()),
 )
 
-wk.HandleTopic("pr.opened.ready", "driver-id", func(ctx context.Context, evt *worker.Event) error {
+wk.HandleRule("<rule-id>", func(ctx context.Context, evt *worker.Event) error {
   if gh, ok := worker.GitHubClient(evt); ok {
     _, _, _ = gh.Repositories.List(ctx, "", nil)
   }
@@ -43,10 +22,31 @@ wk.HandleTopic("pr.opened.ready", "driver-id", func(ctx context.Context, evt *wo
 })
 ```
 
+TypeScript:
+
+```ts
+import { New, WithEndpoint, NewRemoteSCMClientProvider, GitHubClient } from "@relaymesh/githook";
+
+const worker = New(
+  WithEndpoint("http://localhost:8080"),
+  NewRemoteSCMClientProvider(),
+);
+
+worker.HandleRule("<rule-id>", async (evt) => {
+  const gh = GitHubClient(evt);
+  if (gh) {
+    await gh.requestJSON("GET", "/user");
+  }
+});
+```
+
+Python:
+
 ```python
-from relaymesh_githook import New, WithClientProvider, NewRemoteSCMClientProvider, GitHubClient
+from relaymesh_githook import New, WithEndpoint, WithClientProvider, NewRemoteSCMClientProvider, GitHubClient
 
 wk = New(
+    WithEndpoint("http://localhost:8080"),
     WithClientProvider(NewRemoteSCMClientProvider()),
 )
 
@@ -55,5 +55,19 @@ def handler(ctx, evt):
     if client:
         client.request_json("GET", "/user")
 
-wk.HandleRule("rule-id", handler)
+wk.HandleRule("<rule-id>", handler)
+```
+
+## Custom client injection
+
+If you want full control, inject your own client resolver.
+
+Go:
+
+```go
+wk := worker.New(
+  worker.WithClientProvider(worker.ClientProviderFunc(func(ctx context.Context, evt *worker.Event) (interface{}, error) {
+    return newSCMProxyClient(os.Getenv("SCM_PROXY_URL")), nil
+  })),
+)
 ```

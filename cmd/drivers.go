@@ -19,10 +19,12 @@ func newDriversCmd() *cobra.Command {
 		Short: "Manage driver configs",
 		Long:  "Manage Relaybus driver configs stored on the server.",
 		Example: "  githook --endpoint http://localhost:8080 drivers list\n" +
-			"  githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml",
+			"  githook --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml",
 	}
 	cmd.AddCommand(newDriversListCmd())
 	cmd.AddCommand(newDriversGetCmd())
+	cmd.AddCommand(newDriversCreateCmd())
+	cmd.AddCommand(newDriversUpdateCmd())
 	cmd.AddCommand(newDriversSetCmd())
 	cmd.AddCommand(newDriversDeleteCmd())
 	return cmd
@@ -78,14 +80,41 @@ func newDriversGetCmd() *cobra.Command {
 	return cmd
 }
 
+func newDriversCreateCmd() *cobra.Command {
+	return newDriversUpsertCmd(
+		"create",
+		"Create a driver config",
+		"  githook --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml",
+	)
+}
+
+func newDriversUpdateCmd() *cobra.Command {
+	return newDriversUpsertCmd(
+		"update",
+		"Update a driver config",
+		"  githook --endpoint http://localhost:8080 drivers update --name amqp --config-file amqp.yaml",
+	)
+}
+
 func newDriversSetCmd() *cobra.Command {
+	cmd := newDriversUpsertCmd(
+		"set",
+		"Create or update a driver config",
+		"  githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml",
+	)
+	cmd.Hidden = true
+	cmd.Deprecated = "use create or update"
+	return cmd
+}
+
+func newDriversUpsertCmd(action, short, example string) *cobra.Command {
 	var name string
 	var configFile string
 	var enabled bool
 	cmd := &cobra.Command{
-		Use:     "set",
-		Short:   "Create or update a driver config",
-		Example: "  githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml",
+		Use:     action,
+		Short:   short,
+		Example: example,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(name) == "" {
 				return fmt.Errorf("name is required")

@@ -13,7 +13,7 @@ func NewRootCmd() *cobra.Command {
 			"for processing events with provider-aware clients.",
 		Example: "  githook serve --config config.yaml\n" +
 			"  githook --endpoint http://localhost:8080 installations list --provider github\n" +
-			"  githook --endpoint http://localhost:8080 namespaces sync --provider gitlab",
+			"  githook --endpoint http://localhost:8080 namespaces update --provider gitlab",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return cmd.Help()
 		},
