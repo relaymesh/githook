@@ -8,7 +8,7 @@ def read_version() -> str:
     raw = (os.getenv("GITHOOK_PY_VERSION") or "").strip()
     if raw.startswith("v"):
         raw = raw[1:]
-    return raw or "0.0.7"
+    return raw or "0.0.10"
 
 
 def read_readme() -> str:
