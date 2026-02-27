@@ -4,13 +4,27 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      DYNAMIC_CONFIG_ENABLED: "true"
 
-  nats-streaming:
-    image: nats-streaming:0.25
+  nats:
+    image: nats:2.10
+    container_name: nats
+    command: ["-js", "-m", "8222"]
     ports:
       - "4222:4222"
       - "8222:8222"
-    command: ["-p", "4222", "-m", "8222", "-cid", "test-cluster"]
+
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1

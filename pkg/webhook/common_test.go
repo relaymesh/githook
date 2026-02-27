@@ -1,7 +1,10 @@
 package webhook
 
 import (
+	"io"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/relaymesh/githook/pkg/core"
@@ -130,5 +133,27 @@ func TestRequestIDHasFallback(t *testing.T) {
 	id := requestID(req)
 	if id == "" {
 		t.Fatalf("expected request id fallback")
+	}
+}
+
+func TestPrepareWebhookRequest(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/github", io.NopCloser(strings.NewReader(`{"action":"opened"}`)))
+	rec := httptest.NewRecorder()
+
+	outReq, logger, reqID, body, ok := prepareWebhookRequest(rec, req, 1024, nil)
+	if !ok {
+		t.Fatalf("expected successful request preparation")
+	}
+	if outReq == nil || logger == nil {
+		t.Fatalf("expected non-nil request and logger")
+	}
+	if reqID == "" {
+		t.Fatalf("expected request id")
+	}
+	if string(body) != `{"action":"opened"}` {
+		t.Fatalf("unexpected body: %s", string(body))
+	}
+	if got := rec.Header().Get("X-Request-Id"); got == "" {
+		t.Fatalf("expected response X-Request-Id header")
 	}
 }

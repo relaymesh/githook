@@ -16,14 +16,18 @@ func main() {
 
 	endpoint := os.Getenv("GITHOOK_ENDPOINT")
 	if endpoint == "" {
-		endpoint = "http://localhost:8080"
+		endpoint = "https://githook-app.vercel.app/api/connect"
+	}
+	ruleID := os.Getenv("GITHOOK_RULE_ID")
+	if ruleID == "" {
+		ruleID = "85101e9f-3bcf-4ed0-b561-750c270ef6c3"
 	}
 
 	wk := worker.New(
 		worker.WithEndpoint(endpoint),
 	)
 
-	wk.HandleRule("<rule-id>", func(ctx context.Context, evt *worker.Event) error {
+	wk.HandleRule(ruleID, func(ctx context.Context, evt *worker.Event) error {
 		if evt == nil {
 			return nil
 		}

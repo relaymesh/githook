@@ -85,18 +85,10 @@ func NewBitbucketHandler(secret string, rules *core.RuleEngine, publisher core.P
 
 // ServeHTTP handles an incoming HTTP request.
 func (h *BitbucketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if h.maxBody > 0 {
-		r.Body = http.MaxBytesReader(w, r.Body, h.maxBody)
-	}
-	reqID := requestID(r)
-	w.Header().Set("X-Request-Id", reqID)
-	logger := core.WithRequestID(h.logger, reqID)
-	rawBody, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+	r, logger, reqID, rawBody, ok := prepareWebhookRequest(w, r, h.maxBody, h.logger)
+	if !ok {
 		return
 	}
-	r.Body = io.NopCloser(bytes.NewReader(rawBody))
 
 	eventName := r.Header.Get("X-Event-Key")
 	if h.debugEvents {

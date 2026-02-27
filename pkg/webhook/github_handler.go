@@ -117,18 +117,10 @@ func NewGitHubHandler(secret string, rules *core.RuleEngine, publisher core.Publ
 
 // ServeHTTP handles an incoming HTTP request.
 func (h *GitHubHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if h.maxBody > 0 {
-		r.Body = http.MaxBytesReader(w, r.Body, h.maxBody)
-	}
-	reqID := requestID(r)
-	w.Header().Set("X-Request-Id", reqID)
-	logger := core.WithRequestID(h.logger, reqID)
-	rawBody, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+	r, logger, reqID, rawBody, ok := prepareWebhookRequest(w, r, h.maxBody, h.logger)
+	if !ok {
 		return
 	}
-	r.Body = io.NopCloser(bytes.NewReader(rawBody))
 
 	if h.debugEvents {
 		logDebugEvent(logger, "github", r.Header.Get("X-GitHub-Event"), rawBody)

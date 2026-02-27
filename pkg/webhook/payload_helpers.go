@@ -1,8 +1,11 @@
 package webhook
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -112,6 +115,22 @@ func requestID(r *http.Request) string {
 		return id
 	}
 	return uuid.NewString()
+}
+
+func prepareWebhookRequest(w http.ResponseWriter, r *http.Request, maxBody int64, logger *log.Logger) (*http.Request, *log.Logger, string, []byte, bool) {
+	if maxBody > 0 {
+		r.Body = http.MaxBytesReader(w, r.Body, maxBody)
+	}
+	reqID := requestID(r)
+	w.Header().Set("X-Request-Id", reqID)
+	reqLogger := core.WithRequestID(logger, reqID)
+	rawBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return nil, reqLogger, reqID, nil, false
+	}
+	r.Body = io.NopCloser(bytes.NewReader(rawBody))
+	return r, reqLogger, reqID, rawBody, true
 }
 
 func cloneHeaders(headers http.Header) map[string][]string {

@@ -14,7 +14,8 @@ def shutdown(_signum, _frame):
 signal.signal(signal.SIGINT, shutdown)
 signal.signal(signal.SIGTERM, shutdown)
 
-endpoint = os.getenv("GITHOOK_ENDPOINT", "http://localhost:8080")
+endpoint = os.getenv("GITHOOK_ENDPOINT", "https://githook-app.vercel.app/api/connect")
+rule_id = os.getenv("GITHOOK_RULE_ID", "85101e9f-3bcf-4ed0-b561-750c270ef6c3")
 
 wk = New(
     WithEndpoint(endpoint),
@@ -25,6 +26,6 @@ def handle(ctx, evt):
     print(f"topic={evt.topic} provider={evt.provider} type={evt.type}")
 
 
-wk.HandleRule("85101e9f-3bcf-4ed0-b561-750c270ef6c3", handle)
+wk.HandleRule(rule_id, handle)
 
 wk.Run(stop)
