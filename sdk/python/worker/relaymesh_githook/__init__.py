@@ -15,7 +15,11 @@ from .codec import Codec, DefaultCodec
 from .config import AmqpConfig, KafkaConfig, NatsConfig, SubscriberConfig
 from .context import WorkerContext
 from .event import Event
-from .event_log_status import EVENT_LOG_STATUS_DELIVERED, EVENT_LOG_STATUS_FAILED, EVENT_LOG_STATUS_SUCCESS
+from .event_log_status import (
+    EVENT_LOG_STATUS_DELIVERED,
+    EVENT_LOG_STATUS_FAILED,
+    EVENT_LOG_STATUS_SUCCESS,
+)
 from .listener import Listener
 from .metadata import (
     METADATA_KEY_DRIVER,
@@ -36,7 +40,17 @@ from .scm_client_provider import (
     RemoteSCMClientProvider,
     RemoteSCMClientProviderOptions,
 )
-from .scm_clients import BitbucketClientFromEvent, GitHubClientFromEvent, GitLabClientFromEvent
+from .scm_clients import (
+    BitbucketClient as BitbucketSCMClient,
+    BitbucketClientFromEvent,
+    GitHubClient as GitHubSCMClient,
+    GitHubClientFromEvent,
+    GitLabClient as GitLabSCMClient,
+    GitLabClientFromEvent,
+    NewProviderClient,
+    SCMClient,
+    new_provider_client,
+)
 from .subscriber import Subscriber, new_from_config, subscriber_config_from_driver
 from .worker import (
     New,
@@ -63,6 +77,7 @@ __all__ = [
     "AmqpConfig",
     "BitbucketClient",
     "BitbucketClientFromEvent",
+    "BitbucketSCMClient",
     "ClientProvider",
     "ClientProviderFunc",
     "Codec",
@@ -119,8 +134,13 @@ __all__ = [
     "EVENT_LOG_STATUS_SUCCESS",
     "GitHubClient",
     "GitHubClientFromEvent",
+    "GitHubSCMClient",
     "GitLabClient",
     "GitLabClientFromEvent",
+    "GitLabSCMClient",
+    "NewProviderClient",
+    "SCMClient",
     "new_from_config",
+    "new_provider_client",
     "subscriber_config_from_driver",
 ]

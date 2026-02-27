@@ -143,6 +143,10 @@ export function newProviderClient(provider: string, token: string, baseUrl: stri
   }
 }
 
+export function NewProviderClient(provider: string, token: string, baseUrl: string): SCMClient {
+  return newProviderClient(provider, token, baseUrl);
+}
+
 function resolveAPIBase(baseUrl: string, provider: string): string {
   const trimmed = (baseUrl ?? "").trim();
   if (trimmed) {

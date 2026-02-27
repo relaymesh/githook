@@ -8,3 +8,4 @@ package-lock.json
 test.json
 test.yaml
 .DS_Store
+.agents/

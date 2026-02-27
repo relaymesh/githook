@@ -39,6 +39,22 @@ func BitbucketClient(evt *Event) (*bitbucket.Client, bool) {
 	return client, ok
 }
 
+func GitHubClientFromEvent(evt *Event) (*github.Client, bool) {
+	return GitHubClient(evt)
+}
+
+func GitLabClientFromEvent(evt *Event) (*gitlab.Client, bool) {
+	return GitLabClient(evt)
+}
+
+func BitbucketClientFromEvent(evt *Event) (*bitbucket.Client, bool) {
+	return BitbucketClient(evt)
+}
+
+func NewProviderClient(provider, token, baseURL string) (interface{}, error) {
+	return newProviderClient(provider, token, baseURL)
+}
+
 func newProviderClient(provider, token, baseURL string) (interface{}, error) {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
 	case "github":

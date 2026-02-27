@@ -15,6 +15,7 @@ def read_readme() -> str:
     path = Path(__file__).with_name("README.md")
     return path.read_text(encoding="utf-8")
 
+
 setup(
     name="relaymesh-githook",
     version=read_version(),

@@ -27,6 +27,7 @@ export {
   GitLabClientFromEvent,
   BitbucketClientFromEvent,
   newProviderClient,
+  NewProviderClient,
   GitHubClient as GitHubSCMClient,
   GitLabClient as GitLabSCMClient,
   BitbucketClient as BitbucketSCMClient,

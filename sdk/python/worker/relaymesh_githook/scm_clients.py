@@ -27,8 +27,7 @@ class SCMClient(Protocol):
         path: str,
         body: Optional[object] = None,
         headers: Optional[Dict[str, str]] = None,
-    ) -> HTTPResponse:
-        ...
+    ) -> HTTPResponse: ...
 
     def request_json(
         self,
@@ -36,8 +35,7 @@ class SCMClient(Protocol):
         path: str,
         body: Optional[object] = None,
         headers: Optional[Dict[str, str]] = None,
-    ) -> object:
-        ...
+    ) -> object: ...
 
 
 class GitHubClient:
@@ -136,7 +134,9 @@ class BitbucketClient:
     ) -> object:
         resp = self.request(method, path, body, headers)
         if resp.status >= 300:
-            raise RuntimeError(f"bitbucket request failed ({resp.status}): {resp.text()}")
+            raise RuntimeError(
+                f"bitbucket request failed ({resp.status}): {resp.text()}"
+            )
         return resp.json()
 
 
@@ -170,6 +170,10 @@ def new_provider_client(provider: str, token: str, base_url: str) -> SCMClient:
     if normalized == "bitbucket":
         return BitbucketClient(token, _resolve_api_base(base_url, normalized))
     raise ValueError(f"unsupported provider for scm client: {provider}")
+
+
+def NewProviderClient(provider: str, token: str, base_url: str) -> SCMClient:
+    return new_provider_client(provider, token, base_url)
 
 
 def _resolve_api_base(base_url: str, provider: str) -> str:
@@ -210,7 +214,9 @@ def _request(
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             payload = resp.read()
-            return HTTPResponse(status=resp.status, headers=dict(resp.headers), body=payload)
+            return HTTPResponse(
+                status=resp.status, headers=dict(resp.headers), body=payload
+            )
     except urllib.error.HTTPError as err:
         raw = err.read() if err.fp else b""
         return HTTPResponse(status=err.code, headers=dict(err.headers or {}), body=raw)
