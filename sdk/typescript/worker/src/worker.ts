@@ -38,6 +38,7 @@ export interface WorkerOptions {
   concurrency?: number;
   middleware?: Middleware[];
   retry?: RetryPolicy;
+  retryCount?: number;
   listeners?: Listener[];
   clientProvider?: ClientProvider;
   endpoint?: string;
@@ -62,6 +63,7 @@ export class Worker {
   private subscriber?: Subscriber;
   private codec: Codec;
   private retry: RetryPolicy;
+  private retryCount: number;
   private logger: Logger;
   private middleware: Middleware[];
   private listeners: Listener[];
@@ -78,6 +80,7 @@ export class Worker {
     this.subscriber = opts.subscriber;
     this.codec = opts.codec ?? new DefaultCodec();
     this.retry = opts.retry ?? new NoRetry();
+    this.retryCount = normalizeRetryCount(opts.retryCount);
     this.logger = opts.logger ?? defaultLogger;
     this.middleware = opts.middleware ?? [];
     this.listeners = opts.listeners ?? [];
@@ -226,6 +229,9 @@ export class Worker {
     }
     if (options.retry) {
       this.retry = options.retry;
+    }
+    if (options.retryCount !== undefined) {
+      this.retryCount = normalizeRetryCount(options.retryCount);
     }
     if (options.logger) {
       this.logger = options.logger;
@@ -494,19 +500,27 @@ export class Worker {
     }
 
     const wrapped = this.wrap(handler);
-    try {
-      await wrapped(eventCtx, event);
+    let lastError: Error | undefined;
+    const attempts = this.retryCount + 1;
+    for (let i = 0; i < attempts; i += 1) {
+      try {
+        await wrapped(eventCtx, event);
+        lastError = undefined;
+        break;
+      } catch (err) {
+        lastError = normalizeError(err);
+      }
+    }
+    if (!lastError) {
       this.notifyMessageFinish(eventCtx, event, undefined);
       await this.updateEventLogStatus(eventCtx, logId, EventLogStatusSuccess);
       return false;
-    } catch (err) {
-      const error = normalizeError(err);
-      this.notifyMessageFinish(eventCtx, event, error);
-      this.notifyError(eventCtx, event, error);
-      await this.updateEventLogStatus(eventCtx, logId, EventLogStatusFailed, error);
-      const decision = normalizeRetryDecision(callRetryPolicy(this.retry, eventCtx, event, error));
-      return decision.retry || decision.nack;
     }
+    this.notifyMessageFinish(eventCtx, event, lastError);
+    this.notifyError(eventCtx, event, lastError);
+    await this.updateEventLogStatus(eventCtx, logId, EventLogStatusFailed, lastError);
+    const decision = normalizeRetryDecision(callRetryPolicy(this.retry, eventCtx, event, lastError));
+    return decision.retry || decision.nack;
   }
 
   private wrap(handler: ContextualHandler): ContextualHandler {
@@ -655,6 +669,10 @@ export function WithRetry(retry: RetryPolicy): WorkerOption {
   return (wk) => wk.apply({ retry });
 }
 
+export function WithRetryCount(retryCount: number): WorkerOption {
+  return (wk) => wk.apply({ retryCount });
+}
+
 export function WithLogger(logger: Logger): WorkerOption {
   return (wk) => wk.apply({ logger });
 }
@@ -742,6 +760,17 @@ function normalizeConcurrency(value?: number): number {
     return 1;
   }
   return Math.floor(value);
+}
+
+function normalizeRetryCount(value?: number): number {
+  if (value === undefined || value === null) {
+    return 0;
+  }
+  const num = Math.floor(Number(value));
+  if (Number.isNaN(num) || num < 0) {
+    return 0;
+  }
+  return num;
 }
 
 function unique(values: string[]): string[] {

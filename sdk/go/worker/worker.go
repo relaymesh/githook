@@ -22,6 +22,7 @@ type Worker struct {
 	retry       RetryPolicy
 	logger      Logger
 	concurrency int
+	retryCount  int
 	topics      []string
 
 	topicHandlers  map[string]Handler
@@ -45,6 +46,7 @@ func New(opts ...Option) *Worker {
 		retry:         NoRetry{},
 		logger:        stdLogger{},
 		concurrency:   1,
+		retryCount:    0,
 		topicHandlers: make(map[string]Handler),
 		topicDrivers:  make(map[string]string),
 		typeHandlers:  make(map[string]Handler),
@@ -320,11 +322,19 @@ func (w *Worker) handleMessage(ctx context.Context, topic string, msg *relaymess
 	}
 
 	wrapped := w.wrap(handler)
-	if err := wrapped(ctx, evt); err != nil {
-		w.notifyMessageFinish(ctx, evt, err)
-		w.notifyError(ctx, evt, err)
-		w.updateEventLogStatus(ctx, logID, EventLogStatusFailed, err)
-		decision := w.retry.OnError(ctx, evt, err)
+	var handlerErr error
+	attempts := w.retryCount + 1
+	for i := 0; i < attempts; i++ {
+		handlerErr = wrapped(ctx, evt)
+		if handlerErr == nil {
+			break
+		}
+	}
+	if handlerErr != nil {
+		w.notifyMessageFinish(ctx, evt, handlerErr)
+		w.notifyError(ctx, evt, handlerErr)
+		w.updateEventLogStatus(ctx, logID, EventLogStatusFailed, handlerErr)
+		decision := w.retry.OnError(ctx, evt, handlerErr)
 		return decision.Retry || decision.Nack
 	}
 	w.notifyMessageFinish(ctx, evt, nil)

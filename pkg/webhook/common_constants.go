@@ -1,9 +1,8 @@
 package webhook
 
 const (
-	eventLogStatusQueued    = "queued"
-	eventLogStatusDelivered = "delivered"
-	eventLogStatusSuccess   = "success"
-	eventLogStatusFailed    = "failed"
-	eventLogStatusUnmatched = "unmatched"
+	eventLogStatusQueued  = "queued"
+	eventLogStatusSuccess = "success"
+	eventLogStatusFailed  = "failed"
+	eventLogStatusIgnored = "ignored"
 )

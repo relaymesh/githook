@@ -79,7 +79,7 @@ func buildEventLogRecords(event core.Event, rules []core.MatchedRule) ([]storage
 			Headers:        headers,
 			Body:           body,
 			BodyHash:       bodyHash,
-			Status:         eventLogStatusUnmatched,
+			Status:         eventLogStatusIgnored,
 			Matched:        false,
 		}
 		return []storage.EventLogRecord{record}, nil

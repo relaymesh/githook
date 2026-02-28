@@ -94,7 +94,7 @@ func TestBuildEventLogRecords(t *testing.T) {
 	if len(records) != 1 || len(matched) != 0 {
 		t.Fatalf("expected unmatched record")
 	}
-	if records[0].Status != eventLogStatusUnmatched || records[0].Matched {
+	if records[0].Status != eventLogStatusIgnored || records[0].Matched {
 		t.Fatalf("unexpected record status: %+v", records[0])
 	}
 	if records[0].RequestID != "req-1" {

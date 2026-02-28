@@ -3,7 +3,15 @@ import threading
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Protocol, Sequence, Set, Union
 
-from .api import APIClientOptions, DriversClient, EventLogsClient, RulesClient, resolve_api_key, resolve_endpoint, resolve_tenant_id
+from .api import (
+    APIClientOptions,
+    DriversClient,
+    EventLogsClient,
+    RulesClient,
+    resolve_api_key,
+    resolve_endpoint,
+    resolve_tenant_id,
+)
 from .client import ClientProvider
 from .codec import Codec, DefaultCodec
 from .context import WorkerContext
@@ -21,12 +29,22 @@ ContextualHandler = Callable[[WorkerContext, Event], Any]
 Middleware = Callable[[ContextualHandler], ContextualHandler]
 
 
-class Logger(Protocol):
-    def printf(self, fmt: str, *args: Any) -> None:
-        ...
+def _normalize_retry_count(value: Optional[int]) -> int:
+    if value is None:
+        return 0
+    try:
+        num = int(value)
+    except Exception:
+        return 0
+    if num < 0:
+        return 0
+    return num
 
-    def Printf(self, fmt: str, *args: Any) -> None:
-        ...
+
+class Logger(Protocol):
+    def printf(self, fmt: str, *args: Any) -> None: ...
+
+    def Printf(self, fmt: str, *args: Any) -> None: ...
 
 
 @dataclass
@@ -38,6 +56,7 @@ class WorkerOptions:
     concurrency: Optional[int] = None
     middleware: Optional[List[Middleware]] = None
     retry: Optional[RetryPolicy] = None
+    retry_count: Optional[int] = None
     listeners: Optional[List[Listener]] = None
     client_provider: Optional[ClientProvider] = None
     endpoint: Optional[str] = None
@@ -57,6 +76,7 @@ class Worker:
         self.subscriber = options.subscriber
         self.codec = options.codec or DefaultCodec()
         self.retry = options.retry or NoRetry()
+        self.retry_count = _normalize_retry_count(options.retry_count)
         self.logger = options.logger or _StdLogger()
         self.concurrency = max(1, int(options.concurrency or 1))
         self.middleware = list(options.middleware or [])
@@ -67,7 +87,9 @@ class Worker:
         self.oauth2_config = resolve_oauth2_config(options.oauth2_config)
         self.tenant_id = resolve_tenant_id(options.tenant_id or "")
         self.default_driver_id = (options.default_driver_id or "").strip()
-        self.validate = True if options.validate_topics is None else bool(options.validate_topics)
+        self.validate = (
+            True if options.validate_topics is None else bool(options.validate_topics)
+        )
 
         self.topic_handlers: Dict[str, ContextualHandler] = {}
         self.topic_drivers: Dict[str, str] = {}
@@ -103,6 +125,8 @@ class Worker:
             self.middleware = list(options.middleware)
         if options.retry is not None:
             self.retry = options.retry
+        if options.retry_count is not None:
+            self.retry_count = _normalize_retry_count(options.retry_count)
         if options.listeners is not None:
             self.listeners = list(options.listeners)
         if options.client_provider is not None:
@@ -121,7 +145,12 @@ class Worker:
             self.validate = bool(options.validate_topics)
         if options.topics:
             self.add_topics(options.topics)
-        if options.client_provider is not None or options.oauth2_config is not None or options.endpoint is not None or options.api_key is not None:
+        if (
+            options.client_provider is not None
+            or options.oauth2_config is not None
+            or options.endpoint is not None
+            or options.api_key is not None
+        ):
             self.bind_client_provider()
 
     def Apply(self, options: WorkerOptions) -> None:
@@ -135,7 +164,12 @@ class Worker:
             self.topics.append(trimmed)
             self.allowed_topics.add(trimmed)
 
-    def handle_topic(self, topic: str, driver_or_handler: Union[str, Handler], handler: Optional[Handler] = None) -> None:
+    def handle_topic(
+        self,
+        topic: str,
+        driver_or_handler: Union[str, Handler],
+        handler: Optional[Handler] = None,
+    ) -> None:
         trimmed = (topic or "").strip()
         if not trimmed:
             return
@@ -163,7 +197,12 @@ class Worker:
             self.topic_drivers[trimmed] = driver_id
         self.topics.append(trimmed)
 
-    def HandleTopic(self, topic: str, driver_or_handler: Union[str, Handler], handler: Optional[Handler] = None) -> None:
+    def HandleTopic(
+        self,
+        topic: str,
+        driver_or_handler: Union[str, Handler],
+        handler: Optional[Handler] = None,
+    ) -> None:
         self.handle_topic(topic, driver_or_handler, handler)
 
     def handle_type(self, event_type: str, handler: Handler) -> None:
@@ -223,7 +262,9 @@ class Worker:
     def Close(self) -> None:
         self.close()
 
-    def resolve_context(self, ctx: Optional[Union[WorkerContext, threading.Event]]) -> WorkerContext:
+    def resolve_context(
+        self, ctx: Optional[Union[WorkerContext, threading.Event]]
+    ) -> WorkerContext:
         if ctx is None:
             return WorkerContext(tenant_id=self.tenant_id)
         if isinstance(ctx, WorkerContext):
@@ -239,29 +280,44 @@ class Worker:
             return WorkerContext(tenant_id=self.tenant_id, signal=ctx)
         return WorkerContext(tenant_id=self.tenant_id)
 
-    def run_with_subscriber(self, ctx: WorkerContext, sub: Subscriber, topics: List[str]) -> None:
+    def run_with_subscriber(
+        self, ctx: WorkerContext, sub: Subscriber, topics: List[str]
+    ) -> None:
         self.notify_start(ctx)
         try:
             self._run_topic_subscribers(ctx, sub, topics)
         finally:
             self.notify_exit(ctx)
 
-    def run_driver_subscribers(self, ctx: WorkerContext, driver_topics: Dict[str, List[str]]) -> None:
+    def run_driver_subscribers(
+        self, ctx: WorkerContext, driver_topics: Dict[str, List[str]]
+    ) -> None:
         self.notify_start(ctx)
         try:
             tasks: List[Callable[[], None]] = []
             for driver_id, topics in driver_topics.items():
                 sub = self.driver_subs.get(driver_id)
                 if sub is None:
-                    raise ValueError(f"subscriber not initialized for driver: {driver_id}")
+                    raise ValueError(
+                        f"subscriber not initialized for driver: {driver_id}"
+                    )
                 for topic in _unique(topics):
-                    tasks.append(lambda sub=sub, topic=topic: self._run_topic_subscriber(ctx, sub, topic))
+                    tasks.append(
+                        lambda sub=sub, topic=topic: self._run_topic_subscriber(
+                            ctx, sub, topic
+                        )
+                    )
             self._run_tasks(ctx, tasks)
         finally:
             self.notify_exit(ctx)
 
-    def _run_topic_subscribers(self, ctx: WorkerContext, sub: Subscriber, topics: List[str]) -> None:
-        tasks = [lambda sub=sub, topic=topic: self._run_topic_subscriber(ctx, sub, topic) for topic in topics]
+    def _run_topic_subscribers(
+        self, ctx: WorkerContext, sub: Subscriber, topics: List[str]
+    ) -> None:
+        tasks = [
+            lambda sub=sub, topic=topic: self._run_topic_subscriber(ctx, sub, topic)
+            for topic in topics
+        ]
         self._run_tasks(ctx, tasks)
 
     def _run_tasks(self, ctx: WorkerContext, tasks: List[Callable[[], None]]) -> None:
@@ -277,12 +333,16 @@ class Worker:
                 if ctx.signal is not None:
                     ctx.signal.set()
 
-        threads = [threading.Thread(target=wrap, args=(task,), daemon=True) for task in tasks]
+        threads = [
+            threading.Thread(target=wrap, args=(task,), daemon=True) for task in tasks
+        ]
         for t in threads:
             t.start()
 
         if ctx.signal is not None:
-            watcher = threading.Thread(target=self._wait_for_signal, args=(ctx.signal,), daemon=True)
+            watcher = threading.Thread(
+                target=self._wait_for_signal, args=(ctx.signal,), daemon=True
+            )
             watcher.start()
 
         for t in threads:
@@ -295,7 +355,9 @@ class Worker:
         signal.wait()
         self.close()
 
-    def _run_topic_subscriber(self, ctx: WorkerContext, sub: Subscriber, topic: str) -> None:
+    def _run_topic_subscriber(
+        self, ctx: WorkerContext, sub: Subscriber, topic: str
+    ) -> None:
         def handler(msg: RelaybusMessage) -> Optional[bool]:
             with self.semaphore:
                 relay_msg = coerce_message(msg)
@@ -320,7 +382,9 @@ class Worker:
             out.setdefault(trimmed, []).append(topic)
         return out
 
-    def build_driver_subscribers(self, ctx: WorkerContext, driver_topics: Dict[str, List[str]]) -> None:
+    def build_driver_subscribers(
+        self, ctx: WorkerContext, driver_topics: Dict[str, List[str]]
+    ) -> None:
         for driver_id in driver_topics:
             if driver_id in self.driver_subs:
                 continue
@@ -333,7 +397,9 @@ class Worker:
             sub = build_subscriber(cfg)
             self.driver_subs[driver_id] = sub
 
-    def handle_message(self, ctx: WorkerContext, topic: str, msg: RelaybusMessage) -> bool:
+    def handle_message(
+        self, ctx: WorkerContext, topic: str, msg: RelaybusMessage
+    ) -> bool:
         log_id = (msg.metadata or {}).get(METADATA_KEY_LOG_ID, "")
         try:
             evt = self.codec.decode(topic, msg)
@@ -347,17 +413,28 @@ class Worker:
         event_ctx = self.build_context(ctx, topic, msg)
         if self.client_provider is not None:
             try:
-                evt.client = _resolve_client_provider(self.client_provider)(event_ctx, evt)
+                evt.client = _resolve_client_provider(self.client_provider)(
+                    event_ctx, evt
+                )
             except Exception as err:
                 _log_printf(self.logger, "client init failed: %s", err)
-                self.update_event_log_status(event_ctx, log_id, EVENT_LOG_STATUS_FAILED, err)
+                self.update_event_log_status(
+                    event_ctx, log_id, EVENT_LOG_STATUS_FAILED, err
+                )
                 self.notify_error(event_ctx, evt, err)
                 decision = _call_retry_policy(self.retry, event_ctx, evt, err)
                 return decision.retry or decision.nack
 
         req_id = evt.metadata.get(METADATA_KEY_REQUEST_ID, "")
         if req_id:
-            _log_printf(self.logger, "request_id=%s topic=%s provider=%s type=%s", req_id, evt.topic, evt.provider, evt.type)
+            _log_printf(
+                self.logger,
+                "request_id=%s topic=%s provider=%s type=%s",
+                req_id,
+                evt.topic,
+                evt.provider,
+                evt.type,
+            )
 
         self.notify_message_start(event_ctx, evt)
 
@@ -365,21 +442,34 @@ class Worker:
         if handler is None:
             _log_printf(self.logger, "no handler for topic=%s type=%s", topic, evt.type)
             self.notify_message_finish(event_ctx, evt, None)
-            self.update_event_log_status(event_ctx, log_id, EVENT_LOG_STATUS_SUCCESS, None)
+            self.update_event_log_status(
+                event_ctx, log_id, EVENT_LOG_STATUS_SUCCESS, None
+            )
             return False
 
         wrapped = self.wrap(handler)
-        try:
-            wrapped(event_ctx, evt)
+        last_err: Optional[Exception] = None
+        attempts = self.retry_count + 1
+        for _ in range(attempts):
+            try:
+                wrapped(event_ctx, evt)
+                last_err = None
+                break
+            except Exception as err:
+                last_err = err
+        if last_err is None:
             self.notify_message_finish(event_ctx, evt, None)
-            self.update_event_log_status(event_ctx, log_id, EVENT_LOG_STATUS_SUCCESS, None)
+            self.update_event_log_status(
+                event_ctx, log_id, EVENT_LOG_STATUS_SUCCESS, None
+            )
             return False
-        except Exception as err:
-            self.notify_message_finish(event_ctx, evt, err)
-            self.notify_error(event_ctx, evt, err)
-            self.update_event_log_status(event_ctx, log_id, EVENT_LOG_STATUS_FAILED, err)
-            decision = _call_retry_policy(self.retry, event_ctx, evt, err)
-            return decision.retry or decision.nack
+        self.notify_message_finish(event_ctx, evt, last_err)
+        self.notify_error(event_ctx, evt, last_err)
+        self.update_event_log_status(
+            event_ctx, log_id, EVENT_LOG_STATUS_FAILED, last_err
+        )
+        decision = _call_retry_policy(self.retry, event_ctx, evt, last_err)
+        return decision.retry or decision.nack
 
     def wrap(self, handler: ContextualHandler) -> ContextualHandler:
         wrapped = handler
@@ -387,7 +477,9 @@ class Worker:
             wrapped = mw(wrapped)
         return wrapped
 
-    def build_context(self, base: WorkerContext, topic: str, msg: RelaybusMessage) -> WorkerContext:
+    def build_context(
+        self, base: WorkerContext, topic: str, msg: RelaybusMessage
+    ) -> WorkerContext:
         metadata = msg.metadata or {}
         return WorkerContext(
             tenant_id=base.tenant_id,
@@ -450,7 +542,12 @@ class Worker:
             if not driver_id:
                 raise ValueError(f"rule {rule_id} driver_id is required")
             if topic in self.topic_handlers:
-                _log_printf(self.logger, "overwriting handler for topic=%s due to rule=%s", topic, rule_id)
+                _log_printf(
+                    self.logger,
+                    "overwriting handler for topic=%s due to rule=%s",
+                    topic,
+                    rule_id,
+                )
             self.topic_handlers[topic] = handler
             self.topic_drivers[topic] = driver_id
             self.topics.append(topic)
@@ -467,11 +564,15 @@ class Worker:
         for listener in self.listeners:
             listener.OnMessageStart(ctx, evt)
 
-    def notify_message_finish(self, ctx: WorkerContext, evt: Event, err: Optional[Exception]) -> None:
+    def notify_message_finish(
+        self, ctx: WorkerContext, evt: Event, err: Optional[Exception]
+    ) -> None:
         for listener in self.listeners:
             listener.OnMessageFinish(ctx, evt, err)
 
-    def notify_error(self, ctx: WorkerContext, evt: Optional[Event], err: Exception) -> None:
+    def notify_error(
+        self, ctx: WorkerContext, evt: Optional[Event], err: Exception
+    ) -> None:
         for listener in self.listeners:
             listener.OnError(ctx, evt, err)
 
@@ -545,6 +646,10 @@ def WithRetry(retry: RetryPolicy) -> WorkerOption:
     return lambda wk: wk.apply(WorkerOptions(retry=retry))
 
 
+def WithRetryCount(retry_count: int) -> WorkerOption:
+    return lambda wk: wk.apply(WorkerOptions(retry_count=retry_count))
+
+
 def WithLogger(logger: Logger) -> WorkerOption:
     return lambda wk: wk.apply(WorkerOptions(logger=logger))
 
@@ -605,7 +710,9 @@ def _log_printf(logger: Logger, fmt: str, *args: Any) -> None:
         print(f"githook/worker {fmt}")
 
 
-def _resolve_client_provider(provider: ClientProvider) -> Callable[[WorkerContext, Event], Any]:
+def _resolve_client_provider(
+    provider: ClientProvider,
+) -> Callable[[WorkerContext, Event], Any]:
     if hasattr(provider, "client"):
         return provider.client  # type: ignore[return-value]
     if hasattr(provider, "Client"):
@@ -619,9 +726,16 @@ def _to_context_handler(handler: Handler) -> ContextualHandler:
         params = [
             param
             for param in sig.parameters.values()
-            if param.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+            if param.kind
+            in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
         ]
-        has_varargs = any(param.kind == inspect.Parameter.VAR_POSITIONAL for param in sig.parameters.values())
+        has_varargs = any(
+            param.kind == inspect.Parameter.VAR_POSITIONAL
+            for param in sig.parameters.values()
+        )
         if has_varargs or len(params) >= 2:
             return handler  # type: ignore[return-value]
     except (ValueError, TypeError):
@@ -630,7 +744,9 @@ def _to_context_handler(handler: Handler) -> ContextualHandler:
     return lambda _ctx, evt: handler(evt)  # type: ignore[misc]
 
 
-def _call_retry_policy(policy: RetryPolicy, ctx: WorkerContext, evt: Optional[Event], err: Exception):
+def _call_retry_policy(
+    policy: RetryPolicy, ctx: WorkerContext, evt: Optional[Event], err: Exception
+):
     if hasattr(policy, "OnError"):
         return normalize_retry_decision(policy.OnError(ctx, evt, err))
     return normalize_retry_decision(policy.on_error(ctx, evt, err))

@@ -50,6 +50,15 @@ func WithRetry(policy RetryPolicy) Option {
 	}
 }
 
+func WithRetryCount(count int) Option {
+	return func(w *Worker) {
+		if count < 0 {
+			count = 0
+		}
+		w.retryCount = count
+	}
+}
+
 // WithLogger sets the logger for the worker.
 func WithLogger(l Logger) Option {
 	return func(w *Worker) {
