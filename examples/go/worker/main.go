@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"os"
 	"os/signal"
@@ -67,6 +68,9 @@ func main() {
 
 		provider := strings.ToLower(strings.TrimSpace(evt.Provider))
 		log.Printf("handler topic=%s provider=%s type=%s retry_count=%d concurrency=%d", evt.Topic, provider, evt.Type, retryCount, concurrency)
+		if payload, err := json.Marshal(evt.Normalized); err == nil {
+			log.Printf("event normalized=%s", string(payload))
+		}
 
 		switch provider {
 		case "github":

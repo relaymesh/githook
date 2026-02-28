@@ -34,13 +34,18 @@ func applyRuleTransform(event core.Event, transformJS string) (core.Event, error
 	if err := json.Unmarshal(payload, &input); err != nil {
 		return event, err
 	}
+	ctx := transformEventContext(event, input)
+	if err := vm.Set("event", ctx); err != nil {
+		return event, fmt.Errorf("set transform event context: %w", err)
+	}
 
-	result, err := transform(goja.Undefined(), vm.ToValue(input))
+	result, err := transform(goja.Undefined(), vm.ToValue(input), vm.ToValue(ctx))
 	if err != nil {
 		return event, fmt.Errorf("execute transform_js: %w", err)
 	}
+	outPayload := transformOutputPayload(result.Export())
 
-	out, err := json.Marshal(result.Export())
+	out, err := json.Marshal(outPayload)
 	if err != nil {
 		return event, fmt.Errorf("marshal transformed payload: %w", err)
 	}
@@ -48,6 +53,33 @@ func applyRuleTransform(event core.Event, transformJS string) (core.Event, error
 	event.RawPayload = out
 	event.RawObject = nil
 	return event, nil
+}
+
+func transformEventContext(event core.Event, payload any) map[string]any {
+	ctx := map[string]any{
+		"provider":              event.Provider,
+		"name":                  event.Name,
+		"request_id":            event.RequestID,
+		"state_id":              event.StateID,
+		"tenant_id":             event.TenantID,
+		"installation_id":       event.InstallationID,
+		"provider_instance_key": event.ProviderInstanceKey,
+		"namespace_id":          event.NamespaceID,
+		"namespace_name":        event.NamespaceName,
+		"headers":               event.Headers,
+		"data":                  event.Data,
+		"payload":               payload,
+	}
+	return ctx
+}
+
+func transformOutputPayload(result any) any {
+	if m, ok := result.(map[string]any); ok {
+		if payload, exists := m["payload"]; exists {
+			return payload
+		}
+	}
+	return result
 }
 
 func eventPayloadJSON(event core.Event) ([]byte, error) {

@@ -45,6 +45,31 @@ func TestApplyRuleTransform(t *testing.T) {
 	if _, err := applyRuleTransform(evt, `({ value: 1 })`); err == nil {
 		t.Fatalf("expected missing transform function")
 	}
+
+	ctxEvt := core.Event{RawPayload: []byte(`{"ref":"refs/heads/main"}`), Provider: "github", Name: "push", RequestID: "req-1"}
+	ctxOut, err := applyRuleTransform(ctxEvt, `function transform(payload, event){ payload.provider = event.provider; payload.request = event.request_id; return payload; }`)
+	if err != nil {
+		t.Fatalf("apply transform with event context: %v", err)
+	}
+	var ctxPayload map[string]interface{}
+	if err := json.Unmarshal(ctxOut.RawPayload, &ctxPayload); err != nil {
+		t.Fatalf("unmarshal context payload: %v", err)
+	}
+	if ctxPayload["provider"] != "github" || ctxPayload["request"] != "req-1" {
+		t.Fatalf("expected event context fields, got %v", ctxPayload)
+	}
+
+	envOut, err := applyRuleTransform(ctxEvt, `function transform(payload, event){ event.payload.ref_name = "main"; return event; }`)
+	if err != nil {
+		t.Fatalf("apply transform returning event envelope: %v", err)
+	}
+	var envPayload map[string]interface{}
+	if err := json.Unmarshal(envOut.RawPayload, &envPayload); err != nil {
+		t.Fatalf("unmarshal envelope payload: %v", err)
+	}
+	if envPayload["ref_name"] != "main" {
+		t.Fatalf("expected payload extracted from envelope, got %v", envPayload)
+	}
 }
 
 func TestPublishMatchesWithFallbackAppliesTransform(t *testing.T) {
