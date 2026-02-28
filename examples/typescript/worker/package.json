@@ -3,11 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prepare:sdk": "npm --prefix ../../../sdk/typescript/worker install && npm --prefix ../../../sdk/typescript/worker run build",
+    "prepare:relaybus": "node scripts/prepare-relaybus.mjs",
+    "postinstall": "npm run prepare:sdk && npm run prepare:relaybus",
+    "prestart": "npm run prepare:sdk && npm run prepare:relaybus",
     "start": "ts-node --esm index.ts"
   },
   "dependencies": {
-    "@relaymesh/githook": "^0.0.11",
-    "@relaymesh/relaybus-amqp": "^0.0.8"
+    "@relaymesh/githook": "file:../../../sdk/typescript/worker"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

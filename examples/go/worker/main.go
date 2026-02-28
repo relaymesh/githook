@@ -26,6 +26,7 @@ func main() {
 
 	wk := worker.New(
 		worker.WithEndpoint(endpoint),
+		worker.WithClientProvider(worker.NewRemoteSCMClientProvider()),
 	)
 
 	wk.HandleRule(ruleID, func(ctx context.Context, evt *worker.Event) error {
@@ -36,7 +37,7 @@ func main() {
 
 		ghClient, ok := worker.GitHubClient(evt)
 		if !ok {
-			log.Printf("github client unavailable for provider=%s", evt.Provider)
+			log.Printf("github client not available for provider=%s (installation may not be configured)", evt.Provider)
 			return nil
 		}
 

@@ -23,7 +23,7 @@ setup(
     long_description=read_readme(),
     long_description_content_type="text/markdown",
     python_requires=">=3.9",
-    packages=find_packages(where=".", include=["relaymesh_githook*", "cloud*"]),
+    packages=find_packages(where=".", include=["relaymesh_githook*", "cloud*", "buf*"]),
     install_requires=[
         "protobuf>=4.21.0",
         "relaybus-amqp",

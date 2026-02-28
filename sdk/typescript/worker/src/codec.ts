@@ -54,7 +54,7 @@ export class DefaultCodec implements Codec {
       }
     }
 
-    const metadata: Record<string, string> = { ...(msg.metadata ?? {}) };
+    const metadata: Record<string, string> = { ...(msg.metadata ?? (msg as Record<string, unknown>)["meta"] as Record<string, string> ?? {}) };
     if (!provider) {
       provider = metadata[MetadataKeyProvider] ?? "";
     }

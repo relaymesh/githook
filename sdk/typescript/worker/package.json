@@ -1,6 +1,6 @@
 {
   "name": "@relaymesh/githook",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,9 +16,9 @@
   },
   "dependencies": {
     "@bufbuild/protobuf": "^1.10.0",
-    "@relaymesh/relaybus-amqp": "^0.0.5",
-    "@relaymesh/relaybus-kafka": "^0.0.5",
-    "@relaymesh/relaybus-nats": "^0.0.5"
+    "@relaymesh/relaybus-amqp": "0.0.9",
+    "@relaymesh/relaybus-kafka": "0.0.9",
+    "@relaymesh/relaybus-nats": "0.0.9"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

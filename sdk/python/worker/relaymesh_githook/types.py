@@ -13,7 +13,7 @@ class RelaybusMessage:
 def coerce_message(msg: object) -> RelaybusMessage:
     topic = getattr(msg, "topic", "") or ""
     payload = getattr(msg, "payload", b"") or b""
-    metadata = getattr(msg, "metadata", None)
+    metadata = getattr(msg, "metadata", None) or getattr(msg, "meta", None)
     content_type = getattr(msg, "content_type", "") or ""
     if metadata is None:
         metadata = {}

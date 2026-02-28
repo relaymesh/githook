@@ -143,12 +143,16 @@ class _RelaybusSubscriber(Subscriber):
                 exchange=self.cfg.amqp.exchange,
                 routing_key_template=self.cfg.amqp.routing_key_template,
                 queue=self.cfg.amqp.queue,
-                auto_ack=self.cfg.amqp.auto_ack,
-                max_messages=self.cfg.amqp.max_messages,
                 on_message=on_message,
             )
         )
-        self._inner.start(topic)
+        while True:
+            try:
+                self._inner.start(topic)
+            except TimeoutError:
+                continue
+            except Exception:
+                break
 
     def _start_nats(self, topic: str, handler: MessageHandler) -> None:
         if not self.cfg.nats.url:
@@ -165,11 +169,16 @@ class _RelaybusSubscriber(Subscriber):
             NatsSubscriberConnectConfig(
                 url=self.cfg.nats.url,
                 subject_prefix=self.cfg.nats.subject_prefix,
-                max_messages=self.cfg.nats.max_messages,
                 on_message=on_message,
             )
         )
-        self._inner.start(topic)
+        while True:
+            try:
+                self._inner.start(topic)
+            except TimeoutError:
+                continue
+            except Exception:
+                break
 
     def _start_kafka(self, topic: str, handler: MessageHandler) -> None:
         from relaybus_kafka import KafkaSubscriber, KafkaSubscriberConnectConfig
@@ -197,7 +206,13 @@ class _RelaybusSubscriber(Subscriber):
         kafka_topic = topic
         if self.cfg.kafka.topic_prefix:
             kafka_topic = f"{self.cfg.kafka.topic_prefix}{topic}"
-        self._inner.start(kafka_topic)
+        while True:
+            try:
+                self._inner.start(kafka_topic)
+            except TimeoutError:
+                continue
+            except Exception:
+                break
 
 
 class _MultiSubscriber(Subscriber):
