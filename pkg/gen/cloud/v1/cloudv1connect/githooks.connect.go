@@ -5,13 +5,12 @@
 package cloudv1connect
 
 import (
+	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
+	v1 "githook/pkg/gen/cloud/v1"
 	http "net/http"
 	strings "strings"
-
-	connect "connectrpc.com/connect"
-	v1 "github.com/relaymesh/githook/pkg/gen/cloud/v1"
 )
 
 // This is a compile-time assertion to ensure that this generated file and the connect package are
@@ -127,9 +126,15 @@ const (
 
 // InstallationsServiceClient is a client for the cloud.v1.InstallationsService service.
 type InstallationsServiceClient interface {
+	// ListInstallations returns all installations visible to the tenant.
+	// Filter by provider or state_id (account) to narrow results.
 	ListInstallations(context.Context, *connect.Request[v1.ListInstallationsRequest]) (*connect.Response[v1.ListInstallationsResponse], error)
+	// GetInstallationByID fetches a single installation by provider + installation_id.
 	GetInstallationByID(context.Context, *connect.Request[v1.GetInstallationByIDRequest]) (*connect.Response[v1.GetInstallationByIDResponse], error)
+	// UpsertInstallation creates or updates an installation record.
+	// Used by OAuth callback handlers after a user authorizes the app.
 	UpsertInstallation(context.Context, *connect.Request[v1.UpsertInstallationRequest]) (*connect.Response[v1.UpsertInstallationResponse], error)
+	// DeleteInstallation removes an installation and revokes its stored credentials.
 	DeleteInstallation(context.Context, *connect.Request[v1.DeleteInstallationRequest]) (*connect.Response[v1.DeleteInstallationResponse], error)
 }
 
@@ -201,9 +206,15 @@ func (c *installationsServiceClient) DeleteInstallation(ctx context.Context, req
 
 // InstallationsServiceHandler is an implementation of the cloud.v1.InstallationsService service.
 type InstallationsServiceHandler interface {
+	// ListInstallations returns all installations visible to the tenant.
+	// Filter by provider or state_id (account) to narrow results.
 	ListInstallations(context.Context, *connect.Request[v1.ListInstallationsRequest]) (*connect.Response[v1.ListInstallationsResponse], error)
+	// GetInstallationByID fetches a single installation by provider + installation_id.
 	GetInstallationByID(context.Context, *connect.Request[v1.GetInstallationByIDRequest]) (*connect.Response[v1.GetInstallationByIDResponse], error)
+	// UpsertInstallation creates or updates an installation record.
+	// Used by OAuth callback handlers after a user authorizes the app.
 	UpsertInstallation(context.Context, *connect.Request[v1.UpsertInstallationRequest]) (*connect.Response[v1.UpsertInstallationResponse], error)
+	// DeleteInstallation removes an installation and revokes its stored credentials.
 	DeleteInstallation(context.Context, *connect.Request[v1.DeleteInstallationRequest]) (*connect.Response[v1.DeleteInstallationResponse], error)
 }
 
@@ -275,9 +286,17 @@ func (UnimplementedInstallationsServiceHandler) DeleteInstallation(context.Conte
 
 // NamespacesServiceClient is a client for the cloud.v1.NamespacesService service.
 type NamespacesServiceClient interface {
+	// ListNamespaces returns known repos for the tenant. Filter by provider,
+	// owner, repo name, or full_name to narrow results.
 	ListNamespaces(context.Context, *connect.Request[v1.ListNamespacesRequest]) (*connect.Response[v1.ListNamespacesResponse], error)
+	// SyncNamespaces fetches the current repo list from the SCM provider and
+	// upserts it into local storage. Returns the refreshed namespace set.
 	SyncNamespaces(context.Context, *connect.Request[v1.SyncNamespacesRequest]) (*connect.Response[v1.SyncNamespacesResponse], error)
+	// GetNamespaceWebhook returns whether the webhook is currently registered
+	// on the given repo in the SCM provider.
 	GetNamespaceWebhook(context.Context, *connect.Request[v1.GetNamespaceWebhookRequest]) (*connect.Response[v1.GetNamespaceWebhookResponse], error)
+	// SetNamespaceWebhook registers or deregisters the githook webhook URL on
+	// the given repo. Set enabled=true to register, false to remove.
 	SetNamespaceWebhook(context.Context, *connect.Request[v1.SetNamespaceWebhookRequest]) (*connect.Response[v1.SetNamespaceWebhookResponse], error)
 }
 
@@ -349,9 +368,17 @@ func (c *namespacesServiceClient) SetNamespaceWebhook(ctx context.Context, req *
 
 // NamespacesServiceHandler is an implementation of the cloud.v1.NamespacesService service.
 type NamespacesServiceHandler interface {
+	// ListNamespaces returns known repos for the tenant. Filter by provider,
+	// owner, repo name, or full_name to narrow results.
 	ListNamespaces(context.Context, *connect.Request[v1.ListNamespacesRequest]) (*connect.Response[v1.ListNamespacesResponse], error)
+	// SyncNamespaces fetches the current repo list from the SCM provider and
+	// upserts it into local storage. Returns the refreshed namespace set.
 	SyncNamespaces(context.Context, *connect.Request[v1.SyncNamespacesRequest]) (*connect.Response[v1.SyncNamespacesResponse], error)
+	// GetNamespaceWebhook returns whether the webhook is currently registered
+	// on the given repo in the SCM provider.
 	GetNamespaceWebhook(context.Context, *connect.Request[v1.GetNamespaceWebhookRequest]) (*connect.Response[v1.GetNamespaceWebhookResponse], error)
+	// SetNamespaceWebhook registers or deregisters the githook webhook URL on
+	// the given repo. Set enabled=true to register, false to remove.
 	SetNamespaceWebhook(context.Context, *connect.Request[v1.SetNamespaceWebhookRequest]) (*connect.Response[v1.SetNamespaceWebhookResponse], error)
 }
 
@@ -423,11 +450,18 @@ func (UnimplementedNamespacesServiceHandler) SetNamespaceWebhook(context.Context
 
 // RulesServiceClient is a client for the cloud.v1.RulesService service.
 type RulesServiceClient interface {
+	// MatchRules evaluates a set of rules against an event payload and returns
+	// the subset that matched. Useful for testing rules before persisting them.
 	MatchRules(context.Context, *connect.Request[v1.MatchRulesRequest]) (*connect.Response[v1.MatchRulesResponse], error)
+	// ListRules returns all rules for the tenant.
 	ListRules(context.Context, *connect.Request[v1.ListRulesRequest]) (*connect.Response[v1.ListRulesResponse], error)
+	// GetRule fetches a single rule by its server-assigned ID.
 	GetRule(context.Context, *connect.Request[v1.GetRuleRequest]) (*connect.Response[v1.GetRuleResponse], error)
+	// CreateRule persists a new rule. The server assigns an ID and timestamps.
 	CreateRule(context.Context, *connect.Request[v1.CreateRuleRequest]) (*connect.Response[v1.CreateRuleResponse], error)
+	// UpdateRule replaces the when/emit/driver_id fields of an existing rule.
 	UpdateRule(context.Context, *connect.Request[v1.UpdateRuleRequest]) (*connect.Response[v1.UpdateRuleResponse], error)
+	// DeleteRule removes a rule. In-flight events already matched are unaffected.
 	DeleteRule(context.Context, *connect.Request[v1.DeleteRuleRequest]) (*connect.Response[v1.DeleteRuleResponse], error)
 }
 
@@ -523,11 +557,18 @@ func (c *rulesServiceClient) DeleteRule(ctx context.Context, req *connect.Reques
 
 // RulesServiceHandler is an implementation of the cloud.v1.RulesService service.
 type RulesServiceHandler interface {
+	// MatchRules evaluates a set of rules against an event payload and returns
+	// the subset that matched. Useful for testing rules before persisting them.
 	MatchRules(context.Context, *connect.Request[v1.MatchRulesRequest]) (*connect.Response[v1.MatchRulesResponse], error)
+	// ListRules returns all rules for the tenant.
 	ListRules(context.Context, *connect.Request[v1.ListRulesRequest]) (*connect.Response[v1.ListRulesResponse], error)
+	// GetRule fetches a single rule by its server-assigned ID.
 	GetRule(context.Context, *connect.Request[v1.GetRuleRequest]) (*connect.Response[v1.GetRuleResponse], error)
+	// CreateRule persists a new rule. The server assigns an ID and timestamps.
 	CreateRule(context.Context, *connect.Request[v1.CreateRuleRequest]) (*connect.Response[v1.CreateRuleResponse], error)
+	// UpdateRule replaces the when/emit/driver_id fields of an existing rule.
 	UpdateRule(context.Context, *connect.Request[v1.UpdateRuleRequest]) (*connect.Response[v1.UpdateRuleResponse], error)
+	// DeleteRule removes a rule. In-flight events already matched are unaffected.
 	DeleteRule(context.Context, *connect.Request[v1.DeleteRuleRequest]) (*connect.Response[v1.DeleteRuleResponse], error)
 }
 
@@ -623,9 +664,15 @@ func (UnimplementedRulesServiceHandler) DeleteRule(context.Context, *connect.Req
 
 // DriversServiceClient is a client for the cloud.v1.DriversService service.
 type DriversServiceClient interface {
+	// ListDrivers returns all driver configs for the tenant.
 	ListDrivers(context.Context, *connect.Request[v1.ListDriversRequest]) (*connect.Response[v1.ListDriversResponse], error)
+	// GetDriver fetches a single driver by name.
 	GetDriver(context.Context, *connect.Request[v1.GetDriverRequest]) (*connect.Response[v1.GetDriverResponse], error)
+	// UpsertDriver creates or updates a driver config. The name field is the
+	// stable identifier; re-submitting with the same name updates in place.
 	UpsertDriver(context.Context, *connect.Request[v1.UpsertDriverRequest]) (*connect.Response[v1.UpsertDriverResponse], error)
+	// DeleteDriver removes a driver config. Rules that reference this driver
+	// will stop publishing until updated to point at a valid driver.
 	DeleteDriver(context.Context, *connect.Request[v1.DeleteDriverRequest]) (*connect.Response[v1.DeleteDriverResponse], error)
 }
 
@@ -697,9 +744,15 @@ func (c *driversServiceClient) DeleteDriver(ctx context.Context, req *connect.Re
 
 // DriversServiceHandler is an implementation of the cloud.v1.DriversService service.
 type DriversServiceHandler interface {
+	// ListDrivers returns all driver configs for the tenant.
 	ListDrivers(context.Context, *connect.Request[v1.ListDriversRequest]) (*connect.Response[v1.ListDriversResponse], error)
+	// GetDriver fetches a single driver by name.
 	GetDriver(context.Context, *connect.Request[v1.GetDriverRequest]) (*connect.Response[v1.GetDriverResponse], error)
+	// UpsertDriver creates or updates a driver config. The name field is the
+	// stable identifier; re-submitting with the same name updates in place.
 	UpsertDriver(context.Context, *connect.Request[v1.UpsertDriverRequest]) (*connect.Response[v1.UpsertDriverResponse], error)
+	// DeleteDriver removes a driver config. Rules that reference this driver
+	// will stop publishing until updated to point at a valid driver.
 	DeleteDriver(context.Context, *connect.Request[v1.DeleteDriverRequest]) (*connect.Response[v1.DeleteDriverResponse], error)
 }
 
@@ -771,9 +824,16 @@ func (UnimplementedDriversServiceHandler) DeleteDriver(context.Context, *connect
 
 // ProvidersServiceClient is a client for the cloud.v1.ProvidersService service.
 type ProvidersServiceClient interface {
+	// ListProviders returns all provider configs for the tenant.
+	// Filter by provider name (e.g. "github") to narrow results.
 	ListProviders(context.Context, *connect.Request[v1.ListProvidersRequest]) (*connect.Response[v1.ListProvidersResponse], error)
+	// GetProvider fetches a single provider config by provider name + hash.
 	GetProvider(context.Context, *connect.Request[v1.GetProviderRequest]) (*connect.Response[v1.GetProviderResponse], error)
+	// UpsertProvider creates or updates a provider config. The hash is
+	// server-generated on first create; include it on subsequent calls to update.
 	UpsertProvider(context.Context, *connect.Request[v1.UpsertProviderRequest]) (*connect.Response[v1.UpsertProviderResponse], error)
+	// DeleteProvider removes a provider config. Existing installations that
+	// reference this provider instance will no longer be able to refresh tokens.
 	DeleteProvider(context.Context, *connect.Request[v1.DeleteProviderRequest]) (*connect.Response[v1.DeleteProviderResponse], error)
 }
 
@@ -845,9 +905,16 @@ func (c *providersServiceClient) DeleteProvider(ctx context.Context, req *connec
 
 // ProvidersServiceHandler is an implementation of the cloud.v1.ProvidersService service.
 type ProvidersServiceHandler interface {
+	// ListProviders returns all provider configs for the tenant.
+	// Filter by provider name (e.g. "github") to narrow results.
 	ListProviders(context.Context, *connect.Request[v1.ListProvidersRequest]) (*connect.Response[v1.ListProvidersResponse], error)
+	// GetProvider fetches a single provider config by provider name + hash.
 	GetProvider(context.Context, *connect.Request[v1.GetProviderRequest]) (*connect.Response[v1.GetProviderResponse], error)
+	// UpsertProvider creates or updates a provider config. The hash is
+	// server-generated on first create; include it on subsequent calls to update.
 	UpsertProvider(context.Context, *connect.Request[v1.UpsertProviderRequest]) (*connect.Response[v1.UpsertProviderResponse], error)
+	// DeleteProvider removes a provider config. Existing installations that
+	// reference this provider instance will no longer be able to refresh tokens.
 	DeleteProvider(context.Context, *connect.Request[v1.DeleteProviderRequest]) (*connect.Response[v1.DeleteProviderResponse], error)
 }
 
@@ -919,6 +986,9 @@ func (UnimplementedProvidersServiceHandler) DeleteProvider(context.Context, *con
 
 // SCMServiceClient is a client for the cloud.v1.SCMService service.
 type SCMServiceClient interface {
+	// GetSCMClient returns a ready-to-use SCM client credential for the given
+	// installation. The access_token may be refreshed server-side before return.
+	// Workers should treat the token as short-lived and re-fetch as needed.
 	GetSCMClient(context.Context, *connect.Request[v1.GetSCMClientRequest]) (*connect.Response[v1.GetSCMClientResponse], error)
 }
 
@@ -954,6 +1024,9 @@ func (c *sCMServiceClient) GetSCMClient(ctx context.Context, req *connect.Reques
 
 // SCMServiceHandler is an implementation of the cloud.v1.SCMService service.
 type SCMServiceHandler interface {
+	// GetSCMClient returns a ready-to-use SCM client credential for the given
+	// installation. The access_token may be refreshed server-side before return.
+	// Workers should treat the token as short-lived and re-fetch as needed.
 	GetSCMClient(context.Context, *connect.Request[v1.GetSCMClientRequest]) (*connect.Response[v1.GetSCMClientResponse], error)
 }
 
@@ -989,10 +1062,21 @@ func (UnimplementedSCMServiceHandler) GetSCMClient(context.Context, *connect.Req
 
 // EventLogsServiceClient is a client for the cloud.v1.EventLogsService service.
 type EventLogsServiceClient interface {
+	// ListEventLogs returns paginated event log records. Supports rich filtering
+	// by provider, topic, rule, namespace, time range, and match status.
+	// Use page_size + page_token for cursor-based pagination (max 200 per page).
 	ListEventLogs(context.Context, *connect.Request[v1.ListEventLogsRequest]) (*connect.Response[v1.ListEventLogsResponse], error)
+	// GetEventLogAnalytics returns aggregate counts over a filtered event set.
+	// Useful for dashboards showing total events, match rates, and breakdowns.
 	GetEventLogAnalytics(context.Context, *connect.Request[v1.GetEventLogAnalyticsRequest]) (*connect.Response[v1.GetEventLogAnalyticsResponse], error)
+	// GetEventLogTimeseries returns event counts bucketed by time interval
+	// (hour/day/week). Useful for trend charts. interval is required.
 	GetEventLogTimeseries(context.Context, *connect.Request[v1.GetEventLogTimeseriesRequest]) (*connect.Response[v1.GetEventLogTimeseriesResponse], error)
+	// GetEventLogBreakdown returns per-key counts grouped by a chosen dimension
+	// (provider, rule, namespace, etc.). Supports sorting and pagination.
 	GetEventLogBreakdown(context.Context, *connect.Request[v1.GetEventLogBreakdownRequest]) (*connect.Response[v1.GetEventLogBreakdownResponse], error)
+	// UpdateEventLogStatus lets workers report delivery outcome back to the server.
+	// Valid status values: "queued", "delivered", "success", "failed".
 	UpdateEventLogStatus(context.Context, *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error)
 }
 
@@ -1076,10 +1160,21 @@ func (c *eventLogsServiceClient) UpdateEventLogStatus(ctx context.Context, req *
 
 // EventLogsServiceHandler is an implementation of the cloud.v1.EventLogsService service.
 type EventLogsServiceHandler interface {
+	// ListEventLogs returns paginated event log records. Supports rich filtering
+	// by provider, topic, rule, namespace, time range, and match status.
+	// Use page_size + page_token for cursor-based pagination (max 200 per page).
 	ListEventLogs(context.Context, *connect.Request[v1.ListEventLogsRequest]) (*connect.Response[v1.ListEventLogsResponse], error)
+	// GetEventLogAnalytics returns aggregate counts over a filtered event set.
+	// Useful for dashboards showing total events, match rates, and breakdowns.
 	GetEventLogAnalytics(context.Context, *connect.Request[v1.GetEventLogAnalyticsRequest]) (*connect.Response[v1.GetEventLogAnalyticsResponse], error)
+	// GetEventLogTimeseries returns event counts bucketed by time interval
+	// (hour/day/week). Useful for trend charts. interval is required.
 	GetEventLogTimeseries(context.Context, *connect.Request[v1.GetEventLogTimeseriesRequest]) (*connect.Response[v1.GetEventLogTimeseriesResponse], error)
+	// GetEventLogBreakdown returns per-key counts grouped by a chosen dimension
+	// (provider, rule, namespace, etc.). Supports sorting and pagination.
 	GetEventLogBreakdown(context.Context, *connect.Request[v1.GetEventLogBreakdownRequest]) (*connect.Response[v1.GetEventLogBreakdownResponse], error)
+	// UpdateEventLogStatus lets workers report delivery outcome back to the server.
+	// Valid status values: "queued", "delivered", "success", "failed".
 	UpdateEventLogStatus(context.Context, *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error)
 }
 

@@ -28,10 +28,21 @@ const (
 // InstallationsServiceClient is the client API for InstallationsService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// InstallationsService manages OAuth app installations per tenant.
+// An installation represents a GitHub App, GitLab OAuth app, or Bitbucket
+// OAuth consumer that has been authorized for a specific account. All RPCs
+// are scoped to the calling tenant via the X-Tenant-ID request header.
 type InstallationsServiceClient interface {
+	// ListInstallations returns all installations visible to the tenant.
+	// Filter by provider or state_id (account) to narrow results.
 	ListInstallations(ctx context.Context, in *ListInstallationsRequest, opts ...grpc.CallOption) (*ListInstallationsResponse, error)
+	// GetInstallationByID fetches a single installation by provider + installation_id.
 	GetInstallationByID(ctx context.Context, in *GetInstallationByIDRequest, opts ...grpc.CallOption) (*GetInstallationByIDResponse, error)
+	// UpsertInstallation creates or updates an installation record.
+	// Used by OAuth callback handlers after a user authorizes the app.
 	UpsertInstallation(ctx context.Context, in *UpsertInstallationRequest, opts ...grpc.CallOption) (*UpsertInstallationResponse, error)
+	// DeleteInstallation removes an installation and revokes its stored credentials.
 	DeleteInstallation(ctx context.Context, in *DeleteInstallationRequest, opts ...grpc.CallOption) (*DeleteInstallationResponse, error)
 }
 
@@ -86,10 +97,21 @@ func (c *installationsServiceClient) DeleteInstallation(ctx context.Context, in 
 // InstallationsServiceServer is the server API for InstallationsService service.
 // All implementations must embed UnimplementedInstallationsServiceServer
 // for forward compatibility.
+//
+// InstallationsService manages OAuth app installations per tenant.
+// An installation represents a GitHub App, GitLab OAuth app, or Bitbucket
+// OAuth consumer that has been authorized for a specific account. All RPCs
+// are scoped to the calling tenant via the X-Tenant-ID request header.
 type InstallationsServiceServer interface {
+	// ListInstallations returns all installations visible to the tenant.
+	// Filter by provider or state_id (account) to narrow results.
 	ListInstallations(context.Context, *ListInstallationsRequest) (*ListInstallationsResponse, error)
+	// GetInstallationByID fetches a single installation by provider + installation_id.
 	GetInstallationByID(context.Context, *GetInstallationByIDRequest) (*GetInstallationByIDResponse, error)
+	// UpsertInstallation creates or updates an installation record.
+	// Used by OAuth callback handlers after a user authorizes the app.
 	UpsertInstallation(context.Context, *UpsertInstallationRequest) (*UpsertInstallationResponse, error)
+	// DeleteInstallation removes an installation and revokes its stored credentials.
 	DeleteInstallation(context.Context, *DeleteInstallationRequest) (*DeleteInstallationResponse, error)
 	mustEmbedUnimplementedInstallationsServiceServer()
 }
@@ -244,10 +266,22 @@ const (
 // NamespacesServiceClient is the client API for NamespacesService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// NamespacesService manages repository namespaces (repos) discovered via
+// installed provider apps. Namespaces are synced from the SCM provider and
+// can have webhooks enabled or disabled per repo. All RPCs are tenant-scoped.
 type NamespacesServiceClient interface {
+	// ListNamespaces returns known repos for the tenant. Filter by provider,
+	// owner, repo name, or full_name to narrow results.
 	ListNamespaces(ctx context.Context, in *ListNamespacesRequest, opts ...grpc.CallOption) (*ListNamespacesResponse, error)
+	// SyncNamespaces fetches the current repo list from the SCM provider and
+	// upserts it into local storage. Returns the refreshed namespace set.
 	SyncNamespaces(ctx context.Context, in *SyncNamespacesRequest, opts ...grpc.CallOption) (*SyncNamespacesResponse, error)
+	// GetNamespaceWebhook returns whether the webhook is currently registered
+	// on the given repo in the SCM provider.
 	GetNamespaceWebhook(ctx context.Context, in *GetNamespaceWebhookRequest, opts ...grpc.CallOption) (*GetNamespaceWebhookResponse, error)
+	// SetNamespaceWebhook registers or deregisters the githook webhook URL on
+	// the given repo. Set enabled=true to register, false to remove.
 	SetNamespaceWebhook(ctx context.Context, in *SetNamespaceWebhookRequest, opts ...grpc.CallOption) (*SetNamespaceWebhookResponse, error)
 }
 
@@ -302,10 +336,22 @@ func (c *namespacesServiceClient) SetNamespaceWebhook(ctx context.Context, in *S
 // NamespacesServiceServer is the server API for NamespacesService service.
 // All implementations must embed UnimplementedNamespacesServiceServer
 // for forward compatibility.
+//
+// NamespacesService manages repository namespaces (repos) discovered via
+// installed provider apps. Namespaces are synced from the SCM provider and
+// can have webhooks enabled or disabled per repo. All RPCs are tenant-scoped.
 type NamespacesServiceServer interface {
+	// ListNamespaces returns known repos for the tenant. Filter by provider,
+	// owner, repo name, or full_name to narrow results.
 	ListNamespaces(context.Context, *ListNamespacesRequest) (*ListNamespacesResponse, error)
+	// SyncNamespaces fetches the current repo list from the SCM provider and
+	// upserts it into local storage. Returns the refreshed namespace set.
 	SyncNamespaces(context.Context, *SyncNamespacesRequest) (*SyncNamespacesResponse, error)
+	// GetNamespaceWebhook returns whether the webhook is currently registered
+	// on the given repo in the SCM provider.
 	GetNamespaceWebhook(context.Context, *GetNamespaceWebhookRequest) (*GetNamespaceWebhookResponse, error)
+	// SetNamespaceWebhook registers or deregisters the githook webhook URL on
+	// the given repo. Set enabled=true to register, false to remove.
 	SetNamespaceWebhook(context.Context, *SetNamespaceWebhookRequest) (*SetNamespaceWebhookResponse, error)
 	mustEmbedUnimplementedNamespacesServiceServer()
 }
@@ -462,12 +508,24 @@ const (
 // RulesServiceClient is the client API for RulesService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// RulesService manages routing rules that determine which events get published
+// to which broker topics. Each rule has a govaluate expression (when) and a
+// target topic (emit). Rules are evaluated against every incoming webhook event.
+// All RPCs are tenant-scoped via X-Tenant-ID.
 type RulesServiceClient interface {
+	// MatchRules evaluates a set of rules against an event payload and returns
+	// the subset that matched. Useful for testing rules before persisting them.
 	MatchRules(ctx context.Context, in *MatchRulesRequest, opts ...grpc.CallOption) (*MatchRulesResponse, error)
+	// ListRules returns all rules for the tenant.
 	ListRules(ctx context.Context, in *ListRulesRequest, opts ...grpc.CallOption) (*ListRulesResponse, error)
+	// GetRule fetches a single rule by its server-assigned ID.
 	GetRule(ctx context.Context, in *GetRuleRequest, opts ...grpc.CallOption) (*GetRuleResponse, error)
+	// CreateRule persists a new rule. The server assigns an ID and timestamps.
 	CreateRule(ctx context.Context, in *CreateRuleRequest, opts ...grpc.CallOption) (*CreateRuleResponse, error)
+	// UpdateRule replaces the when/emit/driver_id fields of an existing rule.
 	UpdateRule(ctx context.Context, in *UpdateRuleRequest, opts ...grpc.CallOption) (*UpdateRuleResponse, error)
+	// DeleteRule removes a rule. In-flight events already matched are unaffected.
 	DeleteRule(ctx context.Context, in *DeleteRuleRequest, opts ...grpc.CallOption) (*DeleteRuleResponse, error)
 }
 
@@ -542,12 +600,24 @@ func (c *rulesServiceClient) DeleteRule(ctx context.Context, in *DeleteRuleReque
 // RulesServiceServer is the server API for RulesService service.
 // All implementations must embed UnimplementedRulesServiceServer
 // for forward compatibility.
+//
+// RulesService manages routing rules that determine which events get published
+// to which broker topics. Each rule has a govaluate expression (when) and a
+// target topic (emit). Rules are evaluated against every incoming webhook event.
+// All RPCs are tenant-scoped via X-Tenant-ID.
 type RulesServiceServer interface {
+	// MatchRules evaluates a set of rules against an event payload and returns
+	// the subset that matched. Useful for testing rules before persisting them.
 	MatchRules(context.Context, *MatchRulesRequest) (*MatchRulesResponse, error)
+	// ListRules returns all rules for the tenant.
 	ListRules(context.Context, *ListRulesRequest) (*ListRulesResponse, error)
+	// GetRule fetches a single rule by its server-assigned ID.
 	GetRule(context.Context, *GetRuleRequest) (*GetRuleResponse, error)
+	// CreateRule persists a new rule. The server assigns an ID and timestamps.
 	CreateRule(context.Context, *CreateRuleRequest) (*CreateRuleResponse, error)
+	// UpdateRule replaces the when/emit/driver_id fields of an existing rule.
 	UpdateRule(context.Context, *UpdateRuleRequest) (*UpdateRuleResponse, error)
+	// DeleteRule removes a rule. In-flight events already matched are unaffected.
 	DeleteRule(context.Context, *DeleteRuleRequest) (*DeleteRuleResponse, error)
 	mustEmbedUnimplementedRulesServiceServer()
 }
@@ -752,10 +822,21 @@ const (
 // DriversServiceClient is the client API for DriversService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// DriversService manages message broker connection configs (AMQP, NATS, Kafka).
+// A driver holds the JSON config needed to publish events to a specific broker.
+// Rules reference drivers by ID to determine where matched events are sent.
+// All RPCs are tenant-scoped via X-Tenant-ID.
 type DriversServiceClient interface {
+	// ListDrivers returns all driver configs for the tenant.
 	ListDrivers(ctx context.Context, in *ListDriversRequest, opts ...grpc.CallOption) (*ListDriversResponse, error)
+	// GetDriver fetches a single driver by name.
 	GetDriver(ctx context.Context, in *GetDriverRequest, opts ...grpc.CallOption) (*GetDriverResponse, error)
+	// UpsertDriver creates or updates a driver config. The name field is the
+	// stable identifier; re-submitting with the same name updates in place.
 	UpsertDriver(ctx context.Context, in *UpsertDriverRequest, opts ...grpc.CallOption) (*UpsertDriverResponse, error)
+	// DeleteDriver removes a driver config. Rules that reference this driver
+	// will stop publishing until updated to point at a valid driver.
 	DeleteDriver(ctx context.Context, in *DeleteDriverRequest, opts ...grpc.CallOption) (*DeleteDriverResponse, error)
 }
 
@@ -810,10 +891,21 @@ func (c *driversServiceClient) DeleteDriver(ctx context.Context, in *DeleteDrive
 // DriversServiceServer is the server API for DriversService service.
 // All implementations must embed UnimplementedDriversServiceServer
 // for forward compatibility.
+//
+// DriversService manages message broker connection configs (AMQP, NATS, Kafka).
+// A driver holds the JSON config needed to publish events to a specific broker.
+// Rules reference drivers by ID to determine where matched events are sent.
+// All RPCs are tenant-scoped via X-Tenant-ID.
 type DriversServiceServer interface {
+	// ListDrivers returns all driver configs for the tenant.
 	ListDrivers(context.Context, *ListDriversRequest) (*ListDriversResponse, error)
+	// GetDriver fetches a single driver by name.
 	GetDriver(context.Context, *GetDriverRequest) (*GetDriverResponse, error)
+	// UpsertDriver creates or updates a driver config. The name field is the
+	// stable identifier; re-submitting with the same name updates in place.
 	UpsertDriver(context.Context, *UpsertDriverRequest) (*UpsertDriverResponse, error)
+	// DeleteDriver removes a driver config. Rules that reference this driver
+	// will stop publishing until updated to point at a valid driver.
 	DeleteDriver(context.Context, *DeleteDriverRequest) (*DeleteDriverResponse, error)
 	mustEmbedUnimplementedDriversServiceServer()
 }
@@ -968,10 +1060,23 @@ const (
 // ProvidersServiceClient is the client API for ProvidersService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// ProvidersService manages per-tenant SCM provider configurations (GitHub App
+// credentials, OAuth client IDs/secrets, webhook secrets). Each provider
+// instance is identified by provider name + a server-generated hash so a
+// tenant can register multiple instances of the same provider type.
+// All RPCs are tenant-scoped via X-Tenant-ID.
 type ProvidersServiceClient interface {
+	// ListProviders returns all provider configs for the tenant.
+	// Filter by provider name (e.g. "github") to narrow results.
 	ListProviders(ctx context.Context, in *ListProvidersRequest, opts ...grpc.CallOption) (*ListProvidersResponse, error)
+	// GetProvider fetches a single provider config by provider name + hash.
 	GetProvider(ctx context.Context, in *GetProviderRequest, opts ...grpc.CallOption) (*GetProviderResponse, error)
+	// UpsertProvider creates or updates a provider config. The hash is
+	// server-generated on first create; include it on subsequent calls to update.
 	UpsertProvider(ctx context.Context, in *UpsertProviderRequest, opts ...grpc.CallOption) (*UpsertProviderResponse, error)
+	// DeleteProvider removes a provider config. Existing installations that
+	// reference this provider instance will no longer be able to refresh tokens.
 	DeleteProvider(ctx context.Context, in *DeleteProviderRequest, opts ...grpc.CallOption) (*DeleteProviderResponse, error)
 }
 
@@ -1026,10 +1131,23 @@ func (c *providersServiceClient) DeleteProvider(ctx context.Context, in *DeleteP
 // ProvidersServiceServer is the server API for ProvidersService service.
 // All implementations must embed UnimplementedProvidersServiceServer
 // for forward compatibility.
+//
+// ProvidersService manages per-tenant SCM provider configurations (GitHub App
+// credentials, OAuth client IDs/secrets, webhook secrets). Each provider
+// instance is identified by provider name + a server-generated hash so a
+// tenant can register multiple instances of the same provider type.
+// All RPCs are tenant-scoped via X-Tenant-ID.
 type ProvidersServiceServer interface {
+	// ListProviders returns all provider configs for the tenant.
+	// Filter by provider name (e.g. "github") to narrow results.
 	ListProviders(context.Context, *ListProvidersRequest) (*ListProvidersResponse, error)
+	// GetProvider fetches a single provider config by provider name + hash.
 	GetProvider(context.Context, *GetProviderRequest) (*GetProviderResponse, error)
+	// UpsertProvider creates or updates a provider config. The hash is
+	// server-generated on first create; include it on subsequent calls to update.
 	UpsertProvider(context.Context, *UpsertProviderRequest) (*UpsertProviderResponse, error)
+	// DeleteProvider removes a provider config. Existing installations that
+	// reference this provider instance will no longer be able to refresh tokens.
 	DeleteProvider(context.Context, *DeleteProviderRequest) (*DeleteProviderResponse, error)
 	mustEmbedUnimplementedProvidersServiceServer()
 }
@@ -1181,7 +1299,15 @@ const (
 // SCMServiceClient is the client API for SCMService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// SCMService provides worker SDKs with short-lived SCM API credentials.
+// Workers call GetSCMClient to obtain a provider access token without ever
+// storing credentials themselves. The server resolves the token from the
+// installation record and refreshes it if expired.
 type SCMServiceClient interface {
+	// GetSCMClient returns a ready-to-use SCM client credential for the given
+	// installation. The access_token may be refreshed server-side before return.
+	// Workers should treat the token as short-lived and re-fetch as needed.
 	GetSCMClient(ctx context.Context, in *GetSCMClientRequest, opts ...grpc.CallOption) (*GetSCMClientResponse, error)
 }
 
@@ -1206,7 +1332,15 @@ func (c *sCMServiceClient) GetSCMClient(ctx context.Context, in *GetSCMClientReq
 // SCMServiceServer is the server API for SCMService service.
 // All implementations must embed UnimplementedSCMServiceServer
 // for forward compatibility.
+//
+// SCMService provides worker SDKs with short-lived SCM API credentials.
+// Workers call GetSCMClient to obtain a provider access token without ever
+// storing credentials themselves. The server resolves the token from the
+// installation record and refreshes it if expired.
 type SCMServiceServer interface {
+	// GetSCMClient returns a ready-to-use SCM client credential for the given
+	// installation. The access_token may be refreshed server-side before return.
+	// Workers should treat the token as short-lived and re-fetch as needed.
 	GetSCMClient(context.Context, *GetSCMClientRequest) (*GetSCMClientResponse, error)
 	mustEmbedUnimplementedSCMServiceServer()
 }
@@ -1287,11 +1421,27 @@ const (
 // EventLogsServiceClient is the client API for EventLogsService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// EventLogsService provides audit and observability over webhook events.
+// Every incoming webhook creates an EventLogRecord regardless of whether it
+// matched any rules. Workers update log status after processing. All RPCs
+// are tenant-scoped via X-Tenant-ID.
 type EventLogsServiceClient interface {
+	// ListEventLogs returns paginated event log records. Supports rich filtering
+	// by provider, topic, rule, namespace, time range, and match status.
+	// Use page_size + page_token for cursor-based pagination (max 200 per page).
 	ListEventLogs(ctx context.Context, in *ListEventLogsRequest, opts ...grpc.CallOption) (*ListEventLogsResponse, error)
+	// GetEventLogAnalytics returns aggregate counts over a filtered event set.
+	// Useful for dashboards showing total events, match rates, and breakdowns.
 	GetEventLogAnalytics(ctx context.Context, in *GetEventLogAnalyticsRequest, opts ...grpc.CallOption) (*GetEventLogAnalyticsResponse, error)
+	// GetEventLogTimeseries returns event counts bucketed by time interval
+	// (hour/day/week). Useful for trend charts. interval is required.
 	GetEventLogTimeseries(ctx context.Context, in *GetEventLogTimeseriesRequest, opts ...grpc.CallOption) (*GetEventLogTimeseriesResponse, error)
+	// GetEventLogBreakdown returns per-key counts grouped by a chosen dimension
+	// (provider, rule, namespace, etc.). Supports sorting and pagination.
 	GetEventLogBreakdown(ctx context.Context, in *GetEventLogBreakdownRequest, opts ...grpc.CallOption) (*GetEventLogBreakdownResponse, error)
+	// UpdateEventLogStatus lets workers report delivery outcome back to the server.
+	// Valid status values: "queued", "delivered", "success", "failed".
 	UpdateEventLogStatus(ctx context.Context, in *UpdateEventLogStatusRequest, opts ...grpc.CallOption) (*UpdateEventLogStatusResponse, error)
 }
 
@@ -1356,11 +1506,27 @@ func (c *eventLogsServiceClient) UpdateEventLogStatus(ctx context.Context, in *U
 // EventLogsServiceServer is the server API for EventLogsService service.
 // All implementations must embed UnimplementedEventLogsServiceServer
 // for forward compatibility.
+//
+// EventLogsService provides audit and observability over webhook events.
+// Every incoming webhook creates an EventLogRecord regardless of whether it
+// matched any rules. Workers update log status after processing. All RPCs
+// are tenant-scoped via X-Tenant-ID.
 type EventLogsServiceServer interface {
+	// ListEventLogs returns paginated event log records. Supports rich filtering
+	// by provider, topic, rule, namespace, time range, and match status.
+	// Use page_size + page_token for cursor-based pagination (max 200 per page).
 	ListEventLogs(context.Context, *ListEventLogsRequest) (*ListEventLogsResponse, error)
+	// GetEventLogAnalytics returns aggregate counts over a filtered event set.
+	// Useful for dashboards showing total events, match rates, and breakdowns.
 	GetEventLogAnalytics(context.Context, *GetEventLogAnalyticsRequest) (*GetEventLogAnalyticsResponse, error)
+	// GetEventLogTimeseries returns event counts bucketed by time interval
+	// (hour/day/week). Useful for trend charts. interval is required.
 	GetEventLogTimeseries(context.Context, *GetEventLogTimeseriesRequest) (*GetEventLogTimeseriesResponse, error)
+	// GetEventLogBreakdown returns per-key counts grouped by a chosen dimension
+	// (provider, rule, namespace, etc.). Supports sorting and pagination.
 	GetEventLogBreakdown(context.Context, *GetEventLogBreakdownRequest) (*GetEventLogBreakdownResponse, error)
+	// UpdateEventLogStatus lets workers report delivery outcome back to the server.
+	// Valid status values: "queued", "delivered", "success", "failed".
 	UpdateEventLogStatus(context.Context, *UpdateEventLogStatusRequest) (*UpdateEventLogStatusResponse, error)
 	mustEmbedUnimplementedEventLogsServiceServer()
 }

@@ -6,6 +6,8 @@
 import { proto3, Timestamp } from "@bufbuild/protobuf";
 
 /**
+ * EventLogTimeseriesInterval controls the bucket width for timeseries queries.
+ *
  * @generated from enum cloud.v1.EventLogTimeseriesInterval
  */
 export const EventLogTimeseriesInterval = /*@__PURE__*/ proto3.makeEnum(
@@ -19,6 +21,8 @@ export const EventLogTimeseriesInterval = /*@__PURE__*/ proto3.makeEnum(
 );
 
 /**
+ * EventLogBreakdownGroup selects the dimension to group by in breakdown queries.
+ *
  * @generated from enum cloud.v1.EventLogBreakdownGroup
  */
 export const EventLogBreakdownGroup = /*@__PURE__*/ proto3.makeEnum(
@@ -37,6 +41,8 @@ export const EventLogBreakdownGroup = /*@__PURE__*/ proto3.makeEnum(
 );
 
 /**
+ * EventLogBreakdownSort controls the sort order of breakdown results.
+ *
  * @generated from enum cloud.v1.EventLogBreakdownSort
  */
 export const EventLogBreakdownSort = /*@__PURE__*/ proto3.makeEnum(
@@ -50,6 +56,10 @@ export const EventLogBreakdownSort = /*@__PURE__*/ proto3.makeEnum(
 );
 
 /**
+ * InstallRecord holds the OAuth credentials and metadata for a single SCM app
+ * installation. Credentials (access_token, refresh_token) are stored encrypted
+ * at rest and never returned to workers directly; use SCMService.GetSCMClient.
+ *
  * @generated from message cloud.v1.InstallRecord
  */
 export const InstallRecord = /*@__PURE__*/ proto3.makeMessageType(
@@ -73,6 +83,9 @@ export const InstallRecord = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * NamespaceRecord represents a single repository discovered via an installation.
+ * Records are populated by SyncNamespaces and updated when webhooks arrive.
+ *
  * @generated from message cloud.v1.NamespaceRecord
  */
 export const NamespaceRecord = /*@__PURE__*/ proto3.makeMessageType(
@@ -269,6 +282,9 @@ export const SetNamespaceWebhookResponse = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * Rule is the input shape for creating or matching rules. It does not carry
+ * server-assigned fields (id, timestamps). See RuleRecord for the persisted form.
+ *
  * @generated from message cloud.v1.Rule
  */
 export const Rule = /*@__PURE__*/ proto3.makeMessageType(
@@ -281,6 +297,8 @@ export const Rule = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * RuleRecord is the persisted form of a Rule, including server-assigned fields.
+ *
  * @generated from message cloud.v1.RuleRecord
  */
 export const RuleRecord = /*@__PURE__*/ proto3.makeMessageType(
@@ -296,6 +314,10 @@ export const RuleRecord = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * DriverRecord holds the broker connection config for a message driver.
+ * config_json is driver-type-specific (AMQP, NATS, Kafka) and is validated
+ * at publish time, not at upsert time.
+ *
  * @generated from message cloud.v1.DriverRecord
  */
 export const DriverRecord = /*@__PURE__*/ proto3.makeMessageType(
@@ -311,6 +333,10 @@ export const DriverRecord = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * ProviderRecord holds the SCM provider app credentials for one provider instance.
+ * A tenant can register multiple instances of the same provider (e.g. two GitHub
+ * Apps) by creating separate ProviderRecords; each gets a distinct hash.
+ *
  * @generated from message cloud.v1.ProviderRecord
  */
 export const ProviderRecord = /*@__PURE__*/ proto3.makeMessageType(
@@ -327,6 +353,9 @@ export const ProviderRecord = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * SCMClient carries short-lived credentials for making SCM API calls.
+ * Returned by SCMService.GetSCMClient; workers should not cache this long-term.
+ *
  * @generated from message cloud.v1.SCMClient
  */
 export const SCMClient = /*@__PURE__*/ proto3.makeMessageType(
@@ -363,6 +392,8 @@ export const GetSCMClientResponse = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * EventLogHeaderValues holds the multi-value list for a single HTTP header key.
+ *
  * @generated from message cloud.v1.EventLogHeaderValues
  */
 export const EventLogHeaderValues = /*@__PURE__*/ proto3.makeMessageType(
@@ -373,6 +404,9 @@ export const EventLogHeaderValues = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * EventLogRecord is the audit record for a single incoming webhook event.
+ * Created on every webhook receipt regardless of rule match outcome.
+ *
  * @generated from message cloud.v1.EventLogRecord
  */
 export const EventLogRecord = /*@__PURE__*/ proto3.makeMessageType(
@@ -402,6 +436,8 @@ export const EventLogRecord = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * EventLogCount is a key/count pair used in analytics breakdowns.
+ *
  * @generated from message cloud.v1.EventLogCount
  */
 export const EventLogCount = /*@__PURE__*/ proto3.makeMessageType(
@@ -413,6 +449,8 @@ export const EventLogCount = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * EventLogAnalytics holds aggregate statistics over a filtered event set.
+ *
  * @generated from message cloud.v1.EventLogAnalytics
  */
 export const EventLogAnalytics = /*@__PURE__*/ proto3.makeMessageType(
@@ -431,6 +469,8 @@ export const EventLogAnalytics = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * EventLogTimeseriesBucket holds counts for one time interval bucket.
+ *
  * @generated from message cloud.v1.EventLogTimeseriesBucket
  */
 export const EventLogTimeseriesBucket = /*@__PURE__*/ proto3.makeMessageType(
@@ -446,6 +486,8 @@ export const EventLogTimeseriesBucket = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * EventLogBreakdown holds per-key statistics for one breakdown group value.
+ *
  * @generated from message cloud.v1.EventLogBreakdown
  */
 export const EventLogBreakdown = /*@__PURE__*/ proto3.makeMessageType(
@@ -462,6 +504,9 @@ export const EventLogBreakdown = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * EventPayload is the canonical event representation passed to rule matching
+ * and published to the broker. The payload field contains the raw webhook body.
+ *
  * @generated from message cloud.v1.EventPayload
  */
 export const EventPayload = /*@__PURE__*/ proto3.makeMessageType(
@@ -474,6 +519,8 @@ export const EventPayload = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * RuleMatch is returned by MatchRules for each rule that matched the event.
+ *
  * @generated from message cloud.v1.RuleMatch
  */
 export const RuleMatch = /*@__PURE__*/ proto3.makeMessageType(
@@ -508,6 +555,8 @@ export const MatchRulesResponse = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * ListRulesRequest has no filters; all tenant rules are returned.
+ *
  * @generated from message cloud.v1.ListRulesRequest
  */
 export const ListRulesRequest = /*@__PURE__*/ proto3.makeMessageType(
@@ -605,6 +654,8 @@ export const DeleteRuleResponse = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * ListDriversRequest has no filters; all tenant drivers are returned.
+ *
  * @generated from message cloud.v1.ListDriversRequest
  */
 export const ListDriversRequest = /*@__PURE__*/ proto3.makeMessageType(

@@ -23,13 +23,17 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// EventLogTimeseriesInterval controls the bucket width for timeseries queries.
 type EventLogTimeseriesInterval int32
 
 const (
 	EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_UNSPECIFIED EventLogTimeseriesInterval = 0
-	EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_HOUR        EventLogTimeseriesInterval = 1
-	EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_DAY         EventLogTimeseriesInterval = 2
-	EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_WEEK        EventLogTimeseriesInterval = 3
+	// Bucket events by hour.
+	EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_HOUR EventLogTimeseriesInterval = 1
+	// Bucket events by calendar day.
+	EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_DAY EventLogTimeseriesInterval = 2
+	// Bucket events by calendar week.
+	EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_WEEK EventLogTimeseriesInterval = 3
 )
 
 // Enum value maps for EventLogTimeseriesInterval.
@@ -75,17 +79,26 @@ func (EventLogTimeseriesInterval) EnumDescriptor() ([]byte, []int) {
 	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{0}
 }
 
+// EventLogBreakdownGroup selects the dimension to group by in breakdown queries.
 type EventLogBreakdownGroup int32
 
 const (
-	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_UNSPECIFIED     EventLogBreakdownGroup = 0
-	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_PROVIDER        EventLogBreakdownGroup = 1
-	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_EVENT           EventLogBreakdownGroup = 2
-	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_RULE_ID         EventLogBreakdownGroup = 3
-	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_RULE_WHEN       EventLogBreakdownGroup = 4
-	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_TOPIC           EventLogBreakdownGroup = 5
-	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_ID    EventLogBreakdownGroup = 6
-	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_NAME  EventLogBreakdownGroup = 7
+	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_UNSPECIFIED EventLogBreakdownGroup = 0
+	// Group by SCM provider name.
+	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_PROVIDER EventLogBreakdownGroup = 1
+	// Group by event type name.
+	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_EVENT EventLogBreakdownGroup = 2
+	// Group by rule ID.
+	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_RULE_ID EventLogBreakdownGroup = 3
+	// Group by rule when expression.
+	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_RULE_WHEN EventLogBreakdownGroup = 4
+	// Group by broker topic.
+	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_TOPIC EventLogBreakdownGroup = 5
+	// Group by namespace (repo) ID.
+	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_ID EventLogBreakdownGroup = 6
+	// Group by namespace (repo) full name.
+	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_NAME EventLogBreakdownGroup = 7
+	// Group by installation ID.
 	EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_INSTALLATION_ID EventLogBreakdownGroup = 8
 )
 
@@ -142,13 +155,17 @@ func (EventLogBreakdownGroup) EnumDescriptor() ([]byte, []int) {
 	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{1}
 }
 
+// EventLogBreakdownSort controls the sort order of breakdown results.
 type EventLogBreakdownSort int32
 
 const (
 	EventLogBreakdownSort_EVENT_LOG_BREAKDOWN_SORT_UNSPECIFIED EventLogBreakdownSort = 0
-	EventLogBreakdownSort_EVENT_LOG_BREAKDOWN_SORT_COUNT       EventLogBreakdownSort = 1
-	EventLogBreakdownSort_EVENT_LOG_BREAKDOWN_SORT_MATCHED     EventLogBreakdownSort = 2
-	EventLogBreakdownSort_EVENT_LOG_BREAKDOWN_SORT_FAILED      EventLogBreakdownSort = 3
+	// Sort by total event count.
+	EventLogBreakdownSort_EVENT_LOG_BREAKDOWN_SORT_COUNT EventLogBreakdownSort = 1
+	// Sort by matched event count.
+	EventLogBreakdownSort_EVENT_LOG_BREAKDOWN_SORT_MATCHED EventLogBreakdownSort = 2
+	// Sort by failed event count.
+	EventLogBreakdownSort_EVENT_LOG_BREAKDOWN_SORT_FAILED EventLogBreakdownSort = 3
 )
 
 // Enum value maps for EventLogBreakdownSort.
@@ -194,24 +211,42 @@ func (EventLogBreakdownSort) EnumDescriptor() ([]byte, []int) {
 	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{2}
 }
 
+// InstallRecord holds the OAuth credentials and metadata for a single SCM app
+// installation. Credentials (access_token, refresh_token) are stored encrypted
+// at rest and never returned to workers directly; use SCMService.GetSCMClient.
 type InstallRecord struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Provider            string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	AccountId           string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	AccountName         string                 `protobuf:"bytes,3,opt,name=account_name,json=accountName,proto3" json:"account_name,omitempty"`
-	InstallationId      string                 `protobuf:"bytes,4,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
-	AccessToken         string                 `protobuf:"bytes,5,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	RefreshToken        string                 `protobuf:"bytes,6,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	ExpiresAt           *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	MetadataJson        string                 `protobuf:"bytes,8,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
-	CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt           *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	ProviderInstanceKey string                 `protobuf:"bytes,11,opt,name=provider_instance_key,json=providerInstanceKey,proto3" json:"provider_instance_key,omitempty"`
-	EnterpriseId        string                 `protobuf:"bytes,12,opt,name=enterprise_id,json=enterpriseId,proto3" json:"enterprise_id,omitempty"`
-	EnterpriseSlug      string                 `protobuf:"bytes,13,opt,name=enterprise_slug,json=enterpriseSlug,proto3" json:"enterprise_slug,omitempty"`
-	EnterpriseName      string                 `protobuf:"bytes,14,opt,name=enterprise_name,json=enterpriseName,proto3" json:"enterprise_name,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SCM provider name, e.g. "github", "gitlab", "bitbucket". Required.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Provider-assigned account or organization ID. Required.
+	AccountId string `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	// Human-readable account or organization name.
+	AccountName string `protobuf:"bytes,3,opt,name=account_name,json=accountName,proto3" json:"account_name,omitempty"`
+	// Provider-assigned installation ID (e.g. GitHub App installation ID). Required.
+	InstallationId string `protobuf:"bytes,4,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	// OAuth access token. Stored server-side; not returned to workers.
+	AccessToken string `protobuf:"bytes,5,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	// OAuth refresh token used to renew access_token when it expires.
+	RefreshToken string `protobuf:"bytes,6,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	// When the access_token expires. Server refreshes automatically before this.
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// Arbitrary provider-specific metadata serialized as JSON.
+	MetadataJson string `protobuf:"bytes,8,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
+	// When this record was first created.
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// When this record was last updated.
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Identifies which provider instance config (ProviderRecord) this installation
+	// belongs to. Matches ProviderRecord.hash for multi-instance setups.
+	ProviderInstanceKey string `protobuf:"bytes,11,opt,name=provider_instance_key,json=providerInstanceKey,proto3" json:"provider_instance_key,omitempty"`
+	// GitHub Enterprise: numeric enterprise ID. Empty for github.com installs.
+	EnterpriseId string `protobuf:"bytes,12,opt,name=enterprise_id,json=enterpriseId,proto3" json:"enterprise_id,omitempty"`
+	// GitHub Enterprise: URL slug for the enterprise.
+	EnterpriseSlug string `protobuf:"bytes,13,opt,name=enterprise_slug,json=enterpriseSlug,proto3" json:"enterprise_slug,omitempty"`
+	// GitHub Enterprise: display name for the enterprise.
+	EnterpriseName string `protobuf:"bytes,14,opt,name=enterprise_name,json=enterpriseName,proto3" json:"enterprise_name,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *InstallRecord) Reset() {
@@ -342,24 +377,40 @@ func (x *InstallRecord) GetEnterpriseName() string {
 	return ""
 }
 
+// NamespaceRecord represents a single repository discovered via an installation.
+// Records are populated by SyncNamespaces and updated when webhooks arrive.
 type NamespaceRecord struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Provider        string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	RepoId          string                 `protobuf:"bytes,2,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
-	AccountId       string                 `protobuf:"bytes,3,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	InstallationId  string                 `protobuf:"bytes,4,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
-	Owner           string                 `protobuf:"bytes,5,opt,name=owner,proto3" json:"owner,omitempty"`
-	RepoName        string                 `protobuf:"bytes,6,opt,name=repo_name,json=repoName,proto3" json:"repo_name,omitempty"`
-	FullName        string                 `protobuf:"bytes,7,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
-	Visibility      string                 `protobuf:"bytes,8,opt,name=visibility,proto3" json:"visibility,omitempty"`
-	DefaultBranch   string                 `protobuf:"bytes,9,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
-	HttpUrl         string                 `protobuf:"bytes,10,opt,name=http_url,json=httpUrl,proto3" json:"http_url,omitempty"`
-	SshUrl          string                 `protobuf:"bytes,11,opt,name=ssh_url,json=sshUrl,proto3" json:"ssh_url,omitempty"`
-	WebhooksEnabled bool                   `protobuf:"varint,12,opt,name=webhooks_enabled,json=webhooksEnabled,proto3" json:"webhooks_enabled,omitempty"`
-	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SCM provider name, e.g. "github", "gitlab", "bitbucket". Required.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Provider-assigned repository ID (stable across renames).
+	RepoId string `protobuf:"bytes,2,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
+	// Provider-assigned account or organization ID that owns this repo.
+	AccountId string `protobuf:"bytes,3,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	// Installation ID that granted access to this repo.
+	InstallationId string `protobuf:"bytes,4,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	// Repository owner login (user or org name).
+	Owner string `protobuf:"bytes,5,opt,name=owner,proto3" json:"owner,omitempty"`
+	// Repository name without the owner prefix.
+	RepoName string `protobuf:"bytes,6,opt,name=repo_name,json=repoName,proto3" json:"repo_name,omitempty"`
+	// Full repository name in "owner/repo" format.
+	FullName string `protobuf:"bytes,7,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
+	// Repository visibility: "public" or "private".
+	Visibility string `protobuf:"bytes,8,opt,name=visibility,proto3" json:"visibility,omitempty"`
+	// Default branch name, e.g. "main" or "master".
+	DefaultBranch string `protobuf:"bytes,9,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
+	// HTTPS clone URL for the repository.
+	HttpUrl string `protobuf:"bytes,10,opt,name=http_url,json=httpUrl,proto3" json:"http_url,omitempty"`
+	// SSH clone URL for the repository.
+	SshUrl string `protobuf:"bytes,11,opt,name=ssh_url,json=sshUrl,proto3" json:"ssh_url,omitempty"`
+	// Whether the githook webhook is currently registered on this repo.
+	WebhooksEnabled bool `protobuf:"varint,12,opt,name=webhooks_enabled,json=webhooksEnabled,proto3" json:"webhooks_enabled,omitempty"`
+	// When this namespace record was first created.
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// When this namespace record was last updated.
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *NamespaceRecord) Reset() {
@@ -493,7 +544,8 @@ func (x *NamespaceRecord) GetUpdatedAt() *timestamppb.Timestamp {
 type ListInstallationsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Optional account filter. When omitted, all accounts for the provider are returned.
-	StateId       string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	StateId string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	// Optional provider filter, e.g. "github". When omitted, all providers are returned.
 	Provider      string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -544,8 +596,9 @@ func (x *ListInstallationsRequest) GetProvider() string {
 }
 
 type ListInstallationsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Installations []*InstallRecord       `protobuf:"bytes,1,rep,name=installations,proto3" json:"installations,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// All installation records matching the request filters.
+	Installations []*InstallRecord `protobuf:"bytes,1,rep,name=installations,proto3" json:"installations,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -588,9 +641,11 @@ func (x *ListInstallationsResponse) GetInstallations() []*InstallRecord {
 }
 
 type GetInstallationByIDRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Provider       string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	InstallationId string                 `protobuf:"bytes,2,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SCM provider name. Required.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Provider-assigned installation ID. Required.
+	InstallationId string `protobuf:"bytes,2,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -640,8 +695,9 @@ func (x *GetInstallationByIDRequest) GetInstallationId() string {
 }
 
 type GetInstallationByIDResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Installation  *InstallRecord         `protobuf:"bytes,1,opt,name=installation,proto3" json:"installation,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The matching installation record, or empty if not found.
+	Installation  *InstallRecord `protobuf:"bytes,1,opt,name=installation,proto3" json:"installation,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -684,8 +740,10 @@ func (x *GetInstallationByIDResponse) GetInstallation() *InstallRecord {
 }
 
 type UpsertInstallationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Installation  *InstallRecord         `protobuf:"bytes,1,opt,name=installation,proto3" json:"installation,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Full installation record to create or update. Required.
+	// The (provider, account_id, installation_id) triple is the natural key.
+	Installation  *InstallRecord `protobuf:"bytes,1,opt,name=installation,proto3" json:"installation,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -728,8 +786,9 @@ func (x *UpsertInstallationRequest) GetInstallation() *InstallRecord {
 }
 
 type UpsertInstallationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Installation  *InstallRecord         `protobuf:"bytes,1,opt,name=installation,proto3" json:"installation,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The persisted installation record with server-set timestamps.
+	Installation  *InstallRecord `protobuf:"bytes,1,opt,name=installation,proto3" json:"installation,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -772,11 +831,15 @@ func (x *UpsertInstallationResponse) GetInstallation() *InstallRecord {
 }
 
 type DeleteInstallationRequest struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Provider            string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	AccountId           string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	InstallationId      string                 `protobuf:"bytes,3,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
-	ProviderInstanceKey string                 `protobuf:"bytes,4,opt,name=provider_instance_key,json=providerInstanceKey,proto3" json:"provider_instance_key,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SCM provider name. Required.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Provider-assigned account ID. Required.
+	AccountId string `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	// Provider-assigned installation ID. Required.
+	InstallationId string `protobuf:"bytes,3,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	// Optional provider instance key to disambiguate multi-instance setups.
+	ProviderInstanceKey string `protobuf:"bytes,4,opt,name=provider_instance_key,json=providerInstanceKey,proto3" json:"provider_instance_key,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -878,10 +941,14 @@ func (*DeleteInstallationResponse) Descriptor() ([]byte, []int) {
 type ListNamespacesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Optional account filter. When omitted, all accounts for the provider are returned.
-	StateId       string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	Provider      string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	Owner         string `protobuf:"bytes,3,opt,name=owner,proto3" json:"owner,omitempty"`
-	Repo          string `protobuf:"bytes,4,opt,name=repo,proto3" json:"repo,omitempty"`
+	StateId string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	// Optional provider filter, e.g. "github".
+	Provider string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Optional owner (user or org login) filter.
+	Owner string `protobuf:"bytes,3,opt,name=owner,proto3" json:"owner,omitempty"`
+	// Optional repository name filter (without owner prefix).
+	Repo string `protobuf:"bytes,4,opt,name=repo,proto3" json:"repo,omitempty"`
+	// Optional full name filter in "owner/repo" format.
 	FullName      string `protobuf:"bytes,5,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -953,8 +1020,9 @@ func (x *ListNamespacesRequest) GetFullName() string {
 }
 
 type ListNamespacesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Namespaces    []*NamespaceRecord     `protobuf:"bytes,1,rep,name=namespaces,proto3" json:"namespaces,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// All namespace records matching the request filters.
+	Namespaces    []*NamespaceRecord `protobuf:"bytes,1,rep,name=namespaces,proto3" json:"namespaces,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -999,7 +1067,8 @@ func (x *ListNamespacesResponse) GetNamespaces() []*NamespaceRecord {
 type SyncNamespacesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Optional account filter. When omitted, all accounts for the provider are synced.
-	StateId       string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	StateId string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	// SCM provider to sync from, e.g. "github". Required.
 	Provider      string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1050,8 +1119,9 @@ func (x *SyncNamespacesRequest) GetProvider() string {
 }
 
 type SyncNamespacesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Namespaces    []*NamespaceRecord     `protobuf:"bytes,1,rep,name=namespaces,proto3" json:"namespaces,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The full refreshed set of namespace records after sync.
+	Namespaces    []*NamespaceRecord `protobuf:"bytes,1,rep,name=namespaces,proto3" json:"namespaces,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1096,8 +1166,10 @@ func (x *SyncNamespacesResponse) GetNamespaces() []*NamespaceRecord {
 type GetNamespaceWebhookRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Optional account filter. When omitted, the namespace is resolved by provider + repo_id.
-	StateId       string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	Provider      string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	StateId string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	// SCM provider name. Required.
+	Provider string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Provider-assigned repository ID. Required.
 	RepoId        string `protobuf:"bytes,3,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1157,10 +1229,13 @@ func (x *GetNamespaceWebhookRequest) GetRepoId() string {
 type SetNamespaceWebhookRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Optional account filter. When omitted, the namespace is resolved by provider + repo_id.
-	StateId       string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	Provider      string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	RepoId        string `protobuf:"bytes,3,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
-	Enabled       bool   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	StateId string `protobuf:"bytes,1,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	// SCM provider name. Required.
+	Provider string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Provider-assigned repository ID. Required.
+	RepoId string `protobuf:"bytes,3,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
+	// Set to true to register the webhook, false to remove it.
+	Enabled       bool `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1224,8 +1299,9 @@ func (x *SetNamespaceWebhookRequest) GetEnabled() bool {
 }
 
 type GetNamespaceWebhookResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether the githook webhook is currently registered on the repo.
+	Enabled       bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1268,8 +1344,9 @@ func (x *GetNamespaceWebhookResponse) GetEnabled() bool {
 }
 
 type SetNamespaceWebhookResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The new webhook registration state after the operation.
+	Enabled       bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1311,11 +1388,18 @@ func (x *SetNamespaceWebhookResponse) GetEnabled() bool {
 	return false
 }
 
+// Rule is the input shape for creating or matching rules. It does not carry
+// server-assigned fields (id, timestamps). See RuleRecord for the persisted form.
 type Rule struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	When          string                 `protobuf:"bytes,1,opt,name=when,proto3" json:"when,omitempty"`
-	Emit          []string               `protobuf:"bytes,2,rep,name=emit,proto3" json:"emit,omitempty"`
-	DriverId      string                 `protobuf:"bytes,4,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// govaluate expression evaluated against the flattened event JSON.
+	// Example: 'action == "opened" && provider == "github"'
+	When string `protobuf:"bytes,1,opt,name=when,proto3" json:"when,omitempty"`
+	// Topic(s) to publish matching events to. Currently limited to exactly one
+	// entry. The value becomes the broker routing key or subject.
+	Emit []string `protobuf:"bytes,2,rep,name=emit,proto3" json:"emit,omitempty"`
+	// ID of the DriverRecord that defines the broker connection for this rule.
+	DriverId      string `protobuf:"bytes,4,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1371,14 +1455,21 @@ func (x *Rule) GetDriverId() string {
 	return ""
 }
 
+// RuleRecord is the persisted form of a Rule, including server-assigned fields.
 type RuleRecord struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	When          string                 `protobuf:"bytes,2,opt,name=when,proto3" json:"when,omitempty"`
-	Emit          []string               `protobuf:"bytes,3,rep,name=emit,proto3" json:"emit,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	DriverId      string                 `protobuf:"bytes,7,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Server-assigned unique rule ID. Use this in worker SDKs via HandleRule().
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// govaluate expression evaluated against the flattened event JSON.
+	When string `protobuf:"bytes,2,opt,name=when,proto3" json:"when,omitempty"`
+	// Topic(s) to publish matching events to. At least one entry required.
+	Emit []string `protobuf:"bytes,3,rep,name=emit,proto3" json:"emit,omitempty"`
+	// When this rule was first created.
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// When this rule was last updated.
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// ID of the DriverRecord that defines the broker connection for this rule.
+	DriverId      string `protobuf:"bytes,7,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1455,14 +1546,24 @@ func (x *RuleRecord) GetDriverId() string {
 	return ""
 }
 
+// DriverRecord holds the broker connection config for a message driver.
+// config_json is driver-type-specific (AMQP, NATS, Kafka) and is validated
+// at publish time, not at upsert time.
 type DriverRecord struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	ConfigJson    string                 `protobuf:"bytes,2,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
-	Enabled       bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Id            string                 `protobuf:"bytes,6,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unique driver name within the tenant. Used as the stable identifier.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Driver-type-specific connection config serialized as JSON.
+	// Schema depends on the broker type (AMQP, NATS, Kafka).
+	ConfigJson string `protobuf:"bytes,2,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
+	// Whether this driver is active. Disabled drivers skip publishing.
+	Enabled bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// When this driver record was first created.
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// When this driver record was last updated.
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Server-assigned unique driver ID. Referenced by RuleRecord.driver_id.
+	Id            string `protobuf:"bytes,6,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1539,16 +1640,28 @@ func (x *DriverRecord) GetId() string {
 	return ""
 }
 
+// ProviderRecord holds the SCM provider app credentials for one provider instance.
+// A tenant can register multiple instances of the same provider (e.g. two GitHub
+// Apps) by creating separate ProviderRecords; each gets a distinct hash.
 type ProviderRecord struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Provider string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	// Instance hash (server-generated).
-	Hash       string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
-	ConfigJson string                 `protobuf:"bytes,3,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
-	Enabled    bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	CreatedAt  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	// Per-instance OAuth redirect URL (overrides global redirect_base_url).
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SCM provider name, e.g. "github", "gitlab", "bitbucket". Required.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Instance hash (server-generated). Stable identifier for this config instance.
+	// Include on update requests; omit on first create.
+	Hash string `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	// Provider-specific app credentials serialized as JSON (App ID, private key,
+	// OAuth client ID/secret, webhook secret, etc.).
+	ConfigJson string `protobuf:"bytes,3,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
+	// Whether this provider instance is active. Disabled instances skip webhook
+	// signature verification and OAuth flows.
+	Enabled bool `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// When this provider record was first created.
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// When this provider record was last updated.
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Per-instance OAuth redirect URL. Overrides the global redirect_base_url
+	// from server config. Useful when hosting multiple provider instances.
 	RedirectBaseUrl string `protobuf:"bytes,7,opt,name=redirect_base_url,json=redirectBaseUrl,proto3" json:"redirect_base_url,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -1633,13 +1746,20 @@ func (x *ProviderRecord) GetRedirectBaseUrl() string {
 	return ""
 }
 
+// SCMClient carries short-lived credentials for making SCM API calls.
+// Returned by SCMService.GetSCMClient; workers should not cache this long-term.
 type SCMClient struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Provider            string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	ApiBaseUrl          string                 `protobuf:"bytes,2,opt,name=api_base_url,json=apiBaseUrl,proto3" json:"api_base_url,omitempty"`
-	AccessToken         string                 `protobuf:"bytes,3,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	ExpiresAt           *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	ProviderInstanceKey string                 `protobuf:"bytes,5,opt,name=provider_instance_key,json=providerInstanceKey,proto3" json:"provider_instance_key,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SCM provider name, e.g. "github", "gitlab", "bitbucket".
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Base URL for the SCM API. Useful for GitHub Enterprise Server installs.
+	ApiBaseUrl string `protobuf:"bytes,2,opt,name=api_base_url,json=apiBaseUrl,proto3" json:"api_base_url,omitempty"`
+	// Short-lived OAuth access token. Required; always non-empty on success.
+	AccessToken string `protobuf:"bytes,3,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	// When the access_token expires. Re-fetch before this time.
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// Provider instance key identifying which ProviderRecord issued this token.
+	ProviderInstanceKey string `protobuf:"bytes,5,opt,name=provider_instance_key,json=providerInstanceKey,proto3" json:"provider_instance_key,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -1710,10 +1830,13 @@ func (x *SCMClient) GetProviderInstanceKey() string {
 }
 
 type GetSCMClientRequest struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Provider            string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	InstallationId      string                 `protobuf:"bytes,2,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
-	ProviderInstanceKey string                 `protobuf:"bytes,3,opt,name=provider_instance_key,json=providerInstanceKey,proto3" json:"provider_instance_key,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SCM provider name. Required.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Installation ID to fetch credentials for. Required.
+	InstallationId string `protobuf:"bytes,2,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	// Optional provider instance key to select among multiple provider configs.
+	ProviderInstanceKey string `protobuf:"bytes,3,opt,name=provider_instance_key,json=providerInstanceKey,proto3" json:"provider_instance_key,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -1770,8 +1893,9 @@ func (x *GetSCMClientRequest) GetProviderInstanceKey() string {
 }
 
 type GetSCMClientResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Client        *SCMClient             `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Ready-to-use SCM client credentials. access_token is always populated.
+	Client        *SCMClient `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1813,9 +1937,11 @@ func (x *GetSCMClientResponse) GetClient() *SCMClient {
 	return nil
 }
 
+// EventLogHeaderValues holds the multi-value list for a single HTTP header key.
 type EventLogHeaderValues struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Values        []string               `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// All values for this header key (HTTP headers can repeat).
+	Values        []string `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1857,30 +1983,53 @@ func (x *EventLogHeaderValues) GetValues() []string {
 	return nil
 }
 
+// EventLogRecord is the audit record for a single incoming webhook event.
+// Created on every webhook receipt regardless of rule match outcome.
 type EventLogRecord struct {
-	state          protoimpl.MessageState           `protogen:"open.v1"`
-	Id             string                           `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Provider       string                           `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	Name           string                           `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	RequestId      string                           `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	StateId        string                           `protobuf:"bytes,5,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	InstallationId string                           `protobuf:"bytes,6,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
-	NamespaceId    string                           `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3" json:"namespace_id,omitempty"`
-	NamespaceName  string                           `protobuf:"bytes,8,opt,name=namespace_name,json=namespaceName,proto3" json:"namespace_name,omitempty"`
-	Topic          string                           `protobuf:"bytes,9,opt,name=topic,proto3" json:"topic,omitempty"`
-	RuleId         string                           `protobuf:"bytes,10,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
-	RuleWhen       string                           `protobuf:"bytes,11,opt,name=rule_when,json=ruleWhen,proto3" json:"rule_when,omitempty"`
-	Drivers        []string                         `protobuf:"bytes,12,rep,name=drivers,proto3" json:"drivers,omitempty"`
-	Matched        bool                             `protobuf:"varint,13,opt,name=matched,proto3" json:"matched,omitempty"`
-	Status         string                           `protobuf:"bytes,14,opt,name=status,proto3" json:"status,omitempty"`
-	ErrorMessage   string                           `protobuf:"bytes,15,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
-	CreatedAt      *timestamppb.Timestamp           `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt      *timestamppb.Timestamp           `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Headers        map[string]*EventLogHeaderValues `protobuf:"bytes,18,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Body           []byte                           `protobuf:"bytes,19,opt,name=body,proto3" json:"body,omitempty"`
-	BodyHash       string                           `protobuf:"bytes,20,opt,name=body_hash,json=bodyHash,proto3" json:"body_hash,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Server-assigned unique log entry ID.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// SCM provider that sent the event, e.g. "github".
+	Provider string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Event type name as reported by the provider (e.g. "pull_request").
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// Unique request ID assigned to this webhook delivery by the server.
+	RequestId string `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	// Tenant ID (state_id) that received this event.
+	StateId string `protobuf:"bytes,5,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	// Installation ID associated with the webhook delivery.
+	InstallationId string `protobuf:"bytes,6,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	// Internal namespace (repo) ID that the event targets.
+	NamespaceId string `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3" json:"namespace_id,omitempty"`
+	// Human-readable namespace name (full_name of the repo).
+	NamespaceName string `protobuf:"bytes,8,opt,name=namespace_name,json=namespaceName,proto3" json:"namespace_name,omitempty"`
+	// Broker topic the event was published to (empty if no rule matched).
+	Topic string `protobuf:"bytes,9,opt,name=topic,proto3" json:"topic,omitempty"`
+	// ID of the rule that matched this event (empty if no match).
+	RuleId string `protobuf:"bytes,10,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
+	// The when expression of the matched rule (empty if no match).
+	RuleWhen string `protobuf:"bytes,11,opt,name=rule_when,json=ruleWhen,proto3" json:"rule_when,omitempty"`
+	// Names of the drivers used to publish this event.
+	Drivers []string `protobuf:"bytes,12,rep,name=drivers,proto3" json:"drivers,omitempty"`
+	// Whether any rule matched this event.
+	Matched bool `protobuf:"varint,13,opt,name=matched,proto3" json:"matched,omitempty"`
+	// Delivery status: "queued", "delivered", "success", or "failed".
+	// Updated by workers via UpdateEventLogStatus.
+	Status string `protobuf:"bytes,14,opt,name=status,proto3" json:"status,omitempty"`
+	// Error detail when status is "failed". Empty otherwise.
+	ErrorMessage string `protobuf:"bytes,15,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	// When this log record was created (webhook receipt time).
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// When this log record was last updated (e.g. after worker status update).
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Original HTTP request headers from the webhook delivery.
+	Headers map[string]*EventLogHeaderValues `protobuf:"bytes,18,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Raw webhook request body bytes.
+	Body []byte `protobuf:"bytes,19,opt,name=body,proto3" json:"body,omitempty"`
+	// SHA-256 hash of the body for integrity verification.
+	BodyHash      string `protobuf:"bytes,20,opt,name=body_hash,json=bodyHash,proto3" json:"body_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EventLogRecord) Reset() {
@@ -2053,10 +2202,13 @@ func (x *EventLogRecord) GetBodyHash() string {
 	return ""
 }
 
+// EventLogCount is a key/count pair used in analytics breakdowns.
 type EventLogCount struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Count         int64                  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The dimension value (e.g. provider name, topic, rule ID).
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// Number of events for this key within the query window.
+	Count         int64 `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2105,19 +2257,29 @@ func (x *EventLogCount) GetCount() int64 {
 	return 0
 }
 
+// EventLogAnalytics holds aggregate statistics over a filtered event set.
 type EventLogAnalytics struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Total            int64                  `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
-	Matched          int64                  `protobuf:"varint,2,opt,name=matched,proto3" json:"matched,omitempty"`
-	DistinctRequests int64                  `protobuf:"varint,3,opt,name=distinct_requests,json=distinctRequests,proto3" json:"distinct_requests,omitempty"`
-	ByProvider       []*EventLogCount       `protobuf:"bytes,4,rep,name=by_provider,json=byProvider,proto3" json:"by_provider,omitempty"`
-	ByEvent          []*EventLogCount       `protobuf:"bytes,5,rep,name=by_event,json=byEvent,proto3" json:"by_event,omitempty"`
-	ByTopic          []*EventLogCount       `protobuf:"bytes,6,rep,name=by_topic,json=byTopic,proto3" json:"by_topic,omitempty"`
-	ByRule           []*EventLogCount       `protobuf:"bytes,7,rep,name=by_rule,json=byRule,proto3" json:"by_rule,omitempty"`
-	ByInstallation   []*EventLogCount       `protobuf:"bytes,8,rep,name=by_installation,json=byInstallation,proto3" json:"by_installation,omitempty"`
-	ByNamespace      []*EventLogCount       `protobuf:"bytes,9,rep,name=by_namespace,json=byNamespace,proto3" json:"by_namespace,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Total number of events in the query window.
+	Total int64 `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
+	// Number of events that matched at least one rule.
+	Matched int64 `protobuf:"varint,2,opt,name=matched,proto3" json:"matched,omitempty"`
+	// Number of distinct webhook delivery request IDs (deduplication metric).
+	DistinctRequests int64 `protobuf:"varint,3,opt,name=distinct_requests,json=distinctRequests,proto3" json:"distinct_requests,omitempty"`
+	// Event counts grouped by SCM provider.
+	ByProvider []*EventLogCount `protobuf:"bytes,4,rep,name=by_provider,json=byProvider,proto3" json:"by_provider,omitempty"`
+	// Event counts grouped by event type name.
+	ByEvent []*EventLogCount `protobuf:"bytes,5,rep,name=by_event,json=byEvent,proto3" json:"by_event,omitempty"`
+	// Event counts grouped by broker topic.
+	ByTopic []*EventLogCount `protobuf:"bytes,6,rep,name=by_topic,json=byTopic,proto3" json:"by_topic,omitempty"`
+	// Event counts grouped by rule ID.
+	ByRule []*EventLogCount `protobuf:"bytes,7,rep,name=by_rule,json=byRule,proto3" json:"by_rule,omitempty"`
+	// Event counts grouped by installation ID.
+	ByInstallation []*EventLogCount `protobuf:"bytes,8,rep,name=by_installation,json=byInstallation,proto3" json:"by_installation,omitempty"`
+	// Event counts grouped by namespace (repo) ID.
+	ByNamespace   []*EventLogCount `protobuf:"bytes,9,rep,name=by_namespace,json=byNamespace,proto3" json:"by_namespace,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EventLogAnalytics) Reset() {
@@ -2213,16 +2375,23 @@ func (x *EventLogAnalytics) GetByNamespace() []*EventLogCount {
 	return nil
 }
 
+// EventLogTimeseriesBucket holds counts for one time interval bucket.
 type EventLogTimeseriesBucket struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	StartTime        *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	EndTime          *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
-	EventCount       int64                  `protobuf:"varint,3,opt,name=event_count,json=eventCount,proto3" json:"event_count,omitempty"`
-	MatchedCount     int64                  `protobuf:"varint,4,opt,name=matched_count,json=matchedCount,proto3" json:"matched_count,omitempty"`
-	DistinctRequests int64                  `protobuf:"varint,5,opt,name=distinct_requests,json=distinctRequests,proto3" json:"distinct_requests,omitempty"`
-	FailedCount      int64                  `protobuf:"varint,6,opt,name=failed_count,json=failedCount,proto3" json:"failed_count,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Inclusive start of this bucket's time range.
+	StartTime *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	// Exclusive end of this bucket's time range.
+	EndTime *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	// Total events received in this bucket.
+	EventCount int64 `protobuf:"varint,3,opt,name=event_count,json=eventCount,proto3" json:"event_count,omitempty"`
+	// Events that matched at least one rule in this bucket.
+	MatchedCount int64 `protobuf:"varint,4,opt,name=matched_count,json=matchedCount,proto3" json:"matched_count,omitempty"`
+	// Distinct webhook delivery request IDs in this bucket.
+	DistinctRequests int64 `protobuf:"varint,5,opt,name=distinct_requests,json=distinctRequests,proto3" json:"distinct_requests,omitempty"`
+	// Events with status "failed" in this bucket.
+	FailedCount   int64 `protobuf:"varint,6,opt,name=failed_count,json=failedCount,proto3" json:"failed_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EventLogTimeseriesBucket) Reset() {
@@ -2297,15 +2466,24 @@ func (x *EventLogTimeseriesBucket) GetFailedCount() int64 {
 	return 0
 }
 
+// EventLogBreakdown holds per-key statistics for one breakdown group value.
 type EventLogBreakdown struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	EventCount    int64                  `protobuf:"varint,2,opt,name=event_count,json=eventCount,proto3" json:"event_count,omitempty"`
-	MatchedCount  int64                  `protobuf:"varint,3,opt,name=matched_count,json=matchedCount,proto3" json:"matched_count,omitempty"`
-	FailedCount   int64                  `protobuf:"varint,4,opt,name=failed_count,json=failedCount,proto3" json:"failed_count,omitempty"`
-	LatencyP50Ms  float64                `protobuf:"fixed64,5,opt,name=latency_p50_ms,json=latencyP50Ms,proto3" json:"latency_p50_ms,omitempty"`
-	LatencyP95Ms  float64                `protobuf:"fixed64,6,opt,name=latency_p95_ms,json=latencyP95Ms,proto3" json:"latency_p95_ms,omitempty"`
-	LatencyP99Ms  float64                `protobuf:"fixed64,7,opt,name=latency_p99_ms,json=latencyP99Ms,proto3" json:"latency_p99_ms,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The dimension value for this row (e.g. provider name, rule ID).
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// Total events for this key in the query window.
+	EventCount int64 `protobuf:"varint,2,opt,name=event_count,json=eventCount,proto3" json:"event_count,omitempty"`
+	// Events that matched at least one rule.
+	MatchedCount int64 `protobuf:"varint,3,opt,name=matched_count,json=matchedCount,proto3" json:"matched_count,omitempty"`
+	// Events with status "failed".
+	FailedCount int64 `protobuf:"varint,4,opt,name=failed_count,json=failedCount,proto3" json:"failed_count,omitempty"`
+	// Median end-to-end processing latency in milliseconds. Populated only when
+	// include_latency=true is set in the request.
+	LatencyP50Ms float64 `protobuf:"fixed64,5,opt,name=latency_p50_ms,json=latencyP50Ms,proto3" json:"latency_p50_ms,omitempty"`
+	// 95th-percentile latency in milliseconds. Populated only when include_latency=true.
+	LatencyP95Ms float64 `protobuf:"fixed64,6,opt,name=latency_p95_ms,json=latencyP95Ms,proto3" json:"latency_p95_ms,omitempty"`
+	// 99th-percentile latency in milliseconds. Populated only when include_latency=true.
+	LatencyP99Ms  float64 `protobuf:"fixed64,7,opt,name=latency_p99_ms,json=latencyP99Ms,proto3" json:"latency_p99_ms,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2389,11 +2567,16 @@ func (x *EventLogBreakdown) GetLatencyP99Ms() float64 {
 	return 0
 }
 
+// EventPayload is the canonical event representation passed to rule matching
+// and published to the broker. The payload field contains the raw webhook body.
 type EventPayload struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Payload       []byte                 `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SCM provider name, e.g. "github". Required.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Event type name as reported by the provider, e.g. "pull_request". Required.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Raw webhook request body bytes. Required; must be non-empty.
+	Payload       []byte `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2449,11 +2632,15 @@ func (x *EventPayload) GetPayload() []byte {
 	return nil
 }
 
+// RuleMatch is returned by MatchRules for each rule that matched the event.
 type RuleMatch struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	When          string                 `protobuf:"bytes,1,opt,name=when,proto3" json:"when,omitempty"`
-	Emit          []string               `protobuf:"bytes,2,rep,name=emit,proto3" json:"emit,omitempty"`
-	DriverId      string                 `protobuf:"bytes,4,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The when expression of the matched rule.
+	When string `protobuf:"bytes,1,opt,name=when,proto3" json:"when,omitempty"`
+	// The emit topics of the matched rule.
+	Emit []string `protobuf:"bytes,2,rep,name=emit,proto3" json:"emit,omitempty"`
+	// The driver ID of the matched rule.
+	DriverId      string `protobuf:"bytes,4,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2510,10 +2697,15 @@ func (x *RuleMatch) GetDriverId() string {
 }
 
 type MatchRulesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Event         *EventPayload          `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
-	Rules         []*Rule                `protobuf:"bytes,2,rep,name=rules,proto3" json:"rules,omitempty"`
-	Strict        bool                   `protobuf:"varint,3,opt,name=strict,proto3" json:"strict,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Event to evaluate rules against. Required.
+	Event *EventPayload `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
+	// Rules to evaluate. At least one rule required.
+	// These are ephemeral (not persisted); use CreateRule to persist.
+	Rules []*Rule `protobuf:"bytes,2,rep,name=rules,proto3" json:"rules,omitempty"`
+	// When true, returns an error if any rule expression fails to parse or
+	// evaluate. When false, invalid rules are silently skipped.
+	Strict        bool `protobuf:"varint,3,opt,name=strict,proto3" json:"strict,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2570,8 +2762,9 @@ func (x *MatchRulesRequest) GetStrict() bool {
 }
 
 type MatchRulesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Matches       []*RuleMatch           `protobuf:"bytes,1,rep,name=matches,proto3" json:"matches,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Rules that matched the event. Empty if no rules matched.
+	Matches       []*RuleMatch `protobuf:"bytes,1,rep,name=matches,proto3" json:"matches,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2613,6 +2806,7 @@ func (x *MatchRulesResponse) GetMatches() []*RuleMatch {
 	return nil
 }
 
+// ListRulesRequest has no filters; all tenant rules are returned.
 type ListRulesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -2650,8 +2844,9 @@ func (*ListRulesRequest) Descriptor() ([]byte, []int) {
 }
 
 type ListRulesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Rules         []*RuleRecord          `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// All rule records for the tenant.
+	Rules         []*RuleRecord `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2694,8 +2889,9 @@ func (x *ListRulesResponse) GetRules() []*RuleRecord {
 }
 
 type GetRuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Server-assigned rule ID. Required.
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2738,8 +2934,9 @@ func (x *GetRuleRequest) GetId() string {
 }
 
 type GetRuleResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Rule          *RuleRecord            `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The matching rule record.
+	Rule          *RuleRecord `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2782,8 +2979,9 @@ func (x *GetRuleResponse) GetRule() *RuleRecord {
 }
 
 type CreateRuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Rule          *Rule                  `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Rule definition to persist. Required.
+	Rule          *Rule `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2826,8 +3024,9 @@ func (x *CreateRuleRequest) GetRule() *Rule {
 }
 
 type CreateRuleResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Rule          *RuleRecord            `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The newly created rule record with server-assigned ID and timestamps.
+	Rule          *RuleRecord `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2870,9 +3069,11 @@ func (x *CreateRuleResponse) GetRule() *RuleRecord {
 }
 
 type UpdateRuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Rule          *Rule                  `protobuf:"bytes,2,opt,name=rule,proto3" json:"rule,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the rule to update. Required.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// New rule definition. Replaces when, emit, and driver_id. Required.
+	Rule          *Rule `protobuf:"bytes,2,opt,name=rule,proto3" json:"rule,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2922,8 +3123,9 @@ func (x *UpdateRuleRequest) GetRule() *Rule {
 }
 
 type UpdateRuleResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Rule          *RuleRecord            `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The updated rule record.
+	Rule          *RuleRecord `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2966,8 +3168,9 @@ func (x *UpdateRuleResponse) GetRule() *RuleRecord {
 }
 
 type DeleteRuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the rule to delete. Required.
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3045,6 +3248,7 @@ func (*DeleteRuleResponse) Descriptor() ([]byte, []int) {
 	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{44}
 }
 
+// ListDriversRequest has no filters; all tenant drivers are returned.
 type ListDriversRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -3082,8 +3286,9 @@ func (*ListDriversRequest) Descriptor() ([]byte, []int) {
 }
 
 type ListDriversResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Drivers       []*DriverRecord        `protobuf:"bytes,1,rep,name=drivers,proto3" json:"drivers,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// All driver records for the tenant.
+	Drivers       []*DriverRecord `protobuf:"bytes,1,rep,name=drivers,proto3" json:"drivers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3126,8 +3331,9 @@ func (x *ListDriversResponse) GetDrivers() []*DriverRecord {
 }
 
 type GetDriverRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Driver name (stable identifier). Required.
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3170,8 +3376,9 @@ func (x *GetDriverRequest) GetName() string {
 }
 
 type GetDriverResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Driver        *DriverRecord          `protobuf:"bytes,1,opt,name=driver,proto3" json:"driver,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The matching driver record.
+	Driver        *DriverRecord `protobuf:"bytes,1,opt,name=driver,proto3" json:"driver,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3214,8 +3421,10 @@ func (x *GetDriverResponse) GetDriver() *DriverRecord {
 }
 
 type UpsertDriverRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Driver        *DriverRecord          `protobuf:"bytes,1,opt,name=driver,proto3" json:"driver,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Driver record to create or update. Required.
+	// The name field is the natural key; re-submitting updates in place.
+	Driver        *DriverRecord `protobuf:"bytes,1,opt,name=driver,proto3" json:"driver,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3258,8 +3467,9 @@ func (x *UpsertDriverRequest) GetDriver() *DriverRecord {
 }
 
 type UpsertDriverResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Driver        *DriverRecord          `protobuf:"bytes,1,opt,name=driver,proto3" json:"driver,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The persisted driver record with server-set timestamps.
+	Driver        *DriverRecord `protobuf:"bytes,1,opt,name=driver,proto3" json:"driver,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3302,8 +3512,9 @@ func (x *UpsertDriverResponse) GetDriver() *DriverRecord {
 }
 
 type DeleteDriverRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Driver name to delete. Required.
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3382,8 +3593,9 @@ func (*DeleteDriverResponse) Descriptor() ([]byte, []int) {
 }
 
 type ListProvidersRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional provider name filter, e.g. "github". When omitted, all providers returned.
+	Provider      string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3426,8 +3638,9 @@ func (x *ListProvidersRequest) GetProvider() string {
 }
 
 type ListProvidersResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Providers     []*ProviderRecord      `protobuf:"bytes,1,rep,name=providers,proto3" json:"providers,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// All provider records matching the filter.
+	Providers     []*ProviderRecord `protobuf:"bytes,1,rep,name=providers,proto3" json:"providers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3470,9 +3683,11 @@ func (x *ListProvidersResponse) GetProviders() []*ProviderRecord {
 }
 
 type GetProviderRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Hash          string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SCM provider name. Required.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Server-generated instance hash. Required.
+	Hash          string `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3522,8 +3737,9 @@ func (x *GetProviderRequest) GetHash() string {
 }
 
 type GetProviderResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      *ProviderRecord        `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The matching provider record.
+	Provider      *ProviderRecord `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3566,8 +3782,10 @@ func (x *GetProviderResponse) GetProvider() *ProviderRecord {
 }
 
 type UpsertProviderRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      *ProviderRecord        `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Provider record to create or update. Required.
+	// Omit hash on first create; include it on subsequent updates.
+	Provider      *ProviderRecord `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3610,8 +3828,9 @@ func (x *UpsertProviderRequest) GetProvider() *ProviderRecord {
 }
 
 type UpsertProviderResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      *ProviderRecord        `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The persisted provider record with server-assigned hash and timestamps.
+	Provider      *ProviderRecord `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3654,9 +3873,11 @@ func (x *UpsertProviderResponse) GetProvider() *ProviderRecord {
 }
 
 type DeleteProviderRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Hash          string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SCM provider name. Required.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Server-generated instance hash. Required.
+	Hash          string `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3742,24 +3963,39 @@ func (*DeleteProviderResponse) Descriptor() ([]byte, []int) {
 }
 
 type ListEventLogsRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Provider       string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Topic          string                 `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
-	RequestId      string                 `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	StateId        string                 `protobuf:"bytes,5,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	InstallationId string                 `protobuf:"bytes,6,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
-	NamespaceId    string                 `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3" json:"namespace_id,omitempty"`
-	NamespaceName  string                 `protobuf:"bytes,8,opt,name=namespace_name,json=namespaceName,proto3" json:"namespace_name,omitempty"`
-	RuleId         string                 `protobuf:"bytes,9,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
-	RuleWhen       string                 `protobuf:"bytes,10,opt,name=rule_when,json=ruleWhen,proto3" json:"rule_when,omitempty"`
-	MatchedOnly    bool                   `protobuf:"varint,11,opt,name=matched_only,json=matchedOnly,proto3" json:"matched_only,omitempty"`
-	PageSize       int32                  `protobuf:"varint,12,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	PageToken      string                 `protobuf:"bytes,13,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	StartTime      *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	EndTime        *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional provider filter, e.g. "github".
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Optional event type name filter, e.g. "pull_request".
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Optional broker topic filter.
+	Topic string `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
+	// Optional request ID filter for a specific webhook delivery.
+	RequestId string `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	// Optional tenant ID filter (state_id). Defaults to the calling tenant.
+	StateId string `protobuf:"bytes,5,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	// Optional installation ID filter.
+	InstallationId string `protobuf:"bytes,6,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	// Optional namespace (repo) ID filter.
+	NamespaceId string `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3" json:"namespace_id,omitempty"`
+	// Optional namespace full name filter.
+	NamespaceName string `protobuf:"bytes,8,opt,name=namespace_name,json=namespaceName,proto3" json:"namespace_name,omitempty"`
+	// Optional rule ID filter.
+	RuleId string `protobuf:"bytes,9,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
+	// Optional rule when expression filter (exact match).
+	RuleWhen string `protobuf:"bytes,10,opt,name=rule_when,json=ruleWhen,proto3" json:"rule_when,omitempty"`
+	// When true, only return events that matched at least one rule.
+	MatchedOnly bool `protobuf:"varint,11,opt,name=matched_only,json=matchedOnly,proto3" json:"matched_only,omitempty"`
+	// Number of records per page. Must be 0-200; defaults to server default when 0.
+	PageSize int32 `protobuf:"varint,12,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// Cursor from a previous response's next_page_token. Omit for the first page.
+	PageToken string `protobuf:"bytes,13,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Inclusive start of the time range filter.
+	StartTime *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	// Exclusive end of the time range filter.
+	EndTime       *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListEventLogsRequest) Reset() {
@@ -3898,9 +4134,11 @@ func (x *ListEventLogsRequest) GetEndTime() *timestamppb.Timestamp {
 }
 
 type ListEventLogsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Logs          []*EventLogRecord      `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
-	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Event log records for this page.
+	Logs []*EventLogRecord `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
+	// Cursor for the next page. Empty when there are no more results.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3950,22 +4188,35 @@ func (x *ListEventLogsResponse) GetNextPageToken() string {
 }
 
 type GetEventLogAnalyticsRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Provider       string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Topic          string                 `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
-	RequestId      string                 `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	StateId        string                 `protobuf:"bytes,5,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	InstallationId string                 `protobuf:"bytes,6,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
-	NamespaceId    string                 `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3" json:"namespace_id,omitempty"`
-	NamespaceName  string                 `protobuf:"bytes,8,opt,name=namespace_name,json=namespaceName,proto3" json:"namespace_name,omitempty"`
-	RuleId         string                 `protobuf:"bytes,9,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
-	RuleWhen       string                 `protobuf:"bytes,10,opt,name=rule_when,json=ruleWhen,proto3" json:"rule_when,omitempty"`
-	MatchedOnly    bool                   `protobuf:"varint,11,opt,name=matched_only,json=matchedOnly,proto3" json:"matched_only,omitempty"`
-	StartTime      *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	EndTime        *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional provider filter.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Optional event type name filter.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Optional broker topic filter.
+	Topic string `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
+	// Optional request ID filter.
+	RequestId string `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	// Optional tenant ID filter (state_id).
+	StateId string `protobuf:"bytes,5,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	// Optional installation ID filter.
+	InstallationId string `protobuf:"bytes,6,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	// Optional namespace ID filter.
+	NamespaceId string `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3" json:"namespace_id,omitempty"`
+	// Optional namespace full name filter.
+	NamespaceName string `protobuf:"bytes,8,opt,name=namespace_name,json=namespaceName,proto3" json:"namespace_name,omitempty"`
+	// Optional rule ID filter.
+	RuleId string `protobuf:"bytes,9,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
+	// Optional rule when expression filter.
+	RuleWhen string `protobuf:"bytes,10,opt,name=rule_when,json=ruleWhen,proto3" json:"rule_when,omitempty"`
+	// When true, only count events that matched at least one rule.
+	MatchedOnly bool `protobuf:"varint,11,opt,name=matched_only,json=matchedOnly,proto3" json:"matched_only,omitempty"`
+	// Inclusive start of the time range.
+	StartTime *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	// Exclusive end of the time range.
+	EndTime       *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetEventLogAnalyticsRequest) Reset() {
@@ -4090,8 +4341,9 @@ func (x *GetEventLogAnalyticsRequest) GetEndTime() *timestamppb.Timestamp {
 }
 
 type GetEventLogAnalyticsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Analytics     *EventLogAnalytics     `protobuf:"bytes,1,opt,name=analytics,proto3" json:"analytics,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Aggregate analytics over the filtered event set.
+	Analytics     *EventLogAnalytics `protobuf:"bytes,1,opt,name=analytics,proto3" json:"analytics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4134,23 +4386,37 @@ func (x *GetEventLogAnalyticsResponse) GetAnalytics() *EventLogAnalytics {
 }
 
 type GetEventLogTimeseriesRequest struct {
-	state          protoimpl.MessageState     `protogen:"open.v1"`
-	Provider       string                     `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Name           string                     `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Topic          string                     `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
-	RequestId      string                     `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	StateId        string                     `protobuf:"bytes,5,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	InstallationId string                     `protobuf:"bytes,6,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
-	NamespaceId    string                     `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3" json:"namespace_id,omitempty"`
-	NamespaceName  string                     `protobuf:"bytes,8,opt,name=namespace_name,json=namespaceName,proto3" json:"namespace_name,omitempty"`
-	RuleId         string                     `protobuf:"bytes,9,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
-	RuleWhen       string                     `protobuf:"bytes,10,opt,name=rule_when,json=ruleWhen,proto3" json:"rule_when,omitempty"`
-	MatchedOnly    bool                       `protobuf:"varint,11,opt,name=matched_only,json=matchedOnly,proto3" json:"matched_only,omitempty"`
-	StartTime      *timestamppb.Timestamp     `protobuf:"bytes,12,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	EndTime        *timestamppb.Timestamp     `protobuf:"bytes,13,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
-	Interval       EventLogTimeseriesInterval `protobuf:"varint,14,opt,name=interval,proto3,enum=cloud.v1.EventLogTimeseriesInterval" json:"interval,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional provider filter.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Optional event type name filter.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Optional broker topic filter.
+	Topic string `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
+	// Optional request ID filter.
+	RequestId string `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	// Optional tenant ID filter (state_id).
+	StateId string `protobuf:"bytes,5,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	// Optional installation ID filter.
+	InstallationId string `protobuf:"bytes,6,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	// Optional namespace ID filter.
+	NamespaceId string `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3" json:"namespace_id,omitempty"`
+	// Optional namespace full name filter.
+	NamespaceName string `protobuf:"bytes,8,opt,name=namespace_name,json=namespaceName,proto3" json:"namespace_name,omitempty"`
+	// Optional rule ID filter.
+	RuleId string `protobuf:"bytes,9,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
+	// Optional rule when expression filter.
+	RuleWhen string `protobuf:"bytes,10,opt,name=rule_when,json=ruleWhen,proto3" json:"rule_when,omitempty"`
+	// When true, only count events that matched at least one rule.
+	MatchedOnly bool `protobuf:"varint,11,opt,name=matched_only,json=matchedOnly,proto3" json:"matched_only,omitempty"`
+	// Inclusive start of the time range.
+	StartTime *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	// Exclusive end of the time range.
+	EndTime *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	// Bucket width for the timeseries. Required; must not be UNSPECIFIED.
+	Interval      EventLogTimeseriesInterval `protobuf:"varint,14,opt,name=interval,proto3,enum=cloud.v1.EventLogTimeseriesInterval" json:"interval,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetEventLogTimeseriesRequest) Reset() {
@@ -4282,7 +4548,8 @@ func (x *GetEventLogTimeseriesRequest) GetInterval() EventLogTimeseriesInterval 
 }
 
 type GetEventLogTimeseriesResponse struct {
-	state         protoimpl.MessageState      `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Time-ordered list of event count buckets covering the requested range.
 	Buckets       []*EventLogTimeseriesBucket `protobuf:"bytes,1,rep,name=buckets,proto3" json:"buckets,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -4326,26 +4593,45 @@ func (x *GetEventLogTimeseriesResponse) GetBuckets() []*EventLogTimeseriesBucket
 }
 
 type GetEventLogBreakdownRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Provider       string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Topic          string                 `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
-	RequestId      string                 `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	StateId        string                 `protobuf:"bytes,5,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	InstallationId string                 `protobuf:"bytes,6,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
-	NamespaceId    string                 `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3" json:"namespace_id,omitempty"`
-	NamespaceName  string                 `protobuf:"bytes,8,opt,name=namespace_name,json=namespaceName,proto3" json:"namespace_name,omitempty"`
-	RuleId         string                 `protobuf:"bytes,9,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
-	RuleWhen       string                 `protobuf:"bytes,10,opt,name=rule_when,json=ruleWhen,proto3" json:"rule_when,omitempty"`
-	MatchedOnly    bool                   `protobuf:"varint,11,opt,name=matched_only,json=matchedOnly,proto3" json:"matched_only,omitempty"`
-	StartTime      *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	EndTime        *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
-	GroupBy        EventLogBreakdownGroup `protobuf:"varint,14,opt,name=group_by,json=groupBy,proto3,enum=cloud.v1.EventLogBreakdownGroup" json:"group_by,omitempty"`
-	SortBy         EventLogBreakdownSort  `protobuf:"varint,15,opt,name=sort_by,json=sortBy,proto3,enum=cloud.v1.EventLogBreakdownSort" json:"sort_by,omitempty"`
-	SortDesc       bool                   `protobuf:"varint,16,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
-	PageSize       int32                  `protobuf:"varint,17,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	PageToken      string                 `protobuf:"bytes,18,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	IncludeLatency bool                   `protobuf:"varint,19,opt,name=include_latency,json=includeLatency,proto3" json:"include_latency,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional provider filter.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Optional event type name filter.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Optional broker topic filter.
+	Topic string `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
+	// Optional request ID filter.
+	RequestId string `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	// Optional tenant ID filter (state_id).
+	StateId string `protobuf:"bytes,5,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	// Optional installation ID filter.
+	InstallationId string `protobuf:"bytes,6,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	// Optional namespace ID filter.
+	NamespaceId string `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3" json:"namespace_id,omitempty"`
+	// Optional namespace full name filter.
+	NamespaceName string `protobuf:"bytes,8,opt,name=namespace_name,json=namespaceName,proto3" json:"namespace_name,omitempty"`
+	// Optional rule ID filter.
+	RuleId string `protobuf:"bytes,9,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
+	// Optional rule when expression filter.
+	RuleWhen string `protobuf:"bytes,10,opt,name=rule_when,json=ruleWhen,proto3" json:"rule_when,omitempty"`
+	// When true, only count events that matched at least one rule.
+	MatchedOnly bool `protobuf:"varint,11,opt,name=matched_only,json=matchedOnly,proto3" json:"matched_only,omitempty"`
+	// Inclusive start of the time range.
+	StartTime *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	// Exclusive end of the time range.
+	EndTime *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	// Dimension to group results by. Required; must not be UNSPECIFIED.
+	GroupBy EventLogBreakdownGroup `protobuf:"varint,14,opt,name=group_by,json=groupBy,proto3,enum=cloud.v1.EventLogBreakdownGroup" json:"group_by,omitempty"`
+	// Field to sort results by. Defaults to COUNT when UNSPECIFIED.
+	SortBy EventLogBreakdownSort `protobuf:"varint,15,opt,name=sort_by,json=sortBy,proto3,enum=cloud.v1.EventLogBreakdownSort" json:"sort_by,omitempty"`
+	// When true, sort descending (highest first). When false, sort ascending.
+	SortDesc bool `protobuf:"varint,16,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
+	// Number of records per page. Must be 0-200; defaults to server default when 0.
+	PageSize int32 `protobuf:"varint,17,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// Cursor from a previous response's next_page_token. Omit for the first page.
+	PageToken string `protobuf:"bytes,18,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// When true, populate latency_p50_ms, latency_p95_ms, latency_p99_ms in results.
+	IncludeLatency bool `protobuf:"varint,19,opt,name=include_latency,json=includeLatency,proto3" json:"include_latency,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -4514,9 +4800,11 @@ func (x *GetEventLogBreakdownRequest) GetIncludeLatency() bool {
 }
 
 type GetEventLogBreakdownResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Breakdowns    []*EventLogBreakdown   `protobuf:"bytes,1,rep,name=breakdowns,proto3" json:"breakdowns,omitempty"`
-	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Breakdown rows for this page, one per distinct group_by value.
+	Breakdowns []*EventLogBreakdown `protobuf:"bytes,1,rep,name=breakdowns,proto3" json:"breakdowns,omitempty"`
+	// Cursor for the next page. Empty when there are no more results.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4566,10 +4854,14 @@ func (x *GetEventLogBreakdownResponse) GetNextPageToken() string {
 }
 
 type UpdateEventLogStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	LogId         string                 `protobuf:"bytes,1,opt,name=log_id,json=logId,proto3" json:"log_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	ErrorMessage  string                 `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the event log record to update. Required.
+	LogId string `protobuf:"bytes,1,opt,name=log_id,json=logId,proto3" json:"log_id,omitempty"`
+	// New delivery status. Required. Must be one of:
+	// "queued", "delivered", "success", "failed".
+	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// Optional error detail when status is "failed". Ignored for other statuses.
+	ErrorMessage  string `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

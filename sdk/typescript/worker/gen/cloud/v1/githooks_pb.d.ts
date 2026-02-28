@@ -7,6 +7,8 @@ import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialM
 import { Message, proto3 } from "@bufbuild/protobuf";
 
 /**
+ * EventLogTimeseriesInterval controls the bucket width for timeseries queries.
+ *
  * @generated from enum cloud.v1.EventLogTimeseriesInterval
  */
 export declare enum EventLogTimeseriesInterval {
@@ -16,22 +18,30 @@ export declare enum EventLogTimeseriesInterval {
   UNSPECIFIED = 0,
 
   /**
+   * Bucket events by hour.
+   *
    * @generated from enum value: EVENT_LOG_TIMESERIES_INTERVAL_HOUR = 1;
    */
   HOUR = 1,
 
   /**
+   * Bucket events by calendar day.
+   *
    * @generated from enum value: EVENT_LOG_TIMESERIES_INTERVAL_DAY = 2;
    */
   DAY = 2,
 
   /**
+   * Bucket events by calendar week.
+   *
    * @generated from enum value: EVENT_LOG_TIMESERIES_INTERVAL_WEEK = 3;
    */
   WEEK = 3,
 }
 
 /**
+ * EventLogBreakdownGroup selects the dimension to group by in breakdown queries.
+ *
  * @generated from enum cloud.v1.EventLogBreakdownGroup
  */
 export declare enum EventLogBreakdownGroup {
@@ -41,47 +51,65 @@ export declare enum EventLogBreakdownGroup {
   UNSPECIFIED = 0,
 
   /**
+   * Group by SCM provider name.
+   *
    * @generated from enum value: EVENT_LOG_BREAKDOWN_GROUP_PROVIDER = 1;
    */
   PROVIDER = 1,
 
   /**
+   * Group by event type name.
+   *
    * @generated from enum value: EVENT_LOG_BREAKDOWN_GROUP_EVENT = 2;
    */
   EVENT = 2,
 
   /**
+   * Group by rule ID.
+   *
    * @generated from enum value: EVENT_LOG_BREAKDOWN_GROUP_RULE_ID = 3;
    */
   RULE_ID = 3,
 
   /**
+   * Group by rule when expression.
+   *
    * @generated from enum value: EVENT_LOG_BREAKDOWN_GROUP_RULE_WHEN = 4;
    */
   RULE_WHEN = 4,
 
   /**
+   * Group by broker topic.
+   *
    * @generated from enum value: EVENT_LOG_BREAKDOWN_GROUP_TOPIC = 5;
    */
   TOPIC = 5,
 
   /**
+   * Group by namespace (repo) ID.
+   *
    * @generated from enum value: EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_ID = 6;
    */
   NAMESPACE_ID = 6,
 
   /**
+   * Group by namespace (repo) full name.
+   *
    * @generated from enum value: EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_NAME = 7;
    */
   NAMESPACE_NAME = 7,
 
   /**
+   * Group by installation ID.
+   *
    * @generated from enum value: EVENT_LOG_BREAKDOWN_GROUP_INSTALLATION_ID = 8;
    */
   INSTALLATION_ID = 8,
 }
 
 /**
+ * EventLogBreakdownSort controls the sort order of breakdown results.
+ *
  * @generated from enum cloud.v1.EventLogBreakdownSort
  */
 export declare enum EventLogBreakdownSort {
@@ -91,91 +119,130 @@ export declare enum EventLogBreakdownSort {
   UNSPECIFIED = 0,
 
   /**
+   * Sort by total event count.
+   *
    * @generated from enum value: EVENT_LOG_BREAKDOWN_SORT_COUNT = 1;
    */
   COUNT = 1,
 
   /**
+   * Sort by matched event count.
+   *
    * @generated from enum value: EVENT_LOG_BREAKDOWN_SORT_MATCHED = 2;
    */
   MATCHED = 2,
 
   /**
+   * Sort by failed event count.
+   *
    * @generated from enum value: EVENT_LOG_BREAKDOWN_SORT_FAILED = 3;
    */
   FAILED = 3,
 }
 
 /**
+ * InstallRecord holds the OAuth credentials and metadata for a single SCM app
+ * installation. Credentials (access_token, refresh_token) are stored encrypted
+ * at rest and never returned to workers directly; use SCMService.GetSCMClient.
+ *
  * @generated from message cloud.v1.InstallRecord
  */
 export declare class InstallRecord extends Message<InstallRecord> {
   /**
+   * SCM provider name, e.g. "github", "gitlab", "bitbucket". Required.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Provider-assigned account or organization ID. Required.
+   *
    * @generated from field: string account_id = 2;
    */
   accountId: string;
 
   /**
+   * Human-readable account or organization name.
+   *
    * @generated from field: string account_name = 3;
    */
   accountName: string;
 
   /**
+   * Provider-assigned installation ID (e.g. GitHub App installation ID). Required.
+   *
    * @generated from field: string installation_id = 4;
    */
   installationId: string;
 
   /**
+   * OAuth access token. Stored server-side; not returned to workers.
+   *
    * @generated from field: string access_token = 5;
    */
   accessToken: string;
 
   /**
+   * OAuth refresh token used to renew access_token when it expires.
+   *
    * @generated from field: string refresh_token = 6;
    */
   refreshToken: string;
 
   /**
+   * When the access_token expires. Server refreshes automatically before this.
+   *
    * @generated from field: google.protobuf.Timestamp expires_at = 7;
    */
   expiresAt?: Timestamp;
 
   /**
+   * Arbitrary provider-specific metadata serialized as JSON.
+   *
    * @generated from field: string metadata_json = 8;
    */
   metadataJson: string;
 
   /**
+   * When this record was first created.
+   *
    * @generated from field: google.protobuf.Timestamp created_at = 9;
    */
   createdAt?: Timestamp;
 
   /**
+   * When this record was last updated.
+   *
    * @generated from field: google.protobuf.Timestamp updated_at = 10;
    */
   updatedAt?: Timestamp;
 
   /**
+   * Identifies which provider instance config (ProviderRecord) this installation
+   * belongs to. Matches ProviderRecord.hash for multi-instance setups.
+   *
    * @generated from field: string provider_instance_key = 11;
    */
   providerInstanceKey: string;
 
   /**
+   * GitHub Enterprise: numeric enterprise ID. Empty for github.com installs.
+   *
    * @generated from field: string enterprise_id = 12;
    */
   enterpriseId: string;
 
   /**
+   * GitHub Enterprise: URL slug for the enterprise.
+   *
    * @generated from field: string enterprise_slug = 13;
    */
   enterpriseSlug: string;
 
   /**
+   * GitHub Enterprise: display name for the enterprise.
+   *
    * @generated from field: string enterprise_name = 14;
    */
   enterpriseName: string;
@@ -196,75 +263,106 @@ export declare class InstallRecord extends Message<InstallRecord> {
 }
 
 /**
+ * NamespaceRecord represents a single repository discovered via an installation.
+ * Records are populated by SyncNamespaces and updated when webhooks arrive.
+ *
  * @generated from message cloud.v1.NamespaceRecord
  */
 export declare class NamespaceRecord extends Message<NamespaceRecord> {
   /**
+   * SCM provider name, e.g. "github", "gitlab", "bitbucket". Required.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Provider-assigned repository ID (stable across renames).
+   *
    * @generated from field: string repo_id = 2;
    */
   repoId: string;
 
   /**
+   * Provider-assigned account or organization ID that owns this repo.
+   *
    * @generated from field: string account_id = 3;
    */
   accountId: string;
 
   /**
+   * Installation ID that granted access to this repo.
+   *
    * @generated from field: string installation_id = 4;
    */
   installationId: string;
 
   /**
+   * Repository owner login (user or org name).
+   *
    * @generated from field: string owner = 5;
    */
   owner: string;
 
   /**
+   * Repository name without the owner prefix.
+   *
    * @generated from field: string repo_name = 6;
    */
   repoName: string;
 
   /**
+   * Full repository name in "owner/repo" format.
+   *
    * @generated from field: string full_name = 7;
    */
   fullName: string;
 
   /**
+   * Repository visibility: "public" or "private".
+   *
    * @generated from field: string visibility = 8;
    */
   visibility: string;
 
   /**
+   * Default branch name, e.g. "main" or "master".
+   *
    * @generated from field: string default_branch = 9;
    */
   defaultBranch: string;
 
   /**
+   * HTTPS clone URL for the repository.
+   *
    * @generated from field: string http_url = 10;
    */
   httpUrl: string;
 
   /**
+   * SSH clone URL for the repository.
+   *
    * @generated from field: string ssh_url = 11;
    */
   sshUrl: string;
 
   /**
+   * Whether the githook webhook is currently registered on this repo.
+   *
    * @generated from field: bool webhooks_enabled = 12;
    */
   webhooksEnabled: boolean;
 
   /**
+   * When this namespace record was first created.
+   *
    * @generated from field: google.protobuf.Timestamp created_at = 13;
    */
   createdAt?: Timestamp;
 
   /**
+   * When this namespace record was last updated.
+   *
    * @generated from field: google.protobuf.Timestamp updated_at = 14;
    */
   updatedAt?: Timestamp;
@@ -296,6 +394,8 @@ export declare class ListInstallationsRequest extends Message<ListInstallationsR
   stateId: string;
 
   /**
+   * Optional provider filter, e.g. "github". When omitted, all providers are returned.
+   *
    * @generated from field: string provider = 2;
    */
   provider: string;
@@ -320,6 +420,8 @@ export declare class ListInstallationsRequest extends Message<ListInstallationsR
  */
 export declare class ListInstallationsResponse extends Message<ListInstallationsResponse> {
   /**
+   * All installation records matching the request filters.
+   *
    * @generated from field: repeated cloud.v1.InstallRecord installations = 1;
    */
   installations: InstallRecord[];
@@ -344,11 +446,15 @@ export declare class ListInstallationsResponse extends Message<ListInstallations
  */
 export declare class GetInstallationByIDRequest extends Message<GetInstallationByIDRequest> {
   /**
+   * SCM provider name. Required.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Provider-assigned installation ID. Required.
+   *
    * @generated from field: string installation_id = 2;
    */
   installationId: string;
@@ -373,6 +479,8 @@ export declare class GetInstallationByIDRequest extends Message<GetInstallationB
  */
 export declare class GetInstallationByIDResponse extends Message<GetInstallationByIDResponse> {
   /**
+   * The matching installation record, or empty if not found.
+   *
    * @generated from field: cloud.v1.InstallRecord installation = 1;
    */
   installation?: InstallRecord;
@@ -397,6 +505,9 @@ export declare class GetInstallationByIDResponse extends Message<GetInstallation
  */
 export declare class UpsertInstallationRequest extends Message<UpsertInstallationRequest> {
   /**
+   * Full installation record to create or update. Required.
+   * The (provider, account_id, installation_id) triple is the natural key.
+   *
    * @generated from field: cloud.v1.InstallRecord installation = 1;
    */
   installation?: InstallRecord;
@@ -421,6 +532,8 @@ export declare class UpsertInstallationRequest extends Message<UpsertInstallatio
  */
 export declare class UpsertInstallationResponse extends Message<UpsertInstallationResponse> {
   /**
+   * The persisted installation record with server-set timestamps.
+   *
    * @generated from field: cloud.v1.InstallRecord installation = 1;
    */
   installation?: InstallRecord;
@@ -445,21 +558,29 @@ export declare class UpsertInstallationResponse extends Message<UpsertInstallati
  */
 export declare class DeleteInstallationRequest extends Message<DeleteInstallationRequest> {
   /**
+   * SCM provider name. Required.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Provider-assigned account ID. Required.
+   *
    * @generated from field: string account_id = 2;
    */
   accountId: string;
 
   /**
+   * Provider-assigned installation ID. Required.
+   *
    * @generated from field: string installation_id = 3;
    */
   installationId: string;
 
   /**
+   * Optional provider instance key to disambiguate multi-instance setups.
+   *
    * @generated from field: string provider_instance_key = 4;
    */
   providerInstanceKey: string;
@@ -510,21 +631,29 @@ export declare class ListNamespacesRequest extends Message<ListNamespacesRequest
   stateId: string;
 
   /**
+   * Optional provider filter, e.g. "github".
+   *
    * @generated from field: string provider = 2;
    */
   provider: string;
 
   /**
+   * Optional owner (user or org login) filter.
+   *
    * @generated from field: string owner = 3;
    */
   owner: string;
 
   /**
+   * Optional repository name filter (without owner prefix).
+   *
    * @generated from field: string repo = 4;
    */
   repo: string;
 
   /**
+   * Optional full name filter in "owner/repo" format.
+   *
    * @generated from field: string full_name = 5;
    */
   fullName: string;
@@ -549,6 +678,8 @@ export declare class ListNamespacesRequest extends Message<ListNamespacesRequest
  */
 export declare class ListNamespacesResponse extends Message<ListNamespacesResponse> {
   /**
+   * All namespace records matching the request filters.
+   *
    * @generated from field: repeated cloud.v1.NamespaceRecord namespaces = 1;
    */
   namespaces: NamespaceRecord[];
@@ -580,6 +711,8 @@ export declare class SyncNamespacesRequest extends Message<SyncNamespacesRequest
   stateId: string;
 
   /**
+   * SCM provider to sync from, e.g. "github". Required.
+   *
    * @generated from field: string provider = 2;
    */
   provider: string;
@@ -604,6 +737,8 @@ export declare class SyncNamespacesRequest extends Message<SyncNamespacesRequest
  */
 export declare class SyncNamespacesResponse extends Message<SyncNamespacesResponse> {
   /**
+   * The full refreshed set of namespace records after sync.
+   *
    * @generated from field: repeated cloud.v1.NamespaceRecord namespaces = 1;
    */
   namespaces: NamespaceRecord[];
@@ -635,11 +770,15 @@ export declare class GetNamespaceWebhookRequest extends Message<GetNamespaceWebh
   stateId: string;
 
   /**
+   * SCM provider name. Required.
+   *
    * @generated from field: string provider = 2;
    */
   provider: string;
 
   /**
+   * Provider-assigned repository ID. Required.
+   *
    * @generated from field: string repo_id = 3;
    */
   repoId: string;
@@ -671,16 +810,22 @@ export declare class SetNamespaceWebhookRequest extends Message<SetNamespaceWebh
   stateId: string;
 
   /**
+   * SCM provider name. Required.
+   *
    * @generated from field: string provider = 2;
    */
   provider: string;
 
   /**
+   * Provider-assigned repository ID. Required.
+   *
    * @generated from field: string repo_id = 3;
    */
   repoId: string;
 
   /**
+   * Set to true to register the webhook, false to remove it.
+   *
    * @generated from field: bool enabled = 4;
    */
   enabled: boolean;
@@ -705,6 +850,8 @@ export declare class SetNamespaceWebhookRequest extends Message<SetNamespaceWebh
  */
 export declare class GetNamespaceWebhookResponse extends Message<GetNamespaceWebhookResponse> {
   /**
+   * Whether the githook webhook is currently registered on the repo.
+   *
    * @generated from field: bool enabled = 1;
    */
   enabled: boolean;
@@ -729,6 +876,8 @@ export declare class GetNamespaceWebhookResponse extends Message<GetNamespaceWeb
  */
 export declare class SetNamespaceWebhookResponse extends Message<SetNamespaceWebhookResponse> {
   /**
+   * The new webhook registration state after the operation.
+   *
    * @generated from field: bool enabled = 1;
    */
   enabled: boolean;
@@ -749,20 +898,31 @@ export declare class SetNamespaceWebhookResponse extends Message<SetNamespaceWeb
 }
 
 /**
+ * Rule is the input shape for creating or matching rules. It does not carry
+ * server-assigned fields (id, timestamps). See RuleRecord for the persisted form.
+ *
  * @generated from message cloud.v1.Rule
  */
 export declare class Rule extends Message<Rule> {
   /**
+   * govaluate expression evaluated against the flattened event JSON.
+   * Example: 'action == "opened" && provider == "github"'
+   *
    * @generated from field: string when = 1;
    */
   when: string;
 
   /**
+   * Topic(s) to publish matching events to. Currently limited to exactly one
+   * entry. The value becomes the broker routing key or subject.
+   *
    * @generated from field: repeated string emit = 2;
    */
   emit: string[];
 
   /**
+   * ID of the DriverRecord that defines the broker connection for this rule.
+   *
    * @generated from field: string driver_id = 4;
    */
   driverId: string;
@@ -783,35 +943,49 @@ export declare class Rule extends Message<Rule> {
 }
 
 /**
+ * RuleRecord is the persisted form of a Rule, including server-assigned fields.
+ *
  * @generated from message cloud.v1.RuleRecord
  */
 export declare class RuleRecord extends Message<RuleRecord> {
   /**
+   * Server-assigned unique rule ID. Use this in worker SDKs via HandleRule().
+   *
    * @generated from field: string id = 1;
    */
   id: string;
 
   /**
+   * govaluate expression evaluated against the flattened event JSON.
+   *
    * @generated from field: string when = 2;
    */
   when: string;
 
   /**
+   * Topic(s) to publish matching events to. At least one entry required.
+   *
    * @generated from field: repeated string emit = 3;
    */
   emit: string[];
 
   /**
+   * When this rule was first created.
+   *
    * @generated from field: google.protobuf.Timestamp created_at = 5;
    */
   createdAt?: Timestamp;
 
   /**
+   * When this rule was last updated.
+   *
    * @generated from field: google.protobuf.Timestamp updated_at = 6;
    */
   updatedAt?: Timestamp;
 
   /**
+   * ID of the DriverRecord that defines the broker connection for this rule.
+   *
    * @generated from field: string driver_id = 7;
    */
   driverId: string;
@@ -832,35 +1006,52 @@ export declare class RuleRecord extends Message<RuleRecord> {
 }
 
 /**
+ * DriverRecord holds the broker connection config for a message driver.
+ * config_json is driver-type-specific (AMQP, NATS, Kafka) and is validated
+ * at publish time, not at upsert time.
+ *
  * @generated from message cloud.v1.DriverRecord
  */
 export declare class DriverRecord extends Message<DriverRecord> {
   /**
+   * Unique driver name within the tenant. Used as the stable identifier.
+   *
    * @generated from field: string name = 1;
    */
   name: string;
 
   /**
+   * Driver-type-specific connection config serialized as JSON.
+   * Schema depends on the broker type (AMQP, NATS, Kafka).
+   *
    * @generated from field: string config_json = 2;
    */
   configJson: string;
 
   /**
+   * Whether this driver is active. Disabled drivers skip publishing.
+   *
    * @generated from field: bool enabled = 3;
    */
   enabled: boolean;
 
   /**
+   * When this driver record was first created.
+   *
    * @generated from field: google.protobuf.Timestamp created_at = 4;
    */
   createdAt?: Timestamp;
 
   /**
+   * When this driver record was last updated.
+   *
    * @generated from field: google.protobuf.Timestamp updated_at = 5;
    */
   updatedAt?: Timestamp;
 
   /**
+   * Server-assigned unique driver ID. Referenced by RuleRecord.driver_id.
+   *
    * @generated from field: string id = 6;
    */
   id: string;
@@ -881,43 +1072,61 @@ export declare class DriverRecord extends Message<DriverRecord> {
 }
 
 /**
+ * ProviderRecord holds the SCM provider app credentials for one provider instance.
+ * A tenant can register multiple instances of the same provider (e.g. two GitHub
+ * Apps) by creating separate ProviderRecords; each gets a distinct hash.
+ *
  * @generated from message cloud.v1.ProviderRecord
  */
 export declare class ProviderRecord extends Message<ProviderRecord> {
   /**
+   * SCM provider name, e.g. "github", "gitlab", "bitbucket". Required.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
-   * Instance hash (server-generated).
+   * Instance hash (server-generated). Stable identifier for this config instance.
+   * Include on update requests; omit on first create.
    *
    * @generated from field: string hash = 2;
    */
   hash: string;
 
   /**
+   * Provider-specific app credentials serialized as JSON (App ID, private key,
+   * OAuth client ID/secret, webhook secret, etc.).
+   *
    * @generated from field: string config_json = 3;
    */
   configJson: string;
 
   /**
+   * Whether this provider instance is active. Disabled instances skip webhook
+   * signature verification and OAuth flows.
+   *
    * @generated from field: bool enabled = 4;
    */
   enabled: boolean;
 
   /**
+   * When this provider record was first created.
+   *
    * @generated from field: google.protobuf.Timestamp created_at = 5;
    */
   createdAt?: Timestamp;
 
   /**
+   * When this provider record was last updated.
+   *
    * @generated from field: google.protobuf.Timestamp updated_at = 6;
    */
   updatedAt?: Timestamp;
 
   /**
-   * Per-instance OAuth redirect URL (overrides global redirect_base_url).
+   * Per-instance OAuth redirect URL. Overrides the global redirect_base_url
+   * from server config. Useful when hosting multiple provider instances.
    *
    * @generated from field: string redirect_base_url = 7;
    */
@@ -939,30 +1148,43 @@ export declare class ProviderRecord extends Message<ProviderRecord> {
 }
 
 /**
+ * SCMClient carries short-lived credentials for making SCM API calls.
+ * Returned by SCMService.GetSCMClient; workers should not cache this long-term.
+ *
  * @generated from message cloud.v1.SCMClient
  */
 export declare class SCMClient extends Message<SCMClient> {
   /**
+   * SCM provider name, e.g. "github", "gitlab", "bitbucket".
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Base URL for the SCM API. Useful for GitHub Enterprise Server installs.
+   *
    * @generated from field: string api_base_url = 2;
    */
   apiBaseUrl: string;
 
   /**
+   * Short-lived OAuth access token. Required; always non-empty on success.
+   *
    * @generated from field: string access_token = 3;
    */
   accessToken: string;
 
   /**
+   * When the access_token expires. Re-fetch before this time.
+   *
    * @generated from field: google.protobuf.Timestamp expires_at = 4;
    */
   expiresAt?: Timestamp;
 
   /**
+   * Provider instance key identifying which ProviderRecord issued this token.
+   *
    * @generated from field: string provider_instance_key = 5;
    */
   providerInstanceKey: string;
@@ -987,16 +1209,22 @@ export declare class SCMClient extends Message<SCMClient> {
  */
 export declare class GetSCMClientRequest extends Message<GetSCMClientRequest> {
   /**
+   * SCM provider name. Required.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Installation ID to fetch credentials for. Required.
+   *
    * @generated from field: string installation_id = 2;
    */
   installationId: string;
 
   /**
+   * Optional provider instance key to select among multiple provider configs.
+   *
    * @generated from field: string provider_instance_key = 3;
    */
   providerInstanceKey: string;
@@ -1021,6 +1249,8 @@ export declare class GetSCMClientRequest extends Message<GetSCMClientRequest> {
  */
 export declare class GetSCMClientResponse extends Message<GetSCMClientResponse> {
   /**
+   * Ready-to-use SCM client credentials. access_token is always populated.
+   *
    * @generated from field: cloud.v1.SCMClient client = 1;
    */
   client?: SCMClient;
@@ -1041,10 +1271,14 @@ export declare class GetSCMClientResponse extends Message<GetSCMClientResponse> 
 }
 
 /**
+ * EventLogHeaderValues holds the multi-value list for a single HTTP header key.
+ *
  * @generated from message cloud.v1.EventLogHeaderValues
  */
 export declare class EventLogHeaderValues extends Message<EventLogHeaderValues> {
   /**
+   * All values for this header key (HTTP headers can repeat).
+   *
    * @generated from field: repeated string values = 1;
    */
   values: string[];
@@ -1065,105 +1299,149 @@ export declare class EventLogHeaderValues extends Message<EventLogHeaderValues> 
 }
 
 /**
+ * EventLogRecord is the audit record for a single incoming webhook event.
+ * Created on every webhook receipt regardless of rule match outcome.
+ *
  * @generated from message cloud.v1.EventLogRecord
  */
 export declare class EventLogRecord extends Message<EventLogRecord> {
   /**
+   * Server-assigned unique log entry ID.
+   *
    * @generated from field: string id = 1;
    */
   id: string;
 
   /**
+   * SCM provider that sent the event, e.g. "github".
+   *
    * @generated from field: string provider = 2;
    */
   provider: string;
 
   /**
+   * Event type name as reported by the provider (e.g. "pull_request").
+   *
    * @generated from field: string name = 3;
    */
   name: string;
 
   /**
+   * Unique request ID assigned to this webhook delivery by the server.
+   *
    * @generated from field: string request_id = 4;
    */
   requestId: string;
 
   /**
+   * Tenant ID (state_id) that received this event.
+   *
    * @generated from field: string state_id = 5;
    */
   stateId: string;
 
   /**
+   * Installation ID associated with the webhook delivery.
+   *
    * @generated from field: string installation_id = 6;
    */
   installationId: string;
 
   /**
+   * Internal namespace (repo) ID that the event targets.
+   *
    * @generated from field: string namespace_id = 7;
    */
   namespaceId: string;
 
   /**
+   * Human-readable namespace name (full_name of the repo).
+   *
    * @generated from field: string namespace_name = 8;
    */
   namespaceName: string;
 
   /**
+   * Broker topic the event was published to (empty if no rule matched).
+   *
    * @generated from field: string topic = 9;
    */
   topic: string;
 
   /**
+   * ID of the rule that matched this event (empty if no match).
+   *
    * @generated from field: string rule_id = 10;
    */
   ruleId: string;
 
   /**
+   * The when expression of the matched rule (empty if no match).
+   *
    * @generated from field: string rule_when = 11;
    */
   ruleWhen: string;
 
   /**
+   * Names of the drivers used to publish this event.
+   *
    * @generated from field: repeated string drivers = 12;
    */
   drivers: string[];
 
   /**
+   * Whether any rule matched this event.
+   *
    * @generated from field: bool matched = 13;
    */
   matched: boolean;
 
   /**
+   * Delivery status: "queued", "delivered", "success", or "failed".
+   * Updated by workers via UpdateEventLogStatus.
+   *
    * @generated from field: string status = 14;
    */
   status: string;
 
   /**
+   * Error detail when status is "failed". Empty otherwise.
+   *
    * @generated from field: string error_message = 15;
    */
   errorMessage: string;
 
   /**
+   * When this log record was created (webhook receipt time).
+   *
    * @generated from field: google.protobuf.Timestamp created_at = 16;
    */
   createdAt?: Timestamp;
 
   /**
+   * When this log record was last updated (e.g. after worker status update).
+   *
    * @generated from field: google.protobuf.Timestamp updated_at = 17;
    */
   updatedAt?: Timestamp;
 
   /**
+   * Original HTTP request headers from the webhook delivery.
+   *
    * @generated from field: map<string, cloud.v1.EventLogHeaderValues> headers = 18;
    */
   headers: { [key: string]: EventLogHeaderValues };
 
   /**
+   * Raw webhook request body bytes.
+   *
    * @generated from field: bytes body = 19;
    */
   body: Uint8Array;
 
   /**
+   * SHA-256 hash of the body for integrity verification.
+   *
    * @generated from field: string body_hash = 20;
    */
   bodyHash: string;
@@ -1184,15 +1462,21 @@ export declare class EventLogRecord extends Message<EventLogRecord> {
 }
 
 /**
+ * EventLogCount is a key/count pair used in analytics breakdowns.
+ *
  * @generated from message cloud.v1.EventLogCount
  */
 export declare class EventLogCount extends Message<EventLogCount> {
   /**
+   * The dimension value (e.g. provider name, topic, rule ID).
+   *
    * @generated from field: string key = 1;
    */
   key: string;
 
   /**
+   * Number of events for this key within the query window.
+   *
    * @generated from field: int64 count = 2;
    */
   count: bigint;
@@ -1213,50 +1497,70 @@ export declare class EventLogCount extends Message<EventLogCount> {
 }
 
 /**
+ * EventLogAnalytics holds aggregate statistics over a filtered event set.
+ *
  * @generated from message cloud.v1.EventLogAnalytics
  */
 export declare class EventLogAnalytics extends Message<EventLogAnalytics> {
   /**
+   * Total number of events in the query window.
+   *
    * @generated from field: int64 total = 1;
    */
   total: bigint;
 
   /**
+   * Number of events that matched at least one rule.
+   *
    * @generated from field: int64 matched = 2;
    */
   matched: bigint;
 
   /**
+   * Number of distinct webhook delivery request IDs (deduplication metric).
+   *
    * @generated from field: int64 distinct_requests = 3;
    */
   distinctRequests: bigint;
 
   /**
+   * Event counts grouped by SCM provider.
+   *
    * @generated from field: repeated cloud.v1.EventLogCount by_provider = 4;
    */
   byProvider: EventLogCount[];
 
   /**
+   * Event counts grouped by event type name.
+   *
    * @generated from field: repeated cloud.v1.EventLogCount by_event = 5;
    */
   byEvent: EventLogCount[];
 
   /**
+   * Event counts grouped by broker topic.
+   *
    * @generated from field: repeated cloud.v1.EventLogCount by_topic = 6;
    */
   byTopic: EventLogCount[];
 
   /**
+   * Event counts grouped by rule ID.
+   *
    * @generated from field: repeated cloud.v1.EventLogCount by_rule = 7;
    */
   byRule: EventLogCount[];
 
   /**
+   * Event counts grouped by installation ID.
+   *
    * @generated from field: repeated cloud.v1.EventLogCount by_installation = 8;
    */
   byInstallation: EventLogCount[];
 
   /**
+   * Event counts grouped by namespace (repo) ID.
+   *
    * @generated from field: repeated cloud.v1.EventLogCount by_namespace = 9;
    */
   byNamespace: EventLogCount[];
@@ -1277,35 +1581,49 @@ export declare class EventLogAnalytics extends Message<EventLogAnalytics> {
 }
 
 /**
+ * EventLogTimeseriesBucket holds counts for one time interval bucket.
+ *
  * @generated from message cloud.v1.EventLogTimeseriesBucket
  */
 export declare class EventLogTimeseriesBucket extends Message<EventLogTimeseriesBucket> {
   /**
+   * Inclusive start of this bucket's time range.
+   *
    * @generated from field: google.protobuf.Timestamp start_time = 1;
    */
   startTime?: Timestamp;
 
   /**
+   * Exclusive end of this bucket's time range.
+   *
    * @generated from field: google.protobuf.Timestamp end_time = 2;
    */
   endTime?: Timestamp;
 
   /**
+   * Total events received in this bucket.
+   *
    * @generated from field: int64 event_count = 3;
    */
   eventCount: bigint;
 
   /**
+   * Events that matched at least one rule in this bucket.
+   *
    * @generated from field: int64 matched_count = 4;
    */
   matchedCount: bigint;
 
   /**
+   * Distinct webhook delivery request IDs in this bucket.
+   *
    * @generated from field: int64 distinct_requests = 5;
    */
   distinctRequests: bigint;
 
   /**
+   * Events with status "failed" in this bucket.
+   *
    * @generated from field: int64 failed_count = 6;
    */
   failedCount: bigint;
@@ -1326,40 +1644,57 @@ export declare class EventLogTimeseriesBucket extends Message<EventLogTimeseries
 }
 
 /**
+ * EventLogBreakdown holds per-key statistics for one breakdown group value.
+ *
  * @generated from message cloud.v1.EventLogBreakdown
  */
 export declare class EventLogBreakdown extends Message<EventLogBreakdown> {
   /**
+   * The dimension value for this row (e.g. provider name, rule ID).
+   *
    * @generated from field: string key = 1;
    */
   key: string;
 
   /**
+   * Total events for this key in the query window.
+   *
    * @generated from field: int64 event_count = 2;
    */
   eventCount: bigint;
 
   /**
+   * Events that matched at least one rule.
+   *
    * @generated from field: int64 matched_count = 3;
    */
   matchedCount: bigint;
 
   /**
+   * Events with status "failed".
+   *
    * @generated from field: int64 failed_count = 4;
    */
   failedCount: bigint;
 
   /**
+   * Median end-to-end processing latency in milliseconds. Populated only when
+   * include_latency=true is set in the request.
+   *
    * @generated from field: double latency_p50_ms = 5;
    */
   latencyP50Ms: number;
 
   /**
+   * 95th-percentile latency in milliseconds. Populated only when include_latency=true.
+   *
    * @generated from field: double latency_p95_ms = 6;
    */
   latencyP95Ms: number;
 
   /**
+   * 99th-percentile latency in milliseconds. Populated only when include_latency=true.
+   *
    * @generated from field: double latency_p99_ms = 7;
    */
   latencyP99Ms: number;
@@ -1380,20 +1715,29 @@ export declare class EventLogBreakdown extends Message<EventLogBreakdown> {
 }
 
 /**
+ * EventPayload is the canonical event representation passed to rule matching
+ * and published to the broker. The payload field contains the raw webhook body.
+ *
  * @generated from message cloud.v1.EventPayload
  */
 export declare class EventPayload extends Message<EventPayload> {
   /**
+   * SCM provider name, e.g. "github". Required.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Event type name as reported by the provider, e.g. "pull_request". Required.
+   *
    * @generated from field: string name = 2;
    */
   name: string;
 
   /**
+   * Raw webhook request body bytes. Required; must be non-empty.
+   *
    * @generated from field: bytes payload = 3;
    */
   payload: Uint8Array;
@@ -1414,20 +1758,28 @@ export declare class EventPayload extends Message<EventPayload> {
 }
 
 /**
+ * RuleMatch is returned by MatchRules for each rule that matched the event.
+ *
  * @generated from message cloud.v1.RuleMatch
  */
 export declare class RuleMatch extends Message<RuleMatch> {
   /**
+   * The when expression of the matched rule.
+   *
    * @generated from field: string when = 1;
    */
   when: string;
 
   /**
+   * The emit topics of the matched rule.
+   *
    * @generated from field: repeated string emit = 2;
    */
   emit: string[];
 
   /**
+   * The driver ID of the matched rule.
+   *
    * @generated from field: string driver_id = 4;
    */
   driverId: string;
@@ -1452,16 +1804,24 @@ export declare class RuleMatch extends Message<RuleMatch> {
  */
 export declare class MatchRulesRequest extends Message<MatchRulesRequest> {
   /**
+   * Event to evaluate rules against. Required.
+   *
    * @generated from field: cloud.v1.EventPayload event = 1;
    */
   event?: EventPayload;
 
   /**
+   * Rules to evaluate. At least one rule required.
+   * These are ephemeral (not persisted); use CreateRule to persist.
+   *
    * @generated from field: repeated cloud.v1.Rule rules = 2;
    */
   rules: Rule[];
 
   /**
+   * When true, returns an error if any rule expression fails to parse or
+   * evaluate. When false, invalid rules are silently skipped.
+   *
    * @generated from field: bool strict = 3;
    */
   strict: boolean;
@@ -1486,6 +1846,8 @@ export declare class MatchRulesRequest extends Message<MatchRulesRequest> {
  */
 export declare class MatchRulesResponse extends Message<MatchRulesResponse> {
   /**
+   * Rules that matched the event. Empty if no rules matched.
+   *
    * @generated from field: repeated cloud.v1.RuleMatch matches = 1;
    */
   matches: RuleMatch[];
@@ -1506,6 +1868,8 @@ export declare class MatchRulesResponse extends Message<MatchRulesResponse> {
 }
 
 /**
+ * ListRulesRequest has no filters; all tenant rules are returned.
+ *
  * @generated from message cloud.v1.ListRulesRequest
  */
 export declare class ListRulesRequest extends Message<ListRulesRequest> {
@@ -1529,6 +1893,8 @@ export declare class ListRulesRequest extends Message<ListRulesRequest> {
  */
 export declare class ListRulesResponse extends Message<ListRulesResponse> {
   /**
+   * All rule records for the tenant.
+   *
    * @generated from field: repeated cloud.v1.RuleRecord rules = 1;
    */
   rules: RuleRecord[];
@@ -1553,6 +1919,8 @@ export declare class ListRulesResponse extends Message<ListRulesResponse> {
  */
 export declare class GetRuleRequest extends Message<GetRuleRequest> {
   /**
+   * Server-assigned rule ID. Required.
+   *
    * @generated from field: string id = 1;
    */
   id: string;
@@ -1577,6 +1945,8 @@ export declare class GetRuleRequest extends Message<GetRuleRequest> {
  */
 export declare class GetRuleResponse extends Message<GetRuleResponse> {
   /**
+   * The matching rule record.
+   *
    * @generated from field: cloud.v1.RuleRecord rule = 1;
    */
   rule?: RuleRecord;
@@ -1601,6 +1971,8 @@ export declare class GetRuleResponse extends Message<GetRuleResponse> {
  */
 export declare class CreateRuleRequest extends Message<CreateRuleRequest> {
   /**
+   * Rule definition to persist. Required.
+   *
    * @generated from field: cloud.v1.Rule rule = 1;
    */
   rule?: Rule;
@@ -1625,6 +1997,8 @@ export declare class CreateRuleRequest extends Message<CreateRuleRequest> {
  */
 export declare class CreateRuleResponse extends Message<CreateRuleResponse> {
   /**
+   * The newly created rule record with server-assigned ID and timestamps.
+   *
    * @generated from field: cloud.v1.RuleRecord rule = 1;
    */
   rule?: RuleRecord;
@@ -1649,11 +2023,15 @@ export declare class CreateRuleResponse extends Message<CreateRuleResponse> {
  */
 export declare class UpdateRuleRequest extends Message<UpdateRuleRequest> {
   /**
+   * ID of the rule to update. Required.
+   *
    * @generated from field: string id = 1;
    */
   id: string;
 
   /**
+   * New rule definition. Replaces when, emit, and driver_id. Required.
+   *
    * @generated from field: cloud.v1.Rule rule = 2;
    */
   rule?: Rule;
@@ -1678,6 +2056,8 @@ export declare class UpdateRuleRequest extends Message<UpdateRuleRequest> {
  */
 export declare class UpdateRuleResponse extends Message<UpdateRuleResponse> {
   /**
+   * The updated rule record.
+   *
    * @generated from field: cloud.v1.RuleRecord rule = 1;
    */
   rule?: RuleRecord;
@@ -1702,6 +2082,8 @@ export declare class UpdateRuleResponse extends Message<UpdateRuleResponse> {
  */
 export declare class DeleteRuleRequest extends Message<DeleteRuleRequest> {
   /**
+   * ID of the rule to delete. Required.
+   *
    * @generated from field: string id = 1;
    */
   id: string;
@@ -1741,6 +2123,8 @@ export declare class DeleteRuleResponse extends Message<DeleteRuleResponse> {
 }
 
 /**
+ * ListDriversRequest has no filters; all tenant drivers are returned.
+ *
  * @generated from message cloud.v1.ListDriversRequest
  */
 export declare class ListDriversRequest extends Message<ListDriversRequest> {
@@ -1764,6 +2148,8 @@ export declare class ListDriversRequest extends Message<ListDriversRequest> {
  */
 export declare class ListDriversResponse extends Message<ListDriversResponse> {
   /**
+   * All driver records for the tenant.
+   *
    * @generated from field: repeated cloud.v1.DriverRecord drivers = 1;
    */
   drivers: DriverRecord[];
@@ -1788,6 +2174,8 @@ export declare class ListDriversResponse extends Message<ListDriversResponse> {
  */
 export declare class GetDriverRequest extends Message<GetDriverRequest> {
   /**
+   * Driver name (stable identifier). Required.
+   *
    * @generated from field: string name = 1;
    */
   name: string;
@@ -1812,6 +2200,8 @@ export declare class GetDriverRequest extends Message<GetDriverRequest> {
  */
 export declare class GetDriverResponse extends Message<GetDriverResponse> {
   /**
+   * The matching driver record.
+   *
    * @generated from field: cloud.v1.DriverRecord driver = 1;
    */
   driver?: DriverRecord;
@@ -1836,6 +2226,9 @@ export declare class GetDriverResponse extends Message<GetDriverResponse> {
  */
 export declare class UpsertDriverRequest extends Message<UpsertDriverRequest> {
   /**
+   * Driver record to create or update. Required.
+   * The name field is the natural key; re-submitting updates in place.
+   *
    * @generated from field: cloud.v1.DriverRecord driver = 1;
    */
   driver?: DriverRecord;
@@ -1860,6 +2253,8 @@ export declare class UpsertDriverRequest extends Message<UpsertDriverRequest> {
  */
 export declare class UpsertDriverResponse extends Message<UpsertDriverResponse> {
   /**
+   * The persisted driver record with server-set timestamps.
+   *
    * @generated from field: cloud.v1.DriverRecord driver = 1;
    */
   driver?: DriverRecord;
@@ -1884,6 +2279,8 @@ export declare class UpsertDriverResponse extends Message<UpsertDriverResponse> 
  */
 export declare class DeleteDriverRequest extends Message<DeleteDriverRequest> {
   /**
+   * Driver name to delete. Required.
+   *
    * @generated from field: string name = 1;
    */
   name: string;
@@ -1927,6 +2324,8 @@ export declare class DeleteDriverResponse extends Message<DeleteDriverResponse> 
  */
 export declare class ListProvidersRequest extends Message<ListProvidersRequest> {
   /**
+   * Optional provider name filter, e.g. "github". When omitted, all providers returned.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
@@ -1951,6 +2350,8 @@ export declare class ListProvidersRequest extends Message<ListProvidersRequest> 
  */
 export declare class ListProvidersResponse extends Message<ListProvidersResponse> {
   /**
+   * All provider records matching the filter.
+   *
    * @generated from field: repeated cloud.v1.ProviderRecord providers = 1;
    */
   providers: ProviderRecord[];
@@ -1975,11 +2376,15 @@ export declare class ListProvidersResponse extends Message<ListProvidersResponse
  */
 export declare class GetProviderRequest extends Message<GetProviderRequest> {
   /**
+   * SCM provider name. Required.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Server-generated instance hash. Required.
+   *
    * @generated from field: string hash = 2;
    */
   hash: string;
@@ -2004,6 +2409,8 @@ export declare class GetProviderRequest extends Message<GetProviderRequest> {
  */
 export declare class GetProviderResponse extends Message<GetProviderResponse> {
   /**
+   * The matching provider record.
+   *
    * @generated from field: cloud.v1.ProviderRecord provider = 1;
    */
   provider?: ProviderRecord;
@@ -2028,6 +2435,9 @@ export declare class GetProviderResponse extends Message<GetProviderResponse> {
  */
 export declare class UpsertProviderRequest extends Message<UpsertProviderRequest> {
   /**
+   * Provider record to create or update. Required.
+   * Omit hash on first create; include it on subsequent updates.
+   *
    * @generated from field: cloud.v1.ProviderRecord provider = 1;
    */
   provider?: ProviderRecord;
@@ -2052,6 +2462,8 @@ export declare class UpsertProviderRequest extends Message<UpsertProviderRequest
  */
 export declare class UpsertProviderResponse extends Message<UpsertProviderResponse> {
   /**
+   * The persisted provider record with server-assigned hash and timestamps.
+   *
    * @generated from field: cloud.v1.ProviderRecord provider = 1;
    */
   provider?: ProviderRecord;
@@ -2076,11 +2488,15 @@ export declare class UpsertProviderResponse extends Message<UpsertProviderRespon
  */
 export declare class DeleteProviderRequest extends Message<DeleteProviderRequest> {
   /**
+   * SCM provider name. Required.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Server-generated instance hash. Required.
+   *
    * @generated from field: string hash = 2;
    */
   hash: string;
@@ -2124,76 +2540,106 @@ export declare class DeleteProviderResponse extends Message<DeleteProviderRespon
  */
 export declare class ListEventLogsRequest extends Message<ListEventLogsRequest> {
   /**
+   * Optional provider filter, e.g. "github".
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Optional event type name filter, e.g. "pull_request".
+   *
    * @generated from field: string name = 2;
    */
   name: string;
 
   /**
+   * Optional broker topic filter.
+   *
    * @generated from field: string topic = 3;
    */
   topic: string;
 
   /**
+   * Optional request ID filter for a specific webhook delivery.
+   *
    * @generated from field: string request_id = 4;
    */
   requestId: string;
 
   /**
+   * Optional tenant ID filter (state_id). Defaults to the calling tenant.
+   *
    * @generated from field: string state_id = 5;
    */
   stateId: string;
 
   /**
+   * Optional installation ID filter.
+   *
    * @generated from field: string installation_id = 6;
    */
   installationId: string;
 
   /**
+   * Optional namespace (repo) ID filter.
+   *
    * @generated from field: string namespace_id = 7;
    */
   namespaceId: string;
 
   /**
+   * Optional namespace full name filter.
+   *
    * @generated from field: string namespace_name = 8;
    */
   namespaceName: string;
 
   /**
+   * Optional rule ID filter.
+   *
    * @generated from field: string rule_id = 9;
    */
   ruleId: string;
 
   /**
+   * Optional rule when expression filter (exact match).
+   *
    * @generated from field: string rule_when = 10;
    */
   ruleWhen: string;
 
   /**
+   * When true, only return events that matched at least one rule.
+   *
    * @generated from field: bool matched_only = 11;
    */
   matchedOnly: boolean;
 
   /**
+   * Number of records per page. Must be 0-200; defaults to server default when 0.
+   *
    * @generated from field: int32 page_size = 12;
    */
   pageSize: number;
 
   /**
+   * Cursor from a previous response's next_page_token. Omit for the first page.
+   *
    * @generated from field: string page_token = 13;
    */
   pageToken: string;
 
   /**
+   * Inclusive start of the time range filter.
+   *
    * @generated from field: google.protobuf.Timestamp start_time = 14;
    */
   startTime?: Timestamp;
 
   /**
+   * Exclusive end of the time range filter.
+   *
    * @generated from field: google.protobuf.Timestamp end_time = 15;
    */
   endTime?: Timestamp;
@@ -2218,11 +2664,15 @@ export declare class ListEventLogsRequest extends Message<ListEventLogsRequest> 
  */
 export declare class ListEventLogsResponse extends Message<ListEventLogsResponse> {
   /**
+   * Event log records for this page.
+   *
    * @generated from field: repeated cloud.v1.EventLogRecord logs = 1;
    */
   logs: EventLogRecord[];
 
   /**
+   * Cursor for the next page. Empty when there are no more results.
+   *
    * @generated from field: string next_page_token = 2;
    */
   nextPageToken: string;
@@ -2247,66 +2697,92 @@ export declare class ListEventLogsResponse extends Message<ListEventLogsResponse
  */
 export declare class GetEventLogAnalyticsRequest extends Message<GetEventLogAnalyticsRequest> {
   /**
+   * Optional provider filter.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Optional event type name filter.
+   *
    * @generated from field: string name = 2;
    */
   name: string;
 
   /**
+   * Optional broker topic filter.
+   *
    * @generated from field: string topic = 3;
    */
   topic: string;
 
   /**
+   * Optional request ID filter.
+   *
    * @generated from field: string request_id = 4;
    */
   requestId: string;
 
   /**
+   * Optional tenant ID filter (state_id).
+   *
    * @generated from field: string state_id = 5;
    */
   stateId: string;
 
   /**
+   * Optional installation ID filter.
+   *
    * @generated from field: string installation_id = 6;
    */
   installationId: string;
 
   /**
+   * Optional namespace ID filter.
+   *
    * @generated from field: string namespace_id = 7;
    */
   namespaceId: string;
 
   /**
+   * Optional namespace full name filter.
+   *
    * @generated from field: string namespace_name = 8;
    */
   namespaceName: string;
 
   /**
+   * Optional rule ID filter.
+   *
    * @generated from field: string rule_id = 9;
    */
   ruleId: string;
 
   /**
+   * Optional rule when expression filter.
+   *
    * @generated from field: string rule_when = 10;
    */
   ruleWhen: string;
 
   /**
+   * When true, only count events that matched at least one rule.
+   *
    * @generated from field: bool matched_only = 11;
    */
   matchedOnly: boolean;
 
   /**
+   * Inclusive start of the time range.
+   *
    * @generated from field: google.protobuf.Timestamp start_time = 12;
    */
   startTime?: Timestamp;
 
   /**
+   * Exclusive end of the time range.
+   *
    * @generated from field: google.protobuf.Timestamp end_time = 13;
    */
   endTime?: Timestamp;
@@ -2331,6 +2807,8 @@ export declare class GetEventLogAnalyticsRequest extends Message<GetEventLogAnal
  */
 export declare class GetEventLogAnalyticsResponse extends Message<GetEventLogAnalyticsResponse> {
   /**
+   * Aggregate analytics over the filtered event set.
+   *
    * @generated from field: cloud.v1.EventLogAnalytics analytics = 1;
    */
   analytics?: EventLogAnalytics;
@@ -2355,71 +2833,99 @@ export declare class GetEventLogAnalyticsResponse extends Message<GetEventLogAna
  */
 export declare class GetEventLogTimeseriesRequest extends Message<GetEventLogTimeseriesRequest> {
   /**
+   * Optional provider filter.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Optional event type name filter.
+   *
    * @generated from field: string name = 2;
    */
   name: string;
 
   /**
+   * Optional broker topic filter.
+   *
    * @generated from field: string topic = 3;
    */
   topic: string;
 
   /**
+   * Optional request ID filter.
+   *
    * @generated from field: string request_id = 4;
    */
   requestId: string;
 
   /**
+   * Optional tenant ID filter (state_id).
+   *
    * @generated from field: string state_id = 5;
    */
   stateId: string;
 
   /**
+   * Optional installation ID filter.
+   *
    * @generated from field: string installation_id = 6;
    */
   installationId: string;
 
   /**
+   * Optional namespace ID filter.
+   *
    * @generated from field: string namespace_id = 7;
    */
   namespaceId: string;
 
   /**
+   * Optional namespace full name filter.
+   *
    * @generated from field: string namespace_name = 8;
    */
   namespaceName: string;
 
   /**
+   * Optional rule ID filter.
+   *
    * @generated from field: string rule_id = 9;
    */
   ruleId: string;
 
   /**
+   * Optional rule when expression filter.
+   *
    * @generated from field: string rule_when = 10;
    */
   ruleWhen: string;
 
   /**
+   * When true, only count events that matched at least one rule.
+   *
    * @generated from field: bool matched_only = 11;
    */
   matchedOnly: boolean;
 
   /**
+   * Inclusive start of the time range.
+   *
    * @generated from field: google.protobuf.Timestamp start_time = 12;
    */
   startTime?: Timestamp;
 
   /**
+   * Exclusive end of the time range.
+   *
    * @generated from field: google.protobuf.Timestamp end_time = 13;
    */
   endTime?: Timestamp;
 
   /**
+   * Bucket width for the timeseries. Required; must not be UNSPECIFIED.
+   *
    * @generated from field: cloud.v1.EventLogTimeseriesInterval interval = 14;
    */
   interval: EventLogTimeseriesInterval;
@@ -2444,6 +2950,8 @@ export declare class GetEventLogTimeseriesRequest extends Message<GetEventLogTim
  */
 export declare class GetEventLogTimeseriesResponse extends Message<GetEventLogTimeseriesResponse> {
   /**
+   * Time-ordered list of event count buckets covering the requested range.
+   *
    * @generated from field: repeated cloud.v1.EventLogTimeseriesBucket buckets = 1;
    */
   buckets: EventLogTimeseriesBucket[];
@@ -2468,96 +2976,134 @@ export declare class GetEventLogTimeseriesResponse extends Message<GetEventLogTi
  */
 export declare class GetEventLogBreakdownRequest extends Message<GetEventLogBreakdownRequest> {
   /**
+   * Optional provider filter.
+   *
    * @generated from field: string provider = 1;
    */
   provider: string;
 
   /**
+   * Optional event type name filter.
+   *
    * @generated from field: string name = 2;
    */
   name: string;
 
   /**
+   * Optional broker topic filter.
+   *
    * @generated from field: string topic = 3;
    */
   topic: string;
 
   /**
+   * Optional request ID filter.
+   *
    * @generated from field: string request_id = 4;
    */
   requestId: string;
 
   /**
+   * Optional tenant ID filter (state_id).
+   *
    * @generated from field: string state_id = 5;
    */
   stateId: string;
 
   /**
+   * Optional installation ID filter.
+   *
    * @generated from field: string installation_id = 6;
    */
   installationId: string;
 
   /**
+   * Optional namespace ID filter.
+   *
    * @generated from field: string namespace_id = 7;
    */
   namespaceId: string;
 
   /**
+   * Optional namespace full name filter.
+   *
    * @generated from field: string namespace_name = 8;
    */
   namespaceName: string;
 
   /**
+   * Optional rule ID filter.
+   *
    * @generated from field: string rule_id = 9;
    */
   ruleId: string;
 
   /**
+   * Optional rule when expression filter.
+   *
    * @generated from field: string rule_when = 10;
    */
   ruleWhen: string;
 
   /**
+   * When true, only count events that matched at least one rule.
+   *
    * @generated from field: bool matched_only = 11;
    */
   matchedOnly: boolean;
 
   /**
+   * Inclusive start of the time range.
+   *
    * @generated from field: google.protobuf.Timestamp start_time = 12;
    */
   startTime?: Timestamp;
 
   /**
+   * Exclusive end of the time range.
+   *
    * @generated from field: google.protobuf.Timestamp end_time = 13;
    */
   endTime?: Timestamp;
 
   /**
+   * Dimension to group results by. Required; must not be UNSPECIFIED.
+   *
    * @generated from field: cloud.v1.EventLogBreakdownGroup group_by = 14;
    */
   groupBy: EventLogBreakdownGroup;
 
   /**
+   * Field to sort results by. Defaults to COUNT when UNSPECIFIED.
+   *
    * @generated from field: cloud.v1.EventLogBreakdownSort sort_by = 15;
    */
   sortBy: EventLogBreakdownSort;
 
   /**
+   * When true, sort descending (highest first). When false, sort ascending.
+   *
    * @generated from field: bool sort_desc = 16;
    */
   sortDesc: boolean;
 
   /**
+   * Number of records per page. Must be 0-200; defaults to server default when 0.
+   *
    * @generated from field: int32 page_size = 17;
    */
   pageSize: number;
 
   /**
+   * Cursor from a previous response's next_page_token. Omit for the first page.
+   *
    * @generated from field: string page_token = 18;
    */
   pageToken: string;
 
   /**
+   * When true, populate latency_p50_ms, latency_p95_ms, latency_p99_ms in results.
+   *
    * @generated from field: bool include_latency = 19;
    */
   includeLatency: boolean;
@@ -2582,11 +3128,15 @@ export declare class GetEventLogBreakdownRequest extends Message<GetEventLogBrea
  */
 export declare class GetEventLogBreakdownResponse extends Message<GetEventLogBreakdownResponse> {
   /**
+   * Breakdown rows for this page, one per distinct group_by value.
+   *
    * @generated from field: repeated cloud.v1.EventLogBreakdown breakdowns = 1;
    */
   breakdowns: EventLogBreakdown[];
 
   /**
+   * Cursor for the next page. Empty when there are no more results.
+   *
    * @generated from field: string next_page_token = 2;
    */
   nextPageToken: string;
@@ -2611,16 +3161,23 @@ export declare class GetEventLogBreakdownResponse extends Message<GetEventLogBre
  */
 export declare class UpdateEventLogStatusRequest extends Message<UpdateEventLogStatusRequest> {
   /**
+   * ID of the event log record to update. Required.
+   *
    * @generated from field: string log_id = 1;
    */
   logId: string;
 
   /**
+   * New delivery status. Required. Must be one of:
+   * "queued", "delivered", "success", "failed".
+   *
    * @generated from field: string status = 2;
    */
   status: string;
 
   /**
+   * Optional error detail when status is "failed". Ignored for other statuses.
+   *
    * @generated from field: string error_message = 3;
    */
   errorMessage: string;
