@@ -15,9 +15,25 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: sdk/typescript/worker/package-lock.json
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
       - name: Download modules
         run: go mod download
+      - name: Install TypeScript SDK dependencies
+        run: npm --prefix sdk/typescript/worker ci
+      - name: Install Python SDK dependencies
+        run: python -m pip install -e sdk/python/worker
       - name: Test
         run: go test ./...
+      - name: SDK Unit Tests
+        run: make sdk-unit-ts sdk-unit-py
       - name: Build
         run: go build ./...

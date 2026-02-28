@@ -76,7 +76,7 @@ func newDriversGetCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&name, "name", "", "Driver name (amqp/nats/kafka)")
+	cmd.Flags().StringVar(&name, "name", "", driverNameDescription)
 	return cmd
 }
 
@@ -102,8 +102,7 @@ func newDriversSetCmd() *cobra.Command {
 		"Create or update a driver config",
 		"  githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml",
 	)
-	cmd.Hidden = true
-	cmd.Deprecated = "use create or update"
+	hideDeprecatedAlias(cmd, "use create or update")
 	return cmd
 }
 
@@ -116,8 +115,8 @@ func newDriversUpsertCmd(action, short, example string) *cobra.Command {
 		Short:   short,
 		Example: example,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if strings.TrimSpace(name) == "" {
-				return fmt.Errorf("name is required")
+			if err := requireNonEmpty("name", name); err != nil {
+				return err
 			}
 			if strings.TrimSpace(configFile) == "" {
 				return fmt.Errorf("config-file is required")
@@ -146,7 +145,7 @@ func newDriversUpsertCmd(action, short, example string) *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&name, "name", "", "Driver name (amqp/nats/kafka)")
+	cmd.Flags().StringVar(&name, "name", "", driverNameDescription)
 	cmd.Flags().StringVar(&configFile, "config-file", "", "Path to driver YAML config")
 	cmd.Flags().BoolVar(&enabled, "enabled", true, "Enable this driver")
 	return cmd
@@ -159,8 +158,8 @@ func newDriversDeleteCmd() *cobra.Command {
 		Short:   "Delete a driver config",
 		Example: "  githook --endpoint http://localhost:8080 drivers delete --name amqp",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if strings.TrimSpace(name) == "" {
-				return fmt.Errorf("name is required")
+			if err := requireNonEmpty("name", name); err != nil {
+				return err
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -176,6 +175,6 @@ func newDriversDeleteCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&name, "name", "", "Driver name (amqp/nats/kafka)")
+	cmd.Flags().StringVar(&name, "name", "", driverNameDescription)
 	return cmd
 }

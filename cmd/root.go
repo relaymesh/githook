@@ -7,7 +7,7 @@ func NewRootCmd() *cobra.Command {
 	apiBaseURL = ""
 	configPath = "config.yaml"
 	root := &cobra.Command{
-		Use:   "github.com/relaymesh/githook",
+		Use:   "githook",
 		Short: "Webhook router + worker SDK for Git providers",
 		Long: "github.com/relaymesh/githooks routes GitHub/GitLab/Bitbucket webhooks to Relaybus topics and provides a worker SDK " +
 			"for processing events with provider-aware clients.",

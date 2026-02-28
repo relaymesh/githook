@@ -86,8 +86,7 @@ func newInitCmd() *cobra.Command {
 			if err := os.WriteFile(path, []byte(template), 0o644); err != nil {
 				return err
 			}
-			fmt.Printf("wrote config to %s\n", path)
-			return nil
+			return printStdoutf("wrote config to %s\n", path)
 		},
 	}
 	cmd.Flags().BoolVar(&force, "force", false, "Overwrite existing config")

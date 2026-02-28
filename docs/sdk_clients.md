@@ -79,62 +79,9 @@ wk := worker.New(
 )
 ```
 
-## Status update test pattern (50% success / 50% failure)
+## Event log status updates
 
-Use this pattern to validate that workers report `success` and `failed` event log statuses.
+Each SDK updates event log status automatically after your handler runs:
 
-Go:
-
-```go
-var attempts atomic.Uint64
-
-wk.HandleRule("<rule-id>", func(ctx context.Context, evt *worker.Event) (err error) {
-  defer func() {
-    if recovered := recover(); recovered != nil {
-      err = fmt.Errorf("panic recovered: %v", recovered)
-    }
-  }()
-
-  seq := attempts.Add(1)
-  if seq%2 == 0 {
-    return fmt.Errorf("intentional failure for status test (seq=%d)", seq)
-  }
-  return nil
-})
-```
-
-TypeScript:
-
-```ts
-let attempts = 0;
-
-worker.HandleRule("<rule-id>", async (_evt) => {
-  attempts += 1;
-  try {
-    if (attempts % 2 === 0) {
-      throw new Error(`intentional failure for status test (seq=${attempts})`);
-    }
-  } catch (err) {
-    throw err instanceof Error ? err : new Error(String(err));
-  }
-});
-```
-
-Python:
-
-```python
-attempts = 0
-
-def handler(ctx, evt):
-    global attempts
-    attempts += 1
-    try:
-        if attempts % 2 == 0:
-            raise RuntimeError(f"intentional failure for status test (seq={attempts})")
-    except Exception:
-        raise
-
-wk.HandleRule("<rule-id>", handler)
-```
-
-Each SDK catches handler errors internally, updates event log status to `failed`, and records the error message. When the handler returns normally, status is updated to `success`.
+- Successful return/completion updates status to `success`.
+- Returned errors (Go) or thrown/raised exceptions (TypeScript/Python) update status to `failed` and include the error message.

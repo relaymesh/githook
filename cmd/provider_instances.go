@@ -56,7 +56,7 @@ func newProviderInstancesListCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&provider, "provider", "", "Provider name (github/gitlab/bitbucket)")
+	cmd.Flags().StringVar(&provider, "provider", "", providerFlagDescription)
 	return cmd
 }
 
@@ -68,11 +68,11 @@ func newProviderInstancesGetCmd() *cobra.Command {
 		Short:   "Get a provider instance",
 		Example: "  githook --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if strings.TrimSpace(provider) == "" {
-				return fmt.Errorf("provider is required")
+			if err := requireNonEmpty("provider", provider); err != nil {
+				return err
 			}
-			if strings.TrimSpace(hash) == "" {
-				return fmt.Errorf("hash is required")
+			if err := requireNonEmpty("hash", hash); err != nil {
+				return err
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -91,7 +91,7 @@ func newProviderInstancesGetCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&provider, "provider", "", "Provider name (github/gitlab/bitbucket)")
+	cmd.Flags().StringVar(&provider, "provider", "", providerFlagDescription)
 	cmd.Flags().StringVar(&hash, "hash", "", "Instance hash")
 	return cmd
 }
@@ -127,8 +127,7 @@ func newProviderInstancesSetCmd() *cobra.Command {
 		"Create a provider instance",
 		"  githook --endpoint http://localhost:8080 providers set --provider github --config-file github.yaml",
 	)
-	cmd.Hidden = true
-	cmd.Deprecated = "use create or update"
+	hideDeprecatedAlias(cmd, "use create or update")
 	return cmd
 }
 
@@ -142,8 +141,8 @@ func newProviderInstancesUpsertCmd(action, short, example string) *cobra.Command
 		Short:   short,
 		Example: example,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if strings.TrimSpace(provider) == "" {
-				return fmt.Errorf("provider is required")
+			if err := requireNonEmpty("provider", provider); err != nil {
+				return err
 			}
 			var err error
 			if strings.TrimSpace(configFile) == "" {
@@ -186,7 +185,7 @@ func newProviderInstancesUpsertCmd(action, short, example string) *cobra.Command
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&provider, "provider", "", "Provider name (github/gitlab/bitbucket)")
+	cmd.Flags().StringVar(&provider, "provider", "", providerFlagDescription)
 	cmd.Flags().StringVar(&configFile, "config-file", "", "Path to provider YAML config (can include redirect_base_url)")
 	cmd.Flags().BoolVar(&enabled, "enabled", true, "Enable this provider instance")
 	cmd.Flags().StringVar(&redirectBaseURL, "redirect-base-url", "", "Post-OAuth redirect URL (overrides config file)")
@@ -284,11 +283,11 @@ func newProviderInstancesDeleteCmd() *cobra.Command {
 		Short:   "Delete a provider instance",
 		Example: "  githook --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if strings.TrimSpace(provider) == "" {
-				return fmt.Errorf("provider is required")
+			if err := requireNonEmpty("provider", provider); err != nil {
+				return err
 			}
-			if strings.TrimSpace(hash) == "" {
-				return fmt.Errorf("hash is required")
+			if err := requireNonEmpty("hash", hash); err != nil {
+				return err
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -307,7 +306,7 @@ func newProviderInstancesDeleteCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&provider, "provider", "", "Provider name (github/gitlab/bitbucket)")
+	cmd.Flags().StringVar(&provider, "provider", "", providerFlagDescription)
 	cmd.Flags().StringVar(&hash, "hash", "", "Instance hash")
 	return cmd
 }

@@ -61,7 +61,9 @@ func printLoginURL(cfg core.AppConfig) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Open this URL in your browser:\n%s\n", authURL)
+	if err := printStdoutf("Open this URL in your browser:\n%s\n", authURL); err != nil {
+		return err
+	}
 	_ = openBrowser(authURL)
 	result, err := waitForAuthCode(codeCh)
 	if err != nil {
@@ -98,7 +100,9 @@ func storeToken(cfg core.AppConfig, token string, expiresIn int64) error {
 	if err := oidc.StoreCachedToken(cachePath, key, token, expiry); err != nil {
 		return err
 	}
-	fmt.Printf("Stored token at %s\n", cachePath)
+	if err := printStdoutf("Stored token at %s\n", cachePath); err != nil {
+		return err
+	}
 	return nil
 }
 

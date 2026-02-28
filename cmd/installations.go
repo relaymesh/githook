@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -52,8 +51,8 @@ func newInstallationsListCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&stateID, "state-id", "", "State ID filter (optional)")
-	cmd.Flags().StringVar(&provider, "provider", "", "Provider (github|gitlab|bitbucket)")
+	cmd.Flags().StringVar(&stateID, "state-id", "", stateIDDescription)
+	cmd.Flags().StringVar(&provider, "provider", "", providerFlagDescription)
 	return cmd
 }
 
@@ -65,8 +64,11 @@ func newInstallationsGetCmd() *cobra.Command {
 		Short:   "Get installation by provider and installation ID",
 		Example: "  githook --endpoint http://localhost:8080 installations get --provider github --installation-id <id>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if provider == "" || installationID == "" {
-				return fmt.Errorf("provider and installation-id are required")
+			if err := requireNonEmpty("provider", provider); err != nil {
+				return err
+			}
+			if err := requireNonEmpty("installation-id", installationID); err != nil {
+				return err
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -85,7 +87,7 @@ func newInstallationsGetCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&provider, "provider", "", "Provider (github|gitlab|bitbucket)")
+	cmd.Flags().StringVar(&provider, "provider", "", providerFlagDescription)
 	cmd.Flags().StringVar(&installationID, "installation-id", "", "Installation ID")
 	return cmd
 }

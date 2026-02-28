@@ -88,7 +88,7 @@ func newRulesMatchCmd() *cobra.Command {
 			return printJSON(resp.Msg)
 		},
 	}
-	cmd.Flags().StringVar(&provider, "provider", "", "Provider name")
+	cmd.Flags().StringVar(&provider, "provider", "", providerFlagDescription)
 	cmd.Flags().StringVar(&eventName, "event", "", "Event name")
 	cmd.Flags().StringVar(&payloadFile, "payload-file", "", "Path to JSON payload")
 	cmd.Flags().StringVar(&rulesFile, "rules-file", "", "Path to rules YAML")
@@ -126,8 +126,8 @@ func newRulesGetCmd() *cobra.Command {
 		Short:   "Get a rule by ID",
 		Example: "  githook --endpoint http://localhost:8080 rules get --id <rule-id>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if id == "" {
-				return fmt.Errorf("id is required")
+			if err := requireNonEmpty("id", id); err != nil {
+				return err
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -159,8 +159,8 @@ func newRulesCreateCmd() *cobra.Command {
 			if when == "" || len(emits) == 0 {
 				return fmt.Errorf("when and at least one emit are required")
 			}
-			if strings.TrimSpace(driverID) == "" {
-				return fmt.Errorf("driver-id is required")
+			if err := requireNonEmpty("driver-id", driverID); err != nil {
+				return err
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -201,8 +201,8 @@ func newRulesUpdateCmd() *cobra.Command {
 			if id == "" || when == "" || len(emits) == 0 {
 				return fmt.Errorf("id, when, and at least one emit are required")
 			}
-			if strings.TrimSpace(driverID) == "" {
-				return fmt.Errorf("driver-id is required")
+			if err := requireNonEmpty("driver-id", driverID); err != nil {
+				return err
 			}
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -239,8 +239,8 @@ func newRulesDeleteCmd() *cobra.Command {
 		Short:   "Delete a rule",
 		Example: "  githook --endpoint http://localhost:8080 rules delete --id <rule-id>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if id == "" {
-				return fmt.Errorf("id is required")
+			if err := requireNonEmpty("id", id); err != nil {
+				return err
 			}
 			opts, err := connectClientOptions()
 			if err != nil {

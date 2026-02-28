@@ -117,27 +117,13 @@ http://<server-host>/webhooks/bitbucket
 Go:
 
 ```go
-var attempts atomic.Uint64
-
 wk := worker.New(worker.WithEndpoint("http://localhost:8080"))
 
-wk.HandleRule("<rule-id>", func(ctx context.Context, evt *worker.Event) (err error) {
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			err = fmt.Errorf("panic recovered: %v", recovered)
-		}
-	}()
-
+wk.HandleRule("<rule-id>", func(ctx context.Context, evt *worker.Event) error {
 	if evt == nil {
 		return nil
 	}
-
-	seq := attempts.Add(1)
-	if seq%2 == 0 {
-		return fmt.Errorf("intentional failure for status test (seq=%d)", seq)
-	}
-
-	log.Printf("success seq=%d topic=%s provider=%s type=%s", seq, evt.Topic, evt.Provider, evt.Type)
+	log.Printf("topic=%s provider=%s type=%s", evt.Topic, evt.Provider, evt.Type)
 	return nil
 })
 
@@ -150,21 +136,12 @@ TypeScript:
 import { New, WithEndpoint } from "@relaymesh/githook";
 
 const worker = New(WithEndpoint("http://localhost:8080"));
-let attempts = 0;
 
 worker.HandleRule("<rule-id>", async (evt) => {
-  attempts += 1;
-  try {
-    if (attempts % 2 === 0) {
-      throw new Error(`intentional failure for status test (seq=${attempts})`);
-    }
-
-    console.log("success", attempts, evt.topic, evt.provider, evt.type);
-  } catch (err) {
-    const error = err instanceof Error ? err : new Error(String(err));
-    console.error("handler failed", attempts, error.message);
-    throw error;
+  if (!evt) {
+    return;
   }
+  console.log(`topic=${evt.topic} provider=${evt.provider} type=${evt.type}`);
 });
 
 await worker.Run();
@@ -176,26 +153,16 @@ Python:
 from relaymesh_githook import New, WithEndpoint
 
 wk = New(WithEndpoint("http://localhost:8080"))
-attempts = 0
 
 def handler(ctx, evt):
-    global attempts
-    attempts += 1
-    try:
-        if attempts % 2 == 0:
-            raise RuntimeError(f"intentional failure for status test (seq={attempts})")
-
-        print("success", attempts, evt.topic, evt.provider, evt.type)
-    except Exception as exc:
-        print("handler failed", attempts, str(exc))
-        raise
+    print(f"topic={evt.topic} provider={evt.provider} type={evt.type}")
 
 wk.HandleRule("<rule-id>", handler)
 
 wk.Run()
 ```
 
-For these examples, every second event fails on purpose so you can validate event log status transitions (`success` vs `failed`) end to end.
+If a handler returns an error (Go) or throws/raises an exception (TypeScript/Python), the SDK marks the event log status as `failed`; otherwise it is marked `success`.
 
 ## Docs index 📚
 

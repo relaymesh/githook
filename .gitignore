@@ -1,4 +1,6 @@
 bin/
+.idea/
+.vscode/
 .env
 .env.development
 .envrc
@@ -8,6 +10,18 @@ package-lock.json
 test.json
 test.yaml
 .DS_Store
+.DS_Store?
 .agents/
 .sisyphus/
 examples/typescript/worker/node_modules/
+sdk/typescript/worker/dist/
+sdk/typescript/worker/node_modules/
+sdk/python/worker/relaymesh_githook.*
+sdk/python/worker/build
+sdk/python/worker/__pycache__/
+sdk/python/worker/*.egg-info/
+sdk/python/worker/.mypy_cache/
+sdk/python/worker/.pytest_cache/
+sdk/python/worker/dist/
+sdk/python/worker/.venv/
+.opencode
