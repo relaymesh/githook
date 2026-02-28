@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -49,7 +50,11 @@ func RefreshGitLabToken(ctx context.Context, cfg auth.ProviderConfig, refreshTok
 	if err != nil {
 		return TokenResult{}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("gitlab token refresh close failed: %v", err)
+		}
+	}()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return TokenResult{}, fmt.Errorf("gitlab token refresh failed: %s", resp.Status)
 	}

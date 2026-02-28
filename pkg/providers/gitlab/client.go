@@ -9,7 +9,7 @@ import (
 	gl "github.com/xanzy/go-gitlab"
 )
 
-// Client is the official GitLab SDK client.
+//nolint:staticcheck // legacy go-gitlab client retained for compatibility
 type Client = gl.Client
 
 // NewTokenClient returns a GitLab SDK client.
@@ -21,7 +21,7 @@ func NewTokenClient(cfg auth.ProviderConfig, token string) (*Client, error) {
 	if base := normalizeBaseURL(cfg.API.BaseURL); base != "" {
 		opts = append(opts, gl.WithBaseURL(base))
 	}
-	return gl.NewClient(token, opts...)
+	return gl.NewClient(token, opts...) //nolint:staticcheck // legacy go-gitlab client retained for compatibility
 }
 
 func normalizeBaseURL(base string) string {

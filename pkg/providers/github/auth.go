@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -101,7 +102,11 @@ func FetchInstallationAccount(ctx context.Context, cfg AppConfig, installationID
 	if err != nil {
 		return InstallationAccount{}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("github installation lookup close failed: %v", err)
+		}
+	}()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
 		return InstallationAccount{}, fmt.Errorf("github installation lookup failed: %s", strings.TrimSpace(string(body)))
@@ -149,7 +154,11 @@ func (a *appAuthenticator) installationTokenWithExpiry(ctx context.Context, inst
 	if err != nil {
 		return "", nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("github token exchange close failed: %v", err)
+		}
+	}()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
 		return "", nil, fmt.Errorf("github token exchange failed: %s", strings.TrimSpace(string(body)))

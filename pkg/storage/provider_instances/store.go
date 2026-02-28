@@ -281,7 +281,7 @@ func (s *Store) ensurePrimaryKey() error {
 	if s == nil || s.db == nil {
 		return nil
 	}
-	dialect := s.db.Dialector.Name()
+	dialect := s.db.Name()
 	hasPK, err := hasPrimaryKey(s.db, s.table, dialect)
 	if err != nil {
 		return err

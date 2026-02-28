@@ -36,9 +36,6 @@ func publishMatchesWithFallback(ctx context.Context, event core.Event, matches [
 			statusUpdater(logs[idx].ID, eventLogStatusFailed, err.Error())
 		}
 		if ok {
-			if statusUpdater != nil && idx < len(logs) {
-				statusUpdater(logs[idx].ID, eventLogStatusQueued, "")
-			}
 			continue
 		}
 		if err != nil {
@@ -64,11 +61,8 @@ func publishMatchesWithFallback(ctx context.Context, event core.Event, matches [
 			if statusUpdater != nil && idx < len(logs) {
 				statusUpdater(logs[idx].ID, eventLogStatusFailed, err.Error())
 			}
-		} else if statusUpdater != nil && idx < len(logs) {
-			statusUpdater(logs[idx].ID, eventLogStatusQueued, "")
-			if logger != nil {
-				logger.Printf("fallback publish delivered topic=%s drivers=%v", match.Topic, drivers)
-			}
+		} else if logger != nil {
+			logger.Printf("fallback publish delivered topic=%s drivers=%v", match.Topic, drivers)
 		}
 	}
 }

@@ -70,6 +70,26 @@ func (s *EventLogsService) ListEventLogs(
 		logError(s.Logger, "list event logs failed", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("list event logs failed"))
 	}
+	logger := s.Logger
+	if logger == nil {
+		logger = log.Default()
+	}
+	headerTenant := ""
+	if req != nil {
+		header := req.Header()
+		if header != nil {
+			headerTenant = strings.TrimSpace(header.Get("X-Tenant-ID"))
+			if headerTenant == "" {
+				headerTenant = strings.TrimSpace(header.Get("X-Githooks-Tenant-ID"))
+			}
+		}
+	}
+	resolvedTenant := storage.TenantFromContext(ctx)
+	if len(records) > 0 {
+		logger.Printf("event log list tenant=%s header_tenant=%s request_id=%s count=%d first_log_id=%s first_status=%s", resolvedTenant, headerTenant, filter.RequestID, len(records), records[0].ID, records[0].Status)
+	} else {
+		logger.Printf("event log list tenant=%s header_tenant=%s request_id=%s count=0", resolvedTenant, headerTenant, filter.RequestID)
+	}
 	nextToken := ""
 	if len(records) > pageSize {
 		records = records[:pageSize]
@@ -233,13 +253,32 @@ func (s *EventLogsService) UpdateEventLogStatus(
 	if s.Store == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
-	logID := strings.TrimSpace(req.Msg.GetLogId())
-	status := strings.TrimSpace(req.Msg.GetStatus())
-	errMsg := strings.TrimSpace(req.Msg.GetErrorMessage())
+	if req == nil || req.Msg == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request is required"))
+	}
+	msg := req.Msg
+	logID := strings.TrimSpace(msg.GetLogId())
+	status := strings.TrimSpace(msg.GetStatus())
+	errMsg := strings.TrimSpace(msg.GetErrorMessage())
+	tenantID := storage.TenantFromContext(ctx)
+	logger := s.Logger
+	if logger == nil {
+		logger = log.Default()
+	}
+	var headerTenant string
+	header := req.Header()
+	if header != nil {
+		headerTenant = strings.TrimSpace(header.Get("X-Tenant-ID"))
+		if headerTenant == "" {
+			headerTenant = strings.TrimSpace(header.Get("X-Githooks-Tenant-ID"))
+		}
+	}
+	logger.Printf("event log update request log_id=%s status=%s tenant=%s header_tenant=%s err_len=%d", logID, status, tenantID, headerTenant, len(errMsg))
 	if err := s.Store.UpdateEventLogStatus(ctx, logID, status, errMsg); err != nil {
 		logError(s.Logger, "event log update failed", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("event log update failed"))
 	}
+	logger.Printf("event log update ok log_id=%s status=%s tenant=%s", logID, status, tenantID)
 	return connect.NewResponse(&cloudv1.UpdateEventLogStatusResponse{}), nil
 }
 

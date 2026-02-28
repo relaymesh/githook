@@ -9,6 +9,7 @@ const (
 	MetadataKeyInstallationID      = "installation_id"
 	MetadataKeyProviderInstanceKey = "provider_instance_key"
 	MetadataKeyRequestID           = "request_id"
+	MetadataKeyTenantID            = "tenant_id"
 	MetadataKeyJobID               = "job_id"
 	MetadataKeyQueue               = "queue"
 	MetadataKeyKind                = "kind"

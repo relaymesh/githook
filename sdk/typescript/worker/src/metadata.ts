@@ -6,6 +6,7 @@ export const MetadataKeyDriver = "driver";
 export const MetadataKeyInstallationID = "installation_id";
 export const MetadataKeyProviderInstanceKey = "provider_instance_key";
 export const MetadataKeyRequestID = "request_id";
+export const MetadataKeyTenantID = "tenant_id";
 export const MetadataKeyJobID = "job_id";
 export const MetadataKeyQueue = "queue";
 export const MetadataKeyKind = "kind";

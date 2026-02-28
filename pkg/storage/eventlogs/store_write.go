@@ -3,12 +3,14 @@ package eventlogs
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/relaymesh/githook/pkg/storage"
+	"gorm.io/gorm"
 )
 
 // CreateEventLogs inserts event log records.
@@ -63,9 +65,12 @@ func (s *Store) UpdateEventLogStatus(ctx context.Context, id, status, errorMessa
 		return errors.New("status is required")
 	}
 	tenantID := storage.TenantFromContext(ctx)
-	query := s.tableDB().WithContext(ctx).Where("id = ?", id)
-	if tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
+	buildQuery := func() *gorm.DB {
+		q := s.tableDB().WithContext(ctx).Where("id = ?", id)
+		if tenantID != "" {
+			q = q.Where("tenant_id = ?", tenantID)
+		}
+		return q
 	}
 	updates := map[string]interface{}{
 		"status":        status,
@@ -74,9 +79,30 @@ func (s *Store) UpdateEventLogStatus(ctx context.Context, id, status, errorMessa
 	}
 	if status == "success" || status == "failed" {
 		var existing row
-		if err := query.Select("created_at").First(&existing).Error; err == nil && !existing.CreatedAt.IsZero() {
+		lookup := buildQuery()
+		if err := lookup.Select("created_at").First(&existing).Error; err == nil && !existing.CreatedAt.IsZero() {
 			updates["latency_ms"] = time.Since(existing.CreatedAt).Milliseconds()
 		}
 	}
-	return query.Updates(updates).Error
+	updateQuery := buildQuery()
+	if status == "queued" {
+		updateQuery = updateQuery.Where("status <> ? AND status <> ?", "success", "failed")
+	}
+	result := updateQuery.Updates(updates)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		if status == "queued" {
+			return nil
+		}
+		return errors.New("event log not found")
+	}
+	log.Printf("event log update rows=%d id=%s status=%s tenant=%s", result.RowsAffected, id, status, tenantID)
+	var current row
+	verifyQuery := buildQuery()
+	if err := verifyQuery.Select("status", "updated_at").First(&current).Error; err == nil {
+		log.Printf("event log update verify id=%s status=%s tenant=%s updated_at=%s", id, current.Status, tenantID, current.UpdatedAt.UTC().Format(time.RFC3339Nano))
+	}
+	return nil
 }

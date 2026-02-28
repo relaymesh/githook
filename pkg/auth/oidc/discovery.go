@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -65,7 +66,11 @@ func Discover(ctx context.Context, issuer string) (Discovery, error) {
 		}
 		return Discovery{}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("oidc discovery close failed: %v", err)
+		}
+	}()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if stale != nil {
 			discoveryCacheMu.Lock()

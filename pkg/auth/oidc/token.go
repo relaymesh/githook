@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -79,7 +80,11 @@ func ClientCredentialsToken(ctx context.Context, cfg auth.OAuth2Config) (Token, 
 	if err != nil {
 		return Token{}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("oidc token exchange close failed: %v", err)
+		}
+	}()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body := readErrorBody(resp.Body)
 		if body != "" {
@@ -98,7 +103,7 @@ func ClientCredentialsToken(ctx context.Context, cfg auth.OAuth2Config) (Token, 
 	if payload.AccessToken == "" {
 		return Token{}, errors.New("access_token missing")
 	}
-	return Token{AccessToken: payload.AccessToken, ExpiresIn: payload.ExpiresIn}, nil
+	return Token(payload), nil
 }
 
 func readErrorBody(r io.Reader) string {

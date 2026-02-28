@@ -18,7 +18,12 @@ from .context import WorkerContext
 from .event import Event
 from .event_log_status import EVENT_LOG_STATUS_FAILED, EVENT_LOG_STATUS_SUCCESS
 from .listener import Listener
-from .metadata import METADATA_KEY_DRIVER, METADATA_KEY_LOG_ID, METADATA_KEY_REQUEST_ID
+from .metadata import (
+    METADATA_KEY_DRIVER,
+    METADATA_KEY_LOG_ID,
+    METADATA_KEY_REQUEST_ID,
+    METADATA_KEY_TENANT_ID,
+)
 from .oauth2 import OAuth2Config, resolve_oauth2_config
 from .retry import NoRetry, RetryPolicy, normalize_retry_decision
 from .subscriber import Subscriber, build_subscriber, subscriber_config_from_driver
@@ -400,7 +405,8 @@ class Worker:
     def handle_message(
         self, ctx: WorkerContext, topic: str, msg: RelaybusMessage
     ) -> bool:
-        log_id = (msg.metadata or {}).get(METADATA_KEY_LOG_ID, "")
+        metadata = msg.metadata or getattr(msg, "meta", None) or {}
+        log_id = metadata.get(METADATA_KEY_LOG_ID, "")
         try:
             evt = self.codec.decode(topic, msg)
         except Exception as err:
@@ -481,8 +487,10 @@ class Worker:
         self, base: WorkerContext, topic: str, msg: RelaybusMessage
     ) -> WorkerContext:
         metadata = msg.metadata or {}
+        metadata_tenant = str(metadata.get(METADATA_KEY_TENANT_ID, "")).strip()
+        tenant_id = metadata_tenant or (base.tenant_id or "").strip()
         return WorkerContext(
-            tenant_id=base.tenant_id,
+            tenant_id=tenant_id,
             signal=base.signal,
             topic=topic,
             request_id=metadata.get(METADATA_KEY_REQUEST_ID, ""),

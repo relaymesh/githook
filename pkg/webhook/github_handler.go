@@ -188,6 +188,7 @@ func (h *GitHubHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			RawPayload:          rawBody,
 			RawObject:           rawObject,
 			StateID:             stateID,
+			TenantID:            storage.TenantFromContext(r.Context()),
 			InstallationID:      installationID,
 			ProviderInstanceKey: instanceKey,
 			NamespaceID:         namespaceID,

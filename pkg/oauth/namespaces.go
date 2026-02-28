@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -130,7 +131,9 @@ func SyncGitLabNamespaces(ctx context.Context, store storage.NamespaceStore, cfg
 			} `json:"namespace"`
 		}
 		err = json.NewDecoder(resp.Body).Decode(&payload)
-		resp.Body.Close()
+		if cerr := resp.Body.Close(); cerr != nil {
+			log.Printf("gitlab namespace list close failed: %v", cerr)
+		}
 		if err != nil {
 			return err
 		}
@@ -220,7 +223,9 @@ func SyncBitbucketNamespaces(ctx context.Context, store storage.NamespaceStore, 
 			} `json:"values"`
 		}
 		err = json.NewDecoder(resp.Body).Decode(&payload)
-		resp.Body.Close()
+		if cerr := resp.Body.Close(); cerr != nil {
+			log.Printf("bitbucket repo list close failed: %v", cerr)
+		}
 		if err != nil {
 			return err
 		}

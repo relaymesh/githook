@@ -25,16 +25,17 @@ func NewAppClient(ctx context.Context, cfg AppConfig, installationID int64) (*Cl
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	httpClient := oauth2.NewClient(ctx, ts)
 
+	client := gh.NewClient(httpClient)
 	baseURL := strings.TrimRight(cfg.BaseURL, "/")
 	if baseURL != "" && baseURL != defaultBaseURL {
 		uploadURL := enterpriseUploadURL(baseURL)
-		client, err := gh.NewEnterpriseClient(baseURL, uploadURL, httpClient)
+		enterpriseClient, err := client.WithEnterpriseURLs(baseURL, uploadURL)
 		if err != nil {
 			return nil, err
 		}
-		return client, nil
+		return enterpriseClient, nil
 	}
-	return gh.NewClient(httpClient), nil
+	return client, nil
 }
 
 func enterpriseUploadURL(apiBase string) string {

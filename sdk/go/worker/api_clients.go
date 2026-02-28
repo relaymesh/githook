@@ -124,14 +124,6 @@ func (w *Worker) eventLogsClient() *EventLogsClient {
 	}
 }
 
-func (w *Worker) installationsClient() *InstallationsClient {
-	return &InstallationsClient{
-		BaseURL: w.apiBaseURL(),
-		APIKey:  w.apiKeyValue(),
-		OAuth2:  w.oauth2Value(),
-	}
-}
-
 func (w *Worker) tenantIDValue() string {
 	if w != nil {
 		if trimmed := strings.TrimSpace(w.tenantID); trimmed != "" {

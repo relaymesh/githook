@@ -114,7 +114,11 @@ func exchangeGitLabToken(ctx context.Context, cfg auth.ProviderConfig, code, red
 	if err != nil {
 		return oauthToken{}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("gitlab token exchange close failed: %v", err)
+		}
+	}()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return oauthToken{}, fmt.Errorf("gitlab token exchange failed: %s", resp.Status)
 	}
@@ -147,7 +151,11 @@ func resolveGitLabAccount(ctx context.Context, cfg auth.ProviderConfig, accessTo
 	if err != nil {
 		return "", "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("gitlab user lookup close failed: %v", err)
+		}
+	}()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		return "", "", fmt.Errorf("gitlab user lookup failed: %s body=%s", resp.Status, strings.TrimSpace(string(body)))

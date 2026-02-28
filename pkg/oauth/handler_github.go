@@ -128,7 +128,11 @@ func exchangeGitHubToken(ctx context.Context, cfg auth.ProviderConfig, code, red
 	if err != nil {
 		return oauthToken{}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("github token exchange close failed: %v", err)
+		}
+	}()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return oauthToken{}, fmt.Errorf("github token exchange failed: %s", resp.Status)
 	}

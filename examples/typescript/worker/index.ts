@@ -4,6 +4,7 @@ import {
   WithClientProvider,
   WithAPIKey,
   WithTenant,
+  WithListener,
   NewRemoteSCMClientProvider,
   GitHubClient,
 } from "@relaymesh/githook";
@@ -20,6 +21,24 @@ async function main() {
   const provider = NewRemoteSCMClientProvider();
 
   const options = [WithEndpoint(endpoint), WithClientProvider(provider)];
+  options.push(
+    WithListener({
+      onMessageStart: (_ctx, evt) => {
+        console.log(`listener start log_id=${evt.metadata?.log_id ?? ""} topic=${evt.topic}`);
+      },
+      onMessageFinish: (_ctx, evt, err) => {
+        const status = err ? "failed" : "success";
+        console.log(
+          `listener finish log_id=${evt.metadata?.log_id ?? ""} status=${status} err=${err?.message ?? ""}`,
+        );
+      },
+      onError: (_ctx, evt, err) => {
+        console.log(
+          `listener error log_id=${evt?.metadata?.log_id ?? ""} err=${err.message}`,
+        );
+      },
+    }),
+  );
   if (apiKey) {
     options.push(WithAPIKey(apiKey));
   }

@@ -107,7 +107,7 @@ func breakdownGroupExpr(groupBy storage.EventLogBreakdownGroup) (string, error) 
 }
 
 func breakdownSortExpr(sortBy storage.EventLogBreakdownSort, sortDesc bool) string {
-	column := "count"
+	column := ""
 	switch sortBy {
 	case storage.EventLogBreakdownSortMatched:
 		column = "matched_count"

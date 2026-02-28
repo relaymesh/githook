@@ -281,6 +281,9 @@ func (w *Worker) handleMessage(ctx context.Context, topic string, msg *relaymess
 	if msg != nil {
 		if msg.Metadata != nil {
 			logID = msg.Metadata[MetadataKeyLogID]
+			if tenantID := strings.TrimSpace(msg.Metadata[MetadataKeyTenantID]); tenantID != "" {
+				ctx = WithTenantID(ctx, tenantID)
+			}
 		}
 	}
 	evt, err := w.codec.Decode(topic, msg)

@@ -19,7 +19,8 @@ type Event struct {
 	// RawObject is the unmarshalled JSON payload.
 	RawObject interface{} `json:"-"`
 	// StateID maps the event to an installation/account id for token lookup.
-	StateID string `json:"-"`
+	StateID  string `json:"-"`
+	TenantID string `json:"-"`
 	// InstallationID maps the event to a provider installation for token lookup.
 	InstallationID string `json:"-"`
 	// ProviderInstanceKey identifies the provider instance configuration.

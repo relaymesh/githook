@@ -19,23 +19,35 @@ func TestLoadConfigDefaults(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 
-	if cfg.AppConfig.Server.Port != 8080 {
-		t.Fatalf("expected default port 8080, got %d", cfg.AppConfig.Server.Port)
+	if cfg.Server.Port != 8080 {
+		t.Fatalf("expected default port 8080, got %d", cfg.Server.Port)
 	}
-	if cfg.AppConfig.Providers.GitHub.Webhook.Path != "/webhooks/github" {
-		t.Fatalf("expected default github path, got %q", cfg.AppConfig.Providers.GitHub.Webhook.Path)
+	if cfg.Providers.GitHub.Webhook.Path != "/webhooks/github" {
+		t.Fatalf("expected default github path, got %q", cfg.Providers.GitHub.Webhook.Path)
 	}
-	if cfg.AppConfig.Providers.GitLab.Webhook.Path != "/webhooks/gitlab" {
-		t.Fatalf("expected default gitlab path, got %q", cfg.AppConfig.Providers.GitLab.Webhook.Path)
+	if cfg.Providers.GitLab.Webhook.Path != "/webhooks/gitlab" {
+		t.Fatalf("expected default gitlab path, got %q", cfg.Providers.GitLab.Webhook.Path)
 	}
-	if cfg.AppConfig.Providers.Bitbucket.Webhook.Path != "/webhooks/bitbucket" {
-		t.Fatalf("expected default bitbucket path, got %q", cfg.AppConfig.Providers.Bitbucket.Webhook.Path)
+	if cfg.Providers.Bitbucket.Webhook.Path != "/webhooks/bitbucket" {
+		t.Fatalf("expected default bitbucket path, got %q", cfg.Providers.Bitbucket.Webhook.Path)
 	}
-	if cfg.AppConfig.Relaybus.Driver != "" {
-		t.Fatalf("expected empty default relaybus driver, got %q", cfg.AppConfig.Relaybus.Driver)
+	if cfg.Relaybus.Driver != "" {
+		t.Fatalf("expected empty default relaybus driver, got %q", cfg.Relaybus.Driver)
 	}
-	if len(cfg.AppConfig.Relaybus.Drivers) != 0 {
-		t.Fatalf("expected no default drivers, got %v", cfg.AppConfig.Relaybus.Drivers)
+	if len(cfg.Relaybus.Drivers) != 0 {
+		t.Fatalf("expected no default drivers, got %v", cfg.Relaybus.Drivers)
+	}
+	if cfg.Storage.MaxOpenConns != 2 {
+		t.Fatalf("expected default max_open_conns 2, got %d", cfg.Storage.MaxOpenConns)
+	}
+	if cfg.Storage.MaxIdleConns != 1 {
+		t.Fatalf("expected default max_idle_conns 1, got %d", cfg.Storage.MaxIdleConns)
+	}
+	if cfg.Storage.ConnMaxLifetimeMS != 300000 {
+		t.Fatalf("expected default conn_max_lifetime_ms 300000, got %d", cfg.Storage.ConnMaxLifetimeMS)
+	}
+	if cfg.Storage.ConnMaxIdleTimeMS != 60000 {
+		t.Fatalf("expected default conn_max_idle_time_ms 60000, got %d", cfg.Storage.ConnMaxIdleTimeMS)
 	}
 }
 

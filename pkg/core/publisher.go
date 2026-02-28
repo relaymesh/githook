@@ -254,6 +254,9 @@ func (w *relaybusPublisher) Publish(ctx context.Context, topic string, event Eve
 	if event.ProviderInstanceKey != "" {
 		metadata["provider_instance_key"] = event.ProviderInstanceKey
 	}
+	if event.TenantID != "" {
+		metadata["tenant_id"] = event.TenantID
+	}
 	if event.LogID != "" {
 		metadata["log_id"] = event.LogID
 	}

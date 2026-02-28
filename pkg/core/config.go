@@ -217,6 +217,18 @@ func applyDefaults(cfg *AppConfig) {
 	if cfg.Relaybus.PublishRetry.DelayMS == 0 {
 		cfg.Relaybus.PublishRetry.DelayMS = 500
 	}
+	if cfg.Storage.MaxOpenConns == 0 {
+		cfg.Storage.MaxOpenConns = 2
+	}
+	if cfg.Storage.MaxIdleConns == 0 {
+		cfg.Storage.MaxIdleConns = 1
+	}
+	if cfg.Storage.ConnMaxLifetimeMS == 0 {
+		cfg.Storage.ConnMaxLifetimeMS = 300000
+	}
+	if cfg.Storage.ConnMaxIdleTimeMS == 0 {
+		cfg.Storage.ConnMaxIdleTimeMS = 60000
+	}
 	applyAuthDefaults(cfg)
 }
 

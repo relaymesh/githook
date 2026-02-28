@@ -2,7 +2,7 @@ import { DefaultCodec } from "./codec.js";
 import { DriversClient, EventLogsClient, RulesClient } from "./api.js";
 import { subscriberConfigFromDriver } from "./driver_config.js";
 import { EventLogStatusFailed, EventLogStatusSuccess } from "./event_log_status.js";
-import { MetadataKeyDriver, MetadataKeyLogID, MetadataKeyRequestID } from "./metadata.js";
+import { MetadataKeyDriver, MetadataKeyLogID, MetadataKeyRequestID, MetadataKeyTenantID } from "./metadata.js";
 import { NoRetry, normalizeRetryDecision } from "./retry.js";
 import { buildSubscriber } from "./subscriber.js";
 import type { APIClientOptions } from "./api.js";
@@ -456,7 +456,10 @@ export class Worker {
   }
 
   private async handleMessage(ctx: WorkerContext, topic: string, msg: RelaybusMessage): Promise<boolean> {
-    const logId = msg.metadata?.[MetadataKeyLogID] ?? "";
+    const meta = (msg.metadata ?? (msg as Record<string, unknown>)["meta"]) as
+      | Record<string, string>
+      | undefined;
+    const logId = meta?.[MetadataKeyLogID] ?? "";
     let event: Event | undefined;
 
     try {
@@ -532,12 +535,17 @@ export class Worker {
   }
 
   private buildContext(base: WorkerContext, topic: string, msg: RelaybusMessage): WorkerContext {
+    const meta = (msg.metadata ?? (msg as Record<string, unknown>)["meta"]) as
+      | Record<string, string>
+      | undefined;
+    const metadataTenant = (meta?.[MetadataKeyTenantID] ?? "").trim();
+    const baseTenant = (base.tenantId ?? "").trim();
     return {
-      tenantId: base.tenantId,
+      tenantId: metadataTenant || baseTenant,
       signal: base.signal,
       topic,
-      requestId: msg.metadata?.[MetadataKeyRequestID],
-      logId: msg.metadata?.[MetadataKeyLogID],
+      requestId: meta?.[MetadataKeyRequestID],
+      logId: meta?.[MetadataKeyLogID],
     };
   }
 
@@ -614,10 +622,27 @@ export class Worker {
     err?: Error,
   ): Promise<void> {
     if (!logId) {
+      logPrintf(this.logger, "event log update skipped: empty log_id");
       return;
     }
     try {
+      logPrintf(
+        this.logger,
+        "event log update request log_id=%s status=%s err=%s",
+        logId,
+        status,
+        err?.message ?? "",
+      );
+      if (ctx.tenantId) {
+        logPrintf(this.logger, "event log update tenant=%s", ctx.tenantId);
+      }
       await this.eventLogsClient().updateStatus(logId, status, err?.message, ctx);
+      logPrintf(
+        this.logger,
+        "event log update ok log_id=%s status=%s",
+        logId,
+        status,
+      );
     } catch (updateErr) {
       const error = normalizeError(updateErr);
       logPrintf(this.logger, "event log update failed: %s", error.message);

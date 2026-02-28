@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -127,7 +128,9 @@ func startLocalCallback(state, codeVerifier string) (string, <-chan authCodeResu
 				http.Error(w, "missing code", http.StatusBadRequest)
 				return
 			}
-			fmt.Fprintln(w, "Authentication complete. You can close this window.")
+			if _, err := fmt.Fprintln(w, "Authentication complete. You can close this window."); err != nil {
+				_, _ = fmt.Fprintln(os.Stderr, "auth callback response write failed:", err)
+			}
 			resultCh <- authCodeResult{code: code, codeVerifier: codeVerifier}
 		}),
 	}
