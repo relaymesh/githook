@@ -1,4 +1,4 @@
-.PHONY: sdk-unit sdk-unit-go sdk-unit-ts sdk-unit-py sdk-build-ts sdk-test examples examples-go examples-ts examples-py
+.PHONY: sdk-unit sdk-unit-go sdk-unit-ts sdk-unit-py sdk-build-ts sdk-test examples examples-go examples-ts examples-py bump-version
 
 PYTHON ?= python3
 NPM ?= npm
@@ -27,3 +27,7 @@ examples-ts:
 
 examples-py:
 	$(MAKE) -C examples py
+
+bump-version:
+	@test -n "$(VERSION)" || (echo "VERSION is required. Usage: make bump-version VERSION=0.1.2" && exit 1)
+	@$(PYTHON) scripts/bump_versions.py "$(VERSION)"

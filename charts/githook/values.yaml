@@ -1,0 +1,62 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/relaymesh/githook
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+serviceAccount:
+  create: true
+  automount: true
+
+service:
+  type: ClusterIP
+  port: 8080
+
+containerPort: 8080
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: githook.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+config:
+  mountPath: /app/config.yaml
+  key: config.yaml
+  existingSecret: ""
+  createSecret: true
+  data: |
+    server:
+      port: 8080
+    endpoint: http://githook.default.svc.cluster.local:8080
+    storage:
+      driver: postgres
+      dsn: postgresql://postgres:postgres@postgres.default.svc.cluster.local:5432/githook?sslmode=disable
+      dialect: postgres
+      auto_migrate: true

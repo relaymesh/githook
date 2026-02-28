@@ -70,6 +70,8 @@ func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, m
 	addCloser(func() { _ = publisher.Close() })
 
 	mux := http.NewServeMux()
+	mux.Handle("/healthz", healthHandler())
+	mux.Handle("/readyz", healthHandler())
 	validationInterceptor := validate.NewInterceptor()
 	connectOpts := []connect.HandlerOption{
 		connect.WithInterceptors(validationInterceptor),
