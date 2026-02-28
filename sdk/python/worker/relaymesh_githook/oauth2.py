@@ -38,12 +38,14 @@ _token_cache = _TokenCache()
 
 def resolve_oauth2_config(explicit: Optional[OAuth2Config]) -> Optional[OAuth2Config]:
     if explicit is not None:
+        _normalize_oauth2_mode(explicit.mode)
         return explicit
     token_url = _env_value("GITHOOK_OAUTH2_TOKEN_URL")
     if not token_url:
         return None
     return OAuth2Config(
         enabled=True,
+        mode="client_credentials",
         token_url=token_url,
         client_id=_env_value("GITHOOK_OAUTH2_CLIENT_ID"),
         client_secret=_env_value("GITHOOK_OAUTH2_CLIENT_SECRET"),
@@ -52,9 +54,12 @@ def resolve_oauth2_config(explicit: Optional[OAuth2Config]) -> Optional[OAuth2Co
     )
 
 
-def oauth2_token_from_config(ctx: Optional[WorkerContext], cfg: Optional[OAuth2Config]) -> str:
+def oauth2_token_from_config(
+    ctx: Optional[WorkerContext], cfg: Optional[OAuth2Config]
+) -> str:
     if cfg is None or cfg.enabled is False:
         return ""
+    _normalize_oauth2_mode(cfg.mode)
     token_url = (cfg.token_url or "").strip()
     client_id = (cfg.client_id or "").strip()
     client_secret = (cfg.client_secret or "").strip()
@@ -62,7 +67,11 @@ def oauth2_token_from_config(ctx: Optional[WorkerContext], cfg: Optional[OAuth2C
         return ""
     cache_key = _build_cache_key(cfg)
     now = time.time()
-    if _token_cache.token and _token_cache.key == cache_key and _token_cache.expires_at > now + 30:
+    if (
+        _token_cache.token
+        and _token_cache.key == cache_key
+        and _token_cache.expires_at > now + 30
+    ):
         return _token_cache.token
 
     body = {
@@ -92,12 +101,14 @@ def oauth2_token_from_config(ctx: Optional[WorkerContext], cfg: Optional[OAuth2C
 
 def _build_cache_key(cfg: OAuth2Config) -> str:
     scopes = " ".join(cfg.scopes or [])
-    return "|".join([
-        (cfg.token_url or "").strip(),
-        (cfg.client_id or "").strip(),
-        scopes,
-        (cfg.audience or "").strip(),
-    ])
+    return "|".join(
+        [
+            (cfg.token_url or "").strip(),
+            (cfg.client_id or "").strip(),
+            scopes,
+            (cfg.audience or "").strip(),
+        ]
+    )
 
 
 def _env_value(key: str) -> str:
@@ -108,3 +119,10 @@ def _env_value(key: str) -> str:
 
 def _split_csv(value: str) -> List[str]:
     return [entry.strip() for entry in value.split(",") if entry.strip()]
+
+
+def _normalize_oauth2_mode(mode: str) -> str:
+    value = (mode or "").strip().lower()
+    if value in ("", "auto", "client_credentials"):
+        return "client_credentials"
+    raise ValueError(f"unsupported oauth2 mode for worker sdk: {mode}")

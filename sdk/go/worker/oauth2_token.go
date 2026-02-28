@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -31,6 +32,10 @@ func oauth2Token(ctx context.Context) (string, error) {
 func oauth2TokenFromConfig(ctx context.Context, cfg auth.OAuth2Config) (string, error) {
 	if !cfg.Enabled {
 		return "", nil
+	}
+	_, err := normalizeOAuth2Mode(cfg.Mode)
+	if err != nil {
+		return "", err
 	}
 	oauth2Cache.mu.Lock()
 	if oauth2Cache.token != "" && time.Now().Before(oauth2Cache.expiresAt) {
@@ -65,6 +70,17 @@ func oauth2TokenFromConfig(ctx context.Context, cfg auth.OAuth2Config) (string, 
 		_ = oidc.StoreCachedToken(cachePath, cacheKey, token.AccessToken, expiry)
 	}
 	return token.AccessToken, nil
+}
+
+func normalizeOAuth2Mode(mode string) (string, error) {
+	value := strings.TrimSpace(strings.ToLower(mode))
+	if value == "" || value == "auto" {
+		return "client_credentials", nil
+	}
+	if value == "client_credentials" {
+		return value, nil
+	}
+	return "", fmt.Errorf("unsupported oauth2 mode for worker sdk: %s", mode)
 }
 
 func loadOAuth2Config() (auth.OAuth2Config, bool, error) {

@@ -66,6 +66,27 @@ def handler(ctx, evt):
         print(user.get("login"))
 ```
 
+## OAuth2 mode
+
+Use `mode="client_credentials"` for worker OAuth2 token flow.
+
+```python
+from relaymesh_githook import OAuth2Config, WithOAuth2Config
+
+wk = New(
+    WithOAuth2Config(
+        OAuth2Config(
+            enabled=True,
+            mode="client_credentials",
+            client_id="your-client-id",
+            client_secret="your-client-secret",
+            token_url="https://issuer.example.com/oauth/token",
+            scopes=["githook.read", "githook.write"],
+        )
+    )
+)
+```
+
 ## Environment Variables
 
 The worker will read defaults from:

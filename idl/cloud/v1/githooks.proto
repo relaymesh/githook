@@ -7,120 +7,294 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "githook/pkg/gen/cloud/v1;cloudv1";
 
+// InstallationsService manages OAuth app installations per tenant.
+// An installation represents a GitHub App, GitLab OAuth app, or Bitbucket
+// OAuth consumer that has been authorized for a specific account. All RPCs
+// are scoped to the calling tenant via the X-Tenant-ID request header.
 service InstallationsService {
+  // ListInstallations returns all installations visible to the tenant.
+  // Filter by provider or state_id (account) to narrow results.
   rpc ListInstallations(ListInstallationsRequest) returns (ListInstallationsResponse);
+
+  // GetInstallationByID fetches a single installation by provider + installation_id.
   rpc GetInstallationByID(GetInstallationByIDRequest) returns (GetInstallationByIDResponse);
+
+  // UpsertInstallation creates or updates an installation record.
+  // Used by OAuth callback handlers after a user authorizes the app.
   rpc UpsertInstallation(UpsertInstallationRequest) returns (UpsertInstallationResponse);
+
+  // DeleteInstallation removes an installation and revokes its stored credentials.
   rpc DeleteInstallation(DeleteInstallationRequest) returns (DeleteInstallationResponse);
 }
 
+// NamespacesService manages repository namespaces (repos) discovered via
+// installed provider apps. Namespaces are synced from the SCM provider and
+// can have webhooks enabled or disabled per repo. All RPCs are tenant-scoped.
 service NamespacesService {
+  // ListNamespaces returns known repos for the tenant. Filter by provider,
+  // owner, repo name, or full_name to narrow results.
   rpc ListNamespaces(ListNamespacesRequest) returns (ListNamespacesResponse);
+
+  // SyncNamespaces fetches the current repo list from the SCM provider and
+  // upserts it into local storage. Returns the refreshed namespace set.
   rpc SyncNamespaces(SyncNamespacesRequest) returns (SyncNamespacesResponse);
+
+  // GetNamespaceWebhook returns whether the webhook is currently registered
+  // on the given repo in the SCM provider.
   rpc GetNamespaceWebhook(GetNamespaceWebhookRequest) returns (GetNamespaceWebhookResponse);
+
+  // SetNamespaceWebhook registers or deregisters the githook webhook URL on
+  // the given repo. Set enabled=true to register, false to remove.
   rpc SetNamespaceWebhook(SetNamespaceWebhookRequest) returns (SetNamespaceWebhookResponse);
 }
 
+// RulesService manages routing rules that determine which events get published
+// to which broker topics. Each rule has a govaluate expression (when) and a
+// target topic (emit). Rules are evaluated against every incoming webhook event.
+// All RPCs are tenant-scoped via X-Tenant-ID.
 service RulesService {
+  // MatchRules evaluates a set of rules against an event payload and returns
+  // the subset that matched. Useful for testing rules before persisting them.
   rpc MatchRules(MatchRulesRequest) returns (MatchRulesResponse);
+
+  // ListRules returns all rules for the tenant.
   rpc ListRules(ListRulesRequest) returns (ListRulesResponse);
+
+  // GetRule fetches a single rule by its server-assigned ID.
   rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
+
+  // CreateRule persists a new rule. The server assigns an ID and timestamps.
   rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse);
+
+  // UpdateRule replaces the when/emit/driver_id fields of an existing rule.
   rpc UpdateRule(UpdateRuleRequest) returns (UpdateRuleResponse);
+
+  // DeleteRule removes a rule. In-flight events already matched are unaffected.
   rpc DeleteRule(DeleteRuleRequest) returns (DeleteRuleResponse);
 }
 
+// DriversService manages message broker connection configs (AMQP, NATS, Kafka).
+// A driver holds the JSON config needed to publish events to a specific broker.
+// Rules reference drivers by ID to determine where matched events are sent.
+// All RPCs are tenant-scoped via X-Tenant-ID.
 service DriversService {
+  // ListDrivers returns all driver configs for the tenant.
   rpc ListDrivers(ListDriversRequest) returns (ListDriversResponse);
+
+  // GetDriver fetches a single driver by name.
   rpc GetDriver(GetDriverRequest) returns (GetDriverResponse);
+
+  // UpsertDriver creates or updates a driver config. The name field is the
+  // stable identifier; re-submitting with the same name updates in place.
   rpc UpsertDriver(UpsertDriverRequest) returns (UpsertDriverResponse);
+
+  // DeleteDriver removes a driver config. Rules that reference this driver
+  // will stop publishing until updated to point at a valid driver.
   rpc DeleteDriver(DeleteDriverRequest) returns (DeleteDriverResponse);
 }
 
+// ProvidersService manages per-tenant SCM provider configurations (GitHub App
+// credentials, OAuth client IDs/secrets, webhook secrets). Each provider
+// instance is identified by provider name + a server-generated hash so a
+// tenant can register multiple instances of the same provider type.
+// All RPCs are tenant-scoped via X-Tenant-ID.
 service ProvidersService {
+  // ListProviders returns all provider configs for the tenant.
+  // Filter by provider name (e.g. "github") to narrow results.
   rpc ListProviders(ListProvidersRequest) returns (ListProvidersResponse);
+
+  // GetProvider fetches a single provider config by provider name + hash.
   rpc GetProvider(GetProviderRequest) returns (GetProviderResponse);
+
+  // UpsertProvider creates or updates a provider config. The hash is
+  // server-generated on first create; include it on subsequent calls to update.
   rpc UpsertProvider(UpsertProviderRequest) returns (UpsertProviderResponse);
+
+  // DeleteProvider removes a provider config. Existing installations that
+  // reference this provider instance will no longer be able to refresh tokens.
   rpc DeleteProvider(DeleteProviderRequest) returns (DeleteProviderResponse);
 }
 
+// SCMService provides worker SDKs with short-lived SCM API credentials.
+// Workers call GetSCMClient to obtain a provider access token without ever
+// storing credentials themselves. The server resolves the token from the
+// installation record and refreshes it if expired.
 service SCMService {
+  // GetSCMClient returns a ready-to-use SCM client credential for the given
+  // installation. The access_token may be refreshed server-side before return.
+  // Workers should treat the token as short-lived and re-fetch as needed.
   rpc GetSCMClient(GetSCMClientRequest) returns (GetSCMClientResponse);
 }
 
+// EventLogsService provides audit and observability over webhook events.
+// Every incoming webhook creates an EventLogRecord regardless of whether it
+// matched any rules. Workers update log status after processing. All RPCs
+// are tenant-scoped via X-Tenant-ID.
 service EventLogsService {
+  // ListEventLogs returns paginated event log records. Supports rich filtering
+  // by provider, topic, rule, namespace, time range, and match status.
+  // Use page_size + page_token for cursor-based pagination (max 200 per page).
   rpc ListEventLogs(ListEventLogsRequest) returns (ListEventLogsResponse);
+
+  // GetEventLogAnalytics returns aggregate counts over a filtered event set.
+  // Useful for dashboards showing total events, match rates, and breakdowns.
   rpc GetEventLogAnalytics(GetEventLogAnalyticsRequest) returns (GetEventLogAnalyticsResponse);
+
+  // GetEventLogTimeseries returns event counts bucketed by time interval
+  // (hour/day/week). Useful for trend charts. interval is required.
   rpc GetEventLogTimeseries(GetEventLogTimeseriesRequest) returns (GetEventLogTimeseriesResponse);
+
+  // GetEventLogBreakdown returns per-key counts grouped by a chosen dimension
+  // (provider, rule, namespace, etc.). Supports sorting and pagination.
   rpc GetEventLogBreakdown(GetEventLogBreakdownRequest) returns (GetEventLogBreakdownResponse);
+
+  // UpdateEventLogStatus lets workers report delivery outcome back to the server.
+  // Valid status values: "queued", "delivered", "success", "failed".
   rpc UpdateEventLogStatus(UpdateEventLogStatusRequest) returns (UpdateEventLogStatusResponse);
 }
 
+// InstallRecord holds the OAuth credentials and metadata for a single SCM app
+// installation. Credentials (access_token, refresh_token) are stored encrypted
+// at rest and never returned to workers directly; use SCMService.GetSCMClient.
 message InstallRecord {
+  // SCM provider name, e.g. "github", "gitlab", "bitbucket". Required.
   string provider = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Provider-assigned account or organization ID. Required.
   string account_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable account or organization name.
   string account_name = 3;
+
+  // Provider-assigned installation ID (e.g. GitHub App installation ID). Required.
   string installation_id = 4 [(buf.validate.field).string.min_len = 1];
+
+  // OAuth access token. Stored server-side; not returned to workers.
   string access_token = 5;
+
+  // OAuth refresh token used to renew access_token when it expires.
   string refresh_token = 6;
+
+  // When the access_token expires. Server refreshes automatically before this.
   google.protobuf.Timestamp expires_at = 7;
+
+  // Arbitrary provider-specific metadata serialized as JSON.
   string metadata_json = 8;
+
+  // When this record was first created.
   google.protobuf.Timestamp created_at = 9;
+
+  // When this record was last updated.
   google.protobuf.Timestamp updated_at = 10;
+
+  // Identifies which provider instance config (ProviderRecord) this installation
+  // belongs to. Matches ProviderRecord.hash for multi-instance setups.
   string provider_instance_key = 11;
+
+  // GitHub Enterprise: numeric enterprise ID. Empty for github.com installs.
   string enterprise_id = 12;
+
+  // GitHub Enterprise: URL slug for the enterprise.
   string enterprise_slug = 13;
+
+  // GitHub Enterprise: display name for the enterprise.
   string enterprise_name = 14;
 }
 
+// NamespaceRecord represents a single repository discovered via an installation.
+// Records are populated by SyncNamespaces and updated when webhooks arrive.
 message NamespaceRecord {
+  // SCM provider name, e.g. "github", "gitlab", "bitbucket". Required.
   string provider = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Provider-assigned repository ID (stable across renames).
   string repo_id = 2;
+
+  // Provider-assigned account or organization ID that owns this repo.
   string account_id = 3;
+
+  // Installation ID that granted access to this repo.
   string installation_id = 4;
+
+  // Repository owner login (user or org name).
   string owner = 5;
+
+  // Repository name without the owner prefix.
   string repo_name = 6;
+
+  // Full repository name in "owner/repo" format.
   string full_name = 7;
+
+  // Repository visibility: "public" or "private".
   string visibility = 8;
+
+  // Default branch name, e.g. "main" or "master".
   string default_branch = 9;
+
+  // HTTPS clone URL for the repository.
   string http_url = 10;
+
+  // SSH clone URL for the repository.
   string ssh_url = 11;
+
+  // Whether the githook webhook is currently registered on this repo.
   bool webhooks_enabled = 12;
+
+  // When this namespace record was first created.
   google.protobuf.Timestamp created_at = 13;
+
+  // When this namespace record was last updated.
   google.protobuf.Timestamp updated_at = 14;
 }
 
 message ListInstallationsRequest {
   // Optional account filter. When omitted, all accounts for the provider are returned.
   string state_id = 1;
+
+  // Optional provider filter, e.g. "github". When omitted, all providers are returned.
   string provider = 2;
 }
 
 message ListInstallationsResponse {
+  // All installation records matching the request filters.
   repeated InstallRecord installations = 1;
 }
 
 message GetInstallationByIDRequest {
+  // SCM provider name. Required.
   string provider = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Provider-assigned installation ID. Required.
   string installation_id = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetInstallationByIDResponse {
+  // The matching installation record, or empty if not found.
   InstallRecord installation = 1;
 }
 
 message UpsertInstallationRequest {
+  // Full installation record to create or update. Required.
+  // The (provider, account_id, installation_id) triple is the natural key.
   InstallRecord installation = 1 [(buf.validate.field).required = true];
 }
 
 message UpsertInstallationResponse {
+  // The persisted installation record with server-set timestamps.
   InstallRecord installation = 1;
 }
 
 message DeleteInstallationRequest {
+  // SCM provider name. Required.
   string provider = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Provider-assigned account ID. Required.
   string account_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Provider-assigned installation ID. Required.
   string installation_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Optional provider instance key to disambiguate multi-instance setups.
   string provider_instance_key = 4;
 }
 
@@ -129,411 +303,812 @@ message DeleteInstallationResponse {}
 message ListNamespacesRequest {
   // Optional account filter. When omitted, all accounts for the provider are returned.
   string state_id = 1;
+
+  // Optional provider filter, e.g. "github".
   string provider = 2;
+
+  // Optional owner (user or org login) filter.
   string owner = 3;
+
+  // Optional repository name filter (without owner prefix).
   string repo = 4;
+
+  // Optional full name filter in "owner/repo" format.
   string full_name = 5;
 }
 
 message ListNamespacesResponse {
+  // All namespace records matching the request filters.
   repeated NamespaceRecord namespaces = 1;
 }
 
 message SyncNamespacesRequest {
   // Optional account filter. When omitted, all accounts for the provider are synced.
   string state_id = 1;
+
+  // SCM provider to sync from, e.g. "github". Required.
   string provider = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 message SyncNamespacesResponse {
+  // The full refreshed set of namespace records after sync.
   repeated NamespaceRecord namespaces = 1;
 }
 
 message GetNamespaceWebhookRequest {
   // Optional account filter. When omitted, the namespace is resolved by provider + repo_id.
   string state_id = 1;
+
+  // SCM provider name. Required.
   string provider = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Provider-assigned repository ID. Required.
   string repo_id = 3 [(buf.validate.field).string.min_len = 1];
 }
 
 message SetNamespaceWebhookRequest {
   // Optional account filter. When omitted, the namespace is resolved by provider + repo_id.
   string state_id = 1;
+
+  // SCM provider name. Required.
   string provider = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Provider-assigned repository ID. Required.
   string repo_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Set to true to register the webhook, false to remove it.
   bool enabled = 4;
 }
 
 message GetNamespaceWebhookResponse {
+  // Whether the githook webhook is currently registered on the repo.
   bool enabled = 1;
 }
 
 message SetNamespaceWebhookResponse {
+  // The new webhook registration state after the operation.
   bool enabled = 1;
 }
 
+// Rule is the input shape for creating or matching rules. It does not carry
+// server-assigned fields (id, timestamps). See RuleRecord for the persisted form.
 message Rule {
+  // govaluate expression evaluated against the flattened event JSON.
+  // Example: 'action == "opened" && provider == "github"'
   string when = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Topic(s) to publish matching events to. Currently limited to exactly one
+  // entry. The value becomes the broker routing key or subject.
   repeated string emit = 2 [
     (buf.validate.field).repeated.min_items = 1,
     (buf.validate.field).repeated.max_items = 1,
     (buf.validate.field).repeated.items.string.min_len = 1
   ];
+
+  // ID of the DriverRecord that defines the broker connection for this rule.
   string driver_id = 4 [(buf.validate.field).string.min_len = 1];
 }
 
+// RuleRecord is the persisted form of a Rule, including server-assigned fields.
 message RuleRecord {
+  // Server-assigned unique rule ID. Use this in worker SDKs via HandleRule().
   string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // govaluate expression evaluated against the flattened event JSON.
   string when = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Topic(s) to publish matching events to. At least one entry required.
   repeated string emit = 3 [
     (buf.validate.field).repeated.min_items = 1,
     (buf.validate.field).repeated.items.string.min_len = 1
   ];
+
+  // When this rule was first created.
   google.protobuf.Timestamp created_at = 5;
+
+  // When this rule was last updated.
   google.protobuf.Timestamp updated_at = 6;
+
+  // ID of the DriverRecord that defines the broker connection for this rule.
   string driver_id = 7 [(buf.validate.field).string.min_len = 1];
 }
 
+// DriverRecord holds the broker connection config for a message driver.
+// config_json is driver-type-specific (AMQP, NATS, Kafka) and is validated
+// at publish time, not at upsert time.
 message DriverRecord {
+  // Unique driver name within the tenant. Used as the stable identifier.
   string name = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Driver-type-specific connection config serialized as JSON.
+  // Schema depends on the broker type (AMQP, NATS, Kafka).
   string config_json = 2;
+
+  // Whether this driver is active. Disabled drivers skip publishing.
   bool enabled = 3;
+
+  // When this driver record was first created.
   google.protobuf.Timestamp created_at = 4;
+
+  // When this driver record was last updated.
   google.protobuf.Timestamp updated_at = 5;
+
+  // Server-assigned unique driver ID. Referenced by RuleRecord.driver_id.
   string id = 6;
 }
 
+// ProviderRecord holds the SCM provider app credentials for one provider instance.
+// A tenant can register multiple instances of the same provider (e.g. two GitHub
+// Apps) by creating separate ProviderRecords; each gets a distinct hash.
 message ProviderRecord {
+  // SCM provider name, e.g. "github", "gitlab", "bitbucket". Required.
   string provider = 1 [(buf.validate.field).string.min_len = 1];
-  // Instance hash (server-generated).
+
+  // Instance hash (server-generated). Stable identifier for this config instance.
+  // Include on update requests; omit on first create.
   string hash = 2;
+
+  // Provider-specific app credentials serialized as JSON (App ID, private key,
+  // OAuth client ID/secret, webhook secret, etc.).
   string config_json = 3;
+
+  // Whether this provider instance is active. Disabled instances skip webhook
+  // signature verification and OAuth flows.
   bool enabled = 4;
+
+  // When this provider record was first created.
   google.protobuf.Timestamp created_at = 5;
+
+  // When this provider record was last updated.
   google.protobuf.Timestamp updated_at = 6;
-  // Per-instance OAuth redirect URL (overrides global redirect_base_url).
+
+  // Per-instance OAuth redirect URL. Overrides the global redirect_base_url
+  // from server config. Useful when hosting multiple provider instances.
   string redirect_base_url = 7;
 }
 
+// SCMClient carries short-lived credentials for making SCM API calls.
+// Returned by SCMService.GetSCMClient; workers should not cache this long-term.
 message SCMClient {
+  // SCM provider name, e.g. "github", "gitlab", "bitbucket".
   string provider = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Base URL for the SCM API. Useful for GitHub Enterprise Server installs.
   string api_base_url = 2;
+
+  // Short-lived OAuth access token. Required; always non-empty on success.
   string access_token = 3 [(buf.validate.field).string.min_len = 1];
+
+  // When the access_token expires. Re-fetch before this time.
   google.protobuf.Timestamp expires_at = 4;
+
+  // Provider instance key identifying which ProviderRecord issued this token.
   string provider_instance_key = 5;
 }
 
 message GetSCMClientRequest {
+  // SCM provider name. Required.
   string provider = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Installation ID to fetch credentials for. Required.
   string installation_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Optional provider instance key to select among multiple provider configs.
   string provider_instance_key = 3;
 }
 
 message GetSCMClientResponse {
+  // Ready-to-use SCM client credentials. access_token is always populated.
   SCMClient client = 1;
 }
 
+// EventLogHeaderValues holds the multi-value list for a single HTTP header key.
 message EventLogHeaderValues {
+  // All values for this header key (HTTP headers can repeat).
   repeated string values = 1;
 }
 
+// EventLogRecord is the audit record for a single incoming webhook event.
+// Created on every webhook receipt regardless of rule match outcome.
 message EventLogRecord {
+  // Server-assigned unique log entry ID.
   string id = 1;
+
+  // SCM provider that sent the event, e.g. "github".
   string provider = 2;
+
+  // Event type name as reported by the provider (e.g. "pull_request").
   string name = 3;
+
+  // Unique request ID assigned to this webhook delivery by the server.
   string request_id = 4;
+
+  // Tenant ID (state_id) that received this event.
   string state_id = 5;
+
+  // Installation ID associated with the webhook delivery.
   string installation_id = 6;
+
+  // Internal namespace (repo) ID that the event targets.
   string namespace_id = 7;
+
+  // Human-readable namespace name (full_name of the repo).
   string namespace_name = 8;
+
+  // Broker topic the event was published to (empty if no rule matched).
   string topic = 9;
+
+  // ID of the rule that matched this event (empty if no match).
   string rule_id = 10;
+
+  // The when expression of the matched rule (empty if no match).
   string rule_when = 11;
+
+  // Names of the drivers used to publish this event.
   repeated string drivers = 12;
+
+  // Whether any rule matched this event.
   bool matched = 13;
+
+  // Delivery status: "queued", "delivered", "success", or "failed".
+  // Updated by workers via UpdateEventLogStatus.
   string status = 14;
+
+  // Error detail when status is "failed". Empty otherwise.
   string error_message = 15;
+
+  // When this log record was created (webhook receipt time).
   google.protobuf.Timestamp created_at = 16;
+
+  // When this log record was last updated (e.g. after worker status update).
   google.protobuf.Timestamp updated_at = 17;
+
+  // Original HTTP request headers from the webhook delivery.
   map<string, EventLogHeaderValues> headers = 18;
+
+  // Raw webhook request body bytes.
   bytes body = 19;
+
+  // SHA-256 hash of the body for integrity verification.
   string body_hash = 20;
 }
 
+// EventLogCount is a key/count pair used in analytics breakdowns.
 message EventLogCount {
+  // The dimension value (e.g. provider name, topic, rule ID).
   string key = 1;
+
+  // Number of events for this key within the query window.
   int64 count = 2;
 }
 
+// EventLogAnalytics holds aggregate statistics over a filtered event set.
 message EventLogAnalytics {
+  // Total number of events in the query window.
   int64 total = 1;
+
+  // Number of events that matched at least one rule.
   int64 matched = 2;
+
+  // Number of distinct webhook delivery request IDs (deduplication metric).
   int64 distinct_requests = 3;
+
+  // Event counts grouped by SCM provider.
   repeated EventLogCount by_provider = 4;
+
+  // Event counts grouped by event type name.
   repeated EventLogCount by_event = 5;
+
+  // Event counts grouped by broker topic.
   repeated EventLogCount by_topic = 6;
+
+  // Event counts grouped by rule ID.
   repeated EventLogCount by_rule = 7;
+
+  // Event counts grouped by installation ID.
   repeated EventLogCount by_installation = 8;
+
+  // Event counts grouped by namespace (repo) ID.
   repeated EventLogCount by_namespace = 9;
 }
 
+// EventLogTimeseriesInterval controls the bucket width for timeseries queries.
 enum EventLogTimeseriesInterval {
   EVENT_LOG_TIMESERIES_INTERVAL_UNSPECIFIED = 0;
+
+  // Bucket events by hour.
   EVENT_LOG_TIMESERIES_INTERVAL_HOUR = 1;
+
+  // Bucket events by calendar day.
   EVENT_LOG_TIMESERIES_INTERVAL_DAY = 2;
+
+  // Bucket events by calendar week.
   EVENT_LOG_TIMESERIES_INTERVAL_WEEK = 3;
 }
 
+// EventLogTimeseriesBucket holds counts for one time interval bucket.
 message EventLogTimeseriesBucket {
+  // Inclusive start of this bucket's time range.
   google.protobuf.Timestamp start_time = 1;
+
+  // Exclusive end of this bucket's time range.
   google.protobuf.Timestamp end_time = 2;
+
+  // Total events received in this bucket.
   int64 event_count = 3;
+
+  // Events that matched at least one rule in this bucket.
   int64 matched_count = 4;
+
+  // Distinct webhook delivery request IDs in this bucket.
   int64 distinct_requests = 5;
+
+  // Events with status "failed" in this bucket.
   int64 failed_count = 6;
 }
 
+// EventLogBreakdownGroup selects the dimension to group by in breakdown queries.
 enum EventLogBreakdownGroup {
   EVENT_LOG_BREAKDOWN_GROUP_UNSPECIFIED = 0;
+
+  // Group by SCM provider name.
   EVENT_LOG_BREAKDOWN_GROUP_PROVIDER = 1;
+
+  // Group by event type name.
   EVENT_LOG_BREAKDOWN_GROUP_EVENT = 2;
+
+  // Group by rule ID.
   EVENT_LOG_BREAKDOWN_GROUP_RULE_ID = 3;
+
+  // Group by rule when expression.
   EVENT_LOG_BREAKDOWN_GROUP_RULE_WHEN = 4;
+
+  // Group by broker topic.
   EVENT_LOG_BREAKDOWN_GROUP_TOPIC = 5;
+
+  // Group by namespace (repo) ID.
   EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_ID = 6;
+
+  // Group by namespace (repo) full name.
   EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_NAME = 7;
+
+  // Group by installation ID.
   EVENT_LOG_BREAKDOWN_GROUP_INSTALLATION_ID = 8;
 }
 
+// EventLogBreakdownSort controls the sort order of breakdown results.
 enum EventLogBreakdownSort {
   EVENT_LOG_BREAKDOWN_SORT_UNSPECIFIED = 0;
+
+  // Sort by total event count.
   EVENT_LOG_BREAKDOWN_SORT_COUNT = 1;
+
+  // Sort by matched event count.
   EVENT_LOG_BREAKDOWN_SORT_MATCHED = 2;
+
+  // Sort by failed event count.
   EVENT_LOG_BREAKDOWN_SORT_FAILED = 3;
 }
 
+// EventLogBreakdown holds per-key statistics for one breakdown group value.
 message EventLogBreakdown {
+  // The dimension value for this row (e.g. provider name, rule ID).
   string key = 1;
+
+  // Total events for this key in the query window.
   int64 event_count = 2;
+
+  // Events that matched at least one rule.
   int64 matched_count = 3;
+
+  // Events with status "failed".
   int64 failed_count = 4;
+
+  // Median end-to-end processing latency in milliseconds. Populated only when
+  // include_latency=true is set in the request.
   double latency_p50_ms = 5;
+
+  // 95th-percentile latency in milliseconds. Populated only when include_latency=true.
   double latency_p95_ms = 6;
+
+  // 99th-percentile latency in milliseconds. Populated only when include_latency=true.
   double latency_p99_ms = 7;
 }
 
+// EventPayload is the canonical event representation passed to rule matching
+// and published to the broker. The payload field contains the raw webhook body.
 message EventPayload {
+  // SCM provider name, e.g. "github". Required.
   string provider = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Event type name as reported by the provider, e.g. "pull_request". Required.
   string name = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Raw webhook request body bytes. Required; must be non-empty.
   bytes payload = 3 [(buf.validate.field).bytes.min_len = 1];
 }
 
+// RuleMatch is returned by MatchRules for each rule that matched the event.
 message RuleMatch {
+  // The when expression of the matched rule.
   string when = 1;
+
+  // The emit topics of the matched rule.
   repeated string emit = 2;
+
+  // The driver ID of the matched rule.
   string driver_id = 4;
 }
 
 message MatchRulesRequest {
+  // Event to evaluate rules against. Required.
   EventPayload event = 1 [(buf.validate.field).required = true];
+
+  // Rules to evaluate. At least one rule required.
+  // These are ephemeral (not persisted); use CreateRule to persist.
   repeated Rule rules = 2 [(buf.validate.field).repeated.min_items = 1];
+
+  // When true, returns an error if any rule expression fails to parse or
+  // evaluate. When false, invalid rules are silently skipped.
   bool strict = 3;
 }
 
 message MatchRulesResponse {
+  // Rules that matched the event. Empty if no rules matched.
   repeated RuleMatch matches = 1;
 }
 
+// ListRulesRequest has no filters; all tenant rules are returned.
 message ListRulesRequest {}
 
 message ListRulesResponse {
+  // All rule records for the tenant.
   repeated RuleRecord rules = 1;
 }
 
 message GetRuleRequest {
+  // Server-assigned rule ID. Required.
   string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetRuleResponse {
+  // The matching rule record.
   RuleRecord rule = 1;
 }
 
 message CreateRuleRequest {
+  // Rule definition to persist. Required.
   Rule rule = 1 [(buf.validate.field).required = true];
 }
 
 message CreateRuleResponse {
+  // The newly created rule record with server-assigned ID and timestamps.
   RuleRecord rule = 1;
 }
 
 message UpdateRuleRequest {
+  // ID of the rule to update. Required.
   string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // New rule definition. Replaces when, emit, and driver_id. Required.
   Rule rule = 2 [(buf.validate.field).required = true];
 }
 
 message UpdateRuleResponse {
+  // The updated rule record.
   RuleRecord rule = 1;
 }
 
 message DeleteRuleRequest {
+  // ID of the rule to delete. Required.
   string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteRuleResponse {}
 
+// ListDriversRequest has no filters; all tenant drivers are returned.
 message ListDriversRequest {}
 
 message ListDriversResponse {
+  // All driver records for the tenant.
   repeated DriverRecord drivers = 1;
 }
 
 message GetDriverRequest {
+  // Driver name (stable identifier). Required.
   string name = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetDriverResponse {
+  // The matching driver record.
   DriverRecord driver = 1;
 }
 
 message UpsertDriverRequest {
+  // Driver record to create or update. Required.
+  // The name field is the natural key; re-submitting updates in place.
   DriverRecord driver = 1 [(buf.validate.field).required = true];
 }
 
 message UpsertDriverResponse {
+  // The persisted driver record with server-set timestamps.
   DriverRecord driver = 1;
 }
 
 message DeleteDriverRequest {
+  // Driver name to delete. Required.
   string name = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteDriverResponse {}
 
 message ListProvidersRequest {
+  // Optional provider name filter, e.g. "github". When omitted, all providers returned.
   string provider = 1;
 }
 
 message ListProvidersResponse {
+  // All provider records matching the filter.
   repeated ProviderRecord providers = 1;
 }
 
 message GetProviderRequest {
+  // SCM provider name. Required.
   string provider = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Server-generated instance hash. Required.
   string hash = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetProviderResponse {
+  // The matching provider record.
   ProviderRecord provider = 1;
 }
 
 message UpsertProviderRequest {
+  // Provider record to create or update. Required.
+  // Omit hash on first create; include it on subsequent updates.
   ProviderRecord provider = 1 [(buf.validate.field).required = true];
 }
 
 message UpsertProviderResponse {
+  // The persisted provider record with server-assigned hash and timestamps.
   ProviderRecord provider = 1;
 }
 
 message DeleteProviderRequest {
+  // SCM provider name. Required.
   string provider = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Server-generated instance hash. Required.
   string hash = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteProviderResponse {}
 
 message ListEventLogsRequest {
+  // Optional provider filter, e.g. "github".
   string provider = 1;
+
+  // Optional event type name filter, e.g. "pull_request".
   string name = 2;
+
+  // Optional broker topic filter.
   string topic = 3;
+
+  // Optional request ID filter for a specific webhook delivery.
   string request_id = 4;
+
+  // Optional tenant ID filter (state_id). Defaults to the calling tenant.
   string state_id = 5;
+
+  // Optional installation ID filter.
   string installation_id = 6;
+
+  // Optional namespace (repo) ID filter.
   string namespace_id = 7;
+
+  // Optional namespace full name filter.
   string namespace_name = 8;
+
+  // Optional rule ID filter.
   string rule_id = 9;
+
+  // Optional rule when expression filter (exact match).
   string rule_when = 10;
+
+  // When true, only return events that matched at least one rule.
   bool matched_only = 11;
+
+  // Number of records per page. Must be 0-200; defaults to server default when 0.
   int32 page_size = 12 [(buf.validate.field).int32.gte = 0, (buf.validate.field).int32.lte = 200];
+
+  // Cursor from a previous response's next_page_token. Omit for the first page.
   string page_token = 13;
+
+  // Inclusive start of the time range filter.
   google.protobuf.Timestamp start_time = 14;
+
+  // Exclusive end of the time range filter.
   google.protobuf.Timestamp end_time = 15;
 }
 
 message ListEventLogsResponse {
+  // Event log records for this page.
   repeated EventLogRecord logs = 1;
+
+  // Cursor for the next page. Empty when there are no more results.
   string next_page_token = 2;
 }
 
 message GetEventLogAnalyticsRequest {
+  // Optional provider filter.
   string provider = 1;
+
+  // Optional event type name filter.
   string name = 2;
+
+  // Optional broker topic filter.
   string topic = 3;
+
+  // Optional request ID filter.
   string request_id = 4;
+
+  // Optional tenant ID filter (state_id).
   string state_id = 5;
+
+  // Optional installation ID filter.
   string installation_id = 6;
+
+  // Optional namespace ID filter.
   string namespace_id = 7;
+
+  // Optional namespace full name filter.
   string namespace_name = 8;
+
+  // Optional rule ID filter.
   string rule_id = 9;
+
+  // Optional rule when expression filter.
   string rule_when = 10;
+
+  // When true, only count events that matched at least one rule.
   bool matched_only = 11;
+
+  // Inclusive start of the time range.
   google.protobuf.Timestamp start_time = 12;
+
+  // Exclusive end of the time range.
   google.protobuf.Timestamp end_time = 13;
 }
 
 message GetEventLogAnalyticsResponse {
+  // Aggregate analytics over the filtered event set.
   EventLogAnalytics analytics = 1;
 }
 
 message GetEventLogTimeseriesRequest {
+  // Optional provider filter.
   string provider = 1;
+
+  // Optional event type name filter.
   string name = 2;
+
+  // Optional broker topic filter.
   string topic = 3;
+
+  // Optional request ID filter.
   string request_id = 4;
+
+  // Optional tenant ID filter (state_id).
   string state_id = 5;
+
+  // Optional installation ID filter.
   string installation_id = 6;
+
+  // Optional namespace ID filter.
   string namespace_id = 7;
+
+  // Optional namespace full name filter.
   string namespace_name = 8;
+
+  // Optional rule ID filter.
   string rule_id = 9;
+
+  // Optional rule when expression filter.
   string rule_when = 10;
+
+  // When true, only count events that matched at least one rule.
   bool matched_only = 11;
+
+  // Inclusive start of the time range.
   google.protobuf.Timestamp start_time = 12;
+
+  // Exclusive end of the time range.
   google.protobuf.Timestamp end_time = 13;
+
+  // Bucket width for the timeseries. Required; must not be UNSPECIFIED.
   EventLogTimeseriesInterval interval = 14 [(buf.validate.field).enum.not_in = 0];
 }
 
 message GetEventLogTimeseriesResponse {
+  // Time-ordered list of event count buckets covering the requested range.
   repeated EventLogTimeseriesBucket buckets = 1;
 }
 
 message GetEventLogBreakdownRequest {
+  // Optional provider filter.
   string provider = 1;
+
+  // Optional event type name filter.
   string name = 2;
+
+  // Optional broker topic filter.
   string topic = 3;
+
+  // Optional request ID filter.
   string request_id = 4;
+
+  // Optional tenant ID filter (state_id).
   string state_id = 5;
+
+  // Optional installation ID filter.
   string installation_id = 6;
+
+  // Optional namespace ID filter.
   string namespace_id = 7;
+
+  // Optional namespace full name filter.
   string namespace_name = 8;
+
+  // Optional rule ID filter.
   string rule_id = 9;
+
+  // Optional rule when expression filter.
   string rule_when = 10;
+
+  // When true, only count events that matched at least one rule.
   bool matched_only = 11;
+
+  // Inclusive start of the time range.
   google.protobuf.Timestamp start_time = 12;
+
+  // Exclusive end of the time range.
   google.protobuf.Timestamp end_time = 13;
+
+  // Dimension to group results by. Required; must not be UNSPECIFIED.
   EventLogBreakdownGroup group_by = 14 [(buf.validate.field).enum.not_in = 0];
+
+  // Field to sort results by. Defaults to COUNT when UNSPECIFIED.
   EventLogBreakdownSort sort_by = 15;
+
+  // When true, sort descending (highest first). When false, sort ascending.
   bool sort_desc = 16;
+
+  // Number of records per page. Must be 0-200; defaults to server default when 0.
   int32 page_size = 17 [(buf.validate.field).int32.gte = 0, (buf.validate.field).int32.lte = 200];
+
+  // Cursor from a previous response's next_page_token. Omit for the first page.
   string page_token = 18;
+
+  // When true, populate latency_p50_ms, latency_p95_ms, latency_p99_ms in results.
   bool include_latency = 19;
 }
 
 message GetEventLogBreakdownResponse {
+  // Breakdown rows for this page, one per distinct group_by value.
   repeated EventLogBreakdown breakdowns = 1;
+
+  // Cursor for the next page. Empty when there are no more results.
   string next_page_token = 2;
 }
 
 message UpdateEventLogStatusRequest {
+  // ID of the event log record to update. Required.
   string log_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // New delivery status. Required. Must be one of:
+  // "queued", "delivered", "success", "failed".
   string status = 2 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).string.in = "queued",
@@ -541,6 +1116,8 @@ message UpdateEventLogStatusRequest {
     (buf.validate.field).string.in = "success",
     (buf.validate.field).string.in = "failed"
   ];
+
+  // Optional error detail when status is "failed". Ignored for other statuses.
   string error_message = 3;
 }
 

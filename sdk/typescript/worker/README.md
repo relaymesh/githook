@@ -111,6 +111,7 @@ const wk = worker.New(
   worker.WithEndpoint("http://localhost:8080"),
   worker.WithOAuth2Config({
     enabled: true,
+    mode: "client_credentials",
     clientId: process.env.GITHOOK_OAUTH2_CLIENT_ID ?? "",
     clientSecret: process.env.GITHOOK_OAUTH2_CLIENT_SECRET ?? "",
     tokenUrl: process.env.GITHOOK_OAUTH2_TOKEN_URL ?? "",

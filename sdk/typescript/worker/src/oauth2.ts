@@ -8,7 +8,7 @@ export interface OAuth2Config {
   requiredRoles?: string[];
   requiredGroups?: string[];
 
-  mode?: string;
+  mode?: "auto" | "client_credentials" | "auth_code" | string;
   clientId?: string;
   clientSecret?: string;
   scopes?: string[];
@@ -28,6 +28,7 @@ const tokenCache = new Map<string, CachedToken>();
 
 export function resolveOAuth2Config(explicit?: OAuth2Config): OAuth2Config | undefined {
   if (explicit) {
+    normalizeOAuth2Mode(explicit.mode);
     return explicit;
   }
   const tokenUrl = envValue("GITHOOK_OAUTH2_TOKEN_URL");
@@ -36,6 +37,7 @@ export function resolveOAuth2Config(explicit?: OAuth2Config): OAuth2Config | und
   }
   return {
     enabled: true,
+    mode: "client_credentials",
     tokenUrl,
     clientId: envValue("GITHOOK_OAUTH2_CLIENT_ID"),
     clientSecret: envValue("GITHOOK_OAUTH2_CLIENT_SECRET"),
@@ -51,6 +53,7 @@ export async function oauth2TokenFromConfig(
   if (!cfg || cfg.enabled === false) {
     return "";
   }
+  normalizeOAuth2Mode(cfg.mode);
   const tokenUrl = (cfg.tokenUrl ?? "").trim();
   const clientId = (cfg.clientId ?? "").trim();
   const clientSecret = (cfg.clientSecret ?? "").trim();
@@ -96,6 +99,14 @@ export async function oauth2TokenFromConfig(
     expiresAt: now + expiresIn * 1000,
   });
   return token;
+}
+
+function normalizeOAuth2Mode(mode: OAuth2Config["mode"]): "client_credentials" {
+  const value = (mode ?? "").trim().toLowerCase();
+  if (!value || value === "auto" || value === "client_credentials") {
+    return "client_credentials";
+  }
+  throw new Error(`unsupported oauth2 mode for worker sdk: ${mode}`);
 }
 
 function buildCacheKey(cfg: OAuth2Config): string {

@@ -23,3 +23,17 @@ wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {
 
 _ = wk.Run(context.Background())
 ```
+
+## OAuth2 mode
+
+When using OAuth2 in workers, set mode to `client_credentials`:
+
+```go
+wk := worker.New(
+  worker.WithEndpoint(os.Getenv("GITHOOK_ENDPOINT")),
+  worker.WithOAuth2Config(auth.OAuth2Config{
+    Enabled: true,
+    Mode:    "client_credentials",
+  }),
+)
+```
