@@ -20,3 +20,13 @@ func TestNewTokenClientRequiresToken(t *testing.T) {
 		t.Fatalf("expected token required error")
 	}
 }
+
+func TestNewTokenClientSuccess(t *testing.T) {
+	client, err := NewTokenClient(auth.ProviderConfig{API: auth.APIConfig{BaseURL: "https://gitlab.example.com/api/v4/"}}, "token-1")
+	if err != nil {
+		t.Fatalf("new token client: %v", err)
+	}
+	if client == nil {
+		t.Fatalf("expected gitlab client instance")
+	}
+}

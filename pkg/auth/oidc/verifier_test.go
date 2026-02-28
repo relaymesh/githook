@@ -1,8 +1,11 @@
 package oidc
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
+
+	"github.com/relaymesh/githook/pkg/auth"
 )
 
 func TestAudienceUnmarshalJSON(t *testing.T) {
@@ -59,5 +62,32 @@ func TestValidateList(t *testing.T) {
 	}
 	if err := validateList([]string{"ops"}, []string{"admin"}, "roles"); err == nil {
 		t.Fatalf("expected missing role error")
+	}
+}
+
+func TestNewVerifierValidation(t *testing.T) {
+	if _, err := NewVerifier(context.Background(), auth.OAuth2Config{}); err == nil {
+		t.Fatalf("expected issuer required error")
+	}
+
+	if _, err := NewVerifier(context.Background(), auth.OAuth2Config{Issuer: "https://issuer.example.com"}); err == nil {
+		t.Fatalf("expected audience required error")
+	}
+}
+
+func TestVerifyValidation(t *testing.T) {
+	var v *Verifier
+	if _, err := v.Verify(context.Background(), "token"); err == nil {
+		t.Fatalf("expected verifier not configured error")
+	}
+
+	v = &Verifier{}
+	if _, err := v.Verify(context.Background(), "token"); err == nil {
+		t.Fatalf("expected verifier not configured error")
+	}
+
+	v = &Verifier{verifier: nil}
+	if _, err := v.Verify(context.Background(), ""); err == nil {
+		t.Fatalf("expected verifier not configured error")
 	}
 }

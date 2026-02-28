@@ -81,6 +81,48 @@ func TestRuleMatchesAndTopics(t *testing.T) {
 	}
 }
 
+func TestDriverListFromMatchAndRefHelpers(t *testing.T) {
+	if drivers := driverListFromMatch(core.RuleMatch{DriverName: "amqp"}); len(drivers) != 1 || drivers[0] != "amqp" {
+		t.Fatalf("unexpected drivers from driver name: %v", drivers)
+	}
+	if drivers := driverListFromMatch(core.RuleMatch{DriverID: "driver-id"}); len(drivers) != 1 || drivers[0] != "driver-id" {
+		t.Fatalf("unexpected drivers from driver id: %v", drivers)
+	}
+	if drivers := driverListFromMatch(core.RuleMatch{}); drivers != nil {
+		t.Fatalf("expected nil drivers for empty match, got %v", drivers)
+	}
+
+	if ref, ok := normalizeGitRef("main"); !ok || ref != "refs/heads/main" {
+		t.Fatalf("unexpected normalized ref: %q ok=%v", ref, ok)
+	}
+	if ref, ok := normalizeGitRef("refs/tags/v1"); !ok || ref != "refs/tags/v1" {
+		t.Fatalf("unexpected normalized tag ref: %q ok=%v", ref, ok)
+	}
+	if ref, ok := normalizeGitRef(" "); ok || ref != "" {
+		t.Fatalf("expected invalid empty ref")
+	}
+}
+
+func TestCloneHeadersAndHashBody(t *testing.T) {
+	if cloned := cloneHeaders(nil); cloned != nil {
+		t.Fatalf("expected nil cloned headers")
+	}
+
+	headers := http.Header{"X-Test": []string{"a", "b"}}
+	cloned := cloneHeaders(headers)
+	cloned["X-Test"][0] = "changed"
+	if headers.Get("X-Test") != "a" {
+		t.Fatalf("expected original headers to remain unchanged")
+	}
+
+	if got := hashBody(nil); got != "" {
+		t.Fatalf("expected empty hash for empty body")
+	}
+	if got := hashBody([]byte("abc")); len(got) != 64 {
+		t.Fatalf("expected sha256 hash length 64, got %d", len(got))
+	}
+}
+
 func TestBuildEventLogRecords(t *testing.T) {
 	event := core.Event{
 		Provider:       "github",

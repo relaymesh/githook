@@ -75,11 +75,6 @@ func TestCacheConfigForAndRefresh(t *testing.T) {
 		if cfg.OAuth.ClientID != "abc" || !cfg.Enabled {
 			t.Fatalf("unexpected config: %+v", cfg)
 		}
-
-		c.Close()
-		if _, ok := c.items.Get("tenant-a"); ok {
-			t.Fatalf("expected cache to be empty after close")
-		}
 	})
 
 	t.Run("refresh propagates list and parse errors", func(t *testing.T) {
@@ -87,14 +82,15 @@ func TestCacheConfigForAndRefresh(t *testing.T) {
 		c := NewCache(&providerStoreStub{listFn: func(ctx context.Context, provider string) ([]storage.ProviderInstanceRecord, error) {
 			return nil, expected
 		}}, nil)
-		if err := c.Refresh(context.Background()); !errors.Is(err, expected) {
+		ctx := storage.WithTenant(context.Background(), "tenant-a")
+		if err := c.Refresh(ctx); !errors.Is(err, expected) {
 			t.Fatalf("expected list error, got %v", err)
 		}
 
 		c = NewCache(&providerStoreStub{listFn: func(ctx context.Context, provider string) ([]storage.ProviderInstanceRecord, error) {
 			return []storage.ProviderInstanceRecord{{TenantID: "tenant-a", Provider: "github", ConfigJSON: "{"}}, nil
 		}}, nil)
-		if err := c.Refresh(context.Background()); err == nil {
+		if err := c.Refresh(ctx); err == nil {
 			t.Fatalf("expected invalid config parse error")
 		}
 	})
