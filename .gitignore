@@ -9,3 +9,5 @@ test.json
 test.yaml
 .DS_Store
 .agents/
+.sisyphus/
+examples/typescript/worker/node_modules/

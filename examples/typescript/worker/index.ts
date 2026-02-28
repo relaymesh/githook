@@ -1,7 +1,7 @@
 import { New, WithEndpoint } from "@relaymesh/githook";
 
 async function main() {
-  const endpoint = process.env.GITHOOK_ENDPOINT ?? "https://githook-app.vercel.app/api/connect";
+  const endpoint = process.env.GITHOOK_ENDPOINT ?? "https://relaymesh.vercel.app/api/connect";
   const ruleId = process.env.GITHOOK_RULE_ID ?? "85101e9f-3bcf-4ed0-b561-750c270ef6c3";
 
   const wk = New(
