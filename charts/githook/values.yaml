@@ -30,7 +30,7 @@ readinessProbe:
   periodSeconds: 10
 
 autoscaling:
-  enabled: false
+  enabled: true
   minReplicas: 1
   maxReplicas: 3
   targetCPUUtilizationPercentage: 80
@@ -54,7 +54,7 @@ config:
   data: |
     server:
       port: 8080
-    endpoint: http://githook.default.svc.cluster.local:8080
+    endpoint: http://githook.local
     storage:
       driver: postgres
       dsn: postgresql://postgres:postgres@postgres.default.svc.cluster.local:5432/githook?sslmode=disable
