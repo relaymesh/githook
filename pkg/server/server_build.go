@@ -169,8 +169,10 @@ func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, m
 	{
 		eventLogSvc := &api.EventLogsService{
 			Store:       stores.logStore,
+			RuleStore:   stores.ruleStore,
 			DriverStore: stores.driverStore,
 			Publisher:   publisher,
+			RulesStrict: config.RulesStrict,
 			Logger:      logger,
 		}
 		path, handler := cloudv1connect.NewEventLogsServiceHandler(eventLogSvc, connectOpts...)
