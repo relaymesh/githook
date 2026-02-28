@@ -1400,6 +1400,7 @@ type Rule struct {
 	Emit []string `protobuf:"bytes,2,rep,name=emit,proto3" json:"emit,omitempty"`
 	// ID of the DriverRecord that defines the broker connection for this rule.
 	DriverId      string `protobuf:"bytes,4,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
+	TransformJs   string `protobuf:"bytes,5,opt,name=transform_js,json=transformJs,proto3" json:"transform_js,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1455,6 +1456,13 @@ func (x *Rule) GetDriverId() string {
 	return ""
 }
 
+func (x *Rule) GetTransformJs() string {
+	if x != nil {
+		return x.TransformJs
+	}
+	return ""
+}
+
 // RuleRecord is the persisted form of a Rule, including server-assigned fields.
 type RuleRecord struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1470,6 +1478,7 @@ type RuleRecord struct {
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// ID of the DriverRecord that defines the broker connection for this rule.
 	DriverId      string `protobuf:"bytes,7,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
+	TransformJs   string `protobuf:"bytes,8,opt,name=transform_js,json=transformJs,proto3" json:"transform_js,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1542,6 +1551,13 @@ func (x *RuleRecord) GetUpdatedAt() *timestamppb.Timestamp {
 func (x *RuleRecord) GetDriverId() string {
 	if x != nil {
 		return x.DriverId
+	}
+	return ""
+}
+
+func (x *RuleRecord) GetTransformJs() string {
+	if x != nil {
+		return x.TransformJs
 	}
 	return ""
 }
@@ -2641,6 +2657,7 @@ type RuleMatch struct {
 	Emit []string `protobuf:"bytes,2,rep,name=emit,proto3" json:"emit,omitempty"`
 	// The driver ID of the matched rule.
 	DriverId      string `protobuf:"bytes,4,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
+	TransformJs   string `protobuf:"bytes,5,opt,name=transform_js,json=transformJs,proto3" json:"transform_js,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2692,6 +2709,13 @@ func (x *RuleMatch) GetEmit() []string {
 func (x *RuleMatch) GetDriverId() string {
 	if x != nil {
 		return x.DriverId
+	}
+	return ""
+}
+
+func (x *RuleMatch) GetTransformJs() string {
+	if x != nil {
+		return x.TransformJs
 	}
 	return ""
 }
@@ -5049,12 +5073,13 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\x1bGetNamespaceWebhookResponse\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\"7\n" +
 	"\x1bSetNamespaceWebhookResponse\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\"o\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\"\x92\x01\n" +
 	"\x04Rule\x12\x1b\n" +
 	"\x04when\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04when\x12$\n" +
 	"\x04emit\x18\x02 \x03(\tB\x10\xbaH\r\x92\x01\n" +
 	"\b\x01\x10\x01\"\x04r\x02\x10\x01R\x04emit\x12$\n" +
-	"\tdriver_id\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bdriverId\"\x82\x02\n" +
+	"\tdriver_id\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bdriverId\x12!\n" +
+	"\ftransform_js\x18\x05 \x01(\tR\vtransformJs\"\xa5\x02\n" +
 	"\n" +
 	"RuleRecord\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x1b\n" +
@@ -5064,7 +5089,8 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12$\n" +
-	"\tdriver_id\x18\a \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bdriverId\"\xec\x01\n" +
+	"\tdriver_id\x18\a \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bdriverId\x12!\n" +
+	"\ftransform_js\x18\b \x01(\tR\vtransformJs\"\xec\x01\n" +
 	"\fDriverRecord\x12\x1b\n" +
 	"\x04name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12\x1f\n" +
 	"\vconfig_json\x18\x02 \x01(\tR\n" +
@@ -5165,11 +5191,12 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\fEventPayload\x12#\n" +
 	"\bprovider\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bprovider\x12\x1b\n" +
 	"\x04name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12!\n" +
-	"\apayload\x18\x03 \x01(\fB\a\xbaH\x04z\x02\x10\x01R\apayload\"P\n" +
+	"\apayload\x18\x03 \x01(\fB\a\xbaH\x04z\x02\x10\x01R\apayload\"s\n" +
 	"\tRuleMatch\x12\x12\n" +
 	"\x04when\x18\x01 \x01(\tR\x04when\x12\x12\n" +
 	"\x04emit\x18\x02 \x03(\tR\x04emit\x12\x1b\n" +
-	"\tdriver_id\x18\x04 \x01(\tR\bdriverId\"\x91\x01\n" +
+	"\tdriver_id\x18\x04 \x01(\tR\bdriverId\x12!\n" +
+	"\ftransform_js\x18\x05 \x01(\tR\vtransformJs\"\x91\x01\n" +
 	"\x11MatchRulesRequest\x124\n" +
 	"\x05event\x18\x01 \x01(\v2\x16.cloud.v1.EventPayloadB\x06\xbaH\x03\xc8\x01\x01R\x05event\x12.\n" +
 	"\x05rules\x18\x02 \x03(\v2\x0e.cloud.v1.RuleB\b\xbaH\x05\x92\x01\x02\b\x01R\x05rules\x12\x16\n" +

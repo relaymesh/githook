@@ -51,12 +51,13 @@ func (c *Cache) Refresh(ctx context.Context) error {
 			return err
 		}
 	}
-	c.items.Range(func(id string, _ map[string]auth.ProviderConfig) {
+	existing := c.items.Keys()
+	for _, id := range existing {
 		if _, ok := grouped[id]; ok {
-			return
+			continue
 		}
 		c.items.Delete(id)
-	})
+	}
 	return nil
 }
 
@@ -106,7 +107,7 @@ func (c *Cache) Close() {
 	if c == nil {
 		return
 	}
-	c.items.Range(func(tenantID string, _ map[string]auth.ProviderConfig) {
+	for _, tenantID := range c.items.Keys() {
 		c.items.Delete(tenantID)
-	})
+	}
 }

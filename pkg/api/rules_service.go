@@ -34,9 +34,10 @@ func (s *RulesService) MatchRules(
 			continue
 		}
 		rules = append(rules, core.Rule{
-			When:     rule.GetWhen(),
-			Emit:     core.EmitList(rule.GetEmit()),
-			DriverID: strings.TrimSpace(rule.GetDriverId()),
+			When:        rule.GetWhen(),
+			Emit:        core.EmitList(rule.GetEmit()),
+			DriverID:    strings.TrimSpace(rule.GetDriverId()),
+			TransformJS: strings.TrimSpace(rule.GetTransformJs()),
 		})
 	}
 
@@ -110,7 +111,7 @@ func (s *RulesService) CreateRule(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
 	incoming := req.Msg.GetRule()
-	when, emit, driverID, err := parseRuleInput(incoming)
+	when, emit, driverID, transformJS, err := parseRuleInput(incoming)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -123,9 +124,10 @@ func (s *RulesService) CreateRule(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	record, err := s.Store.CreateRule(ctx, storage.RuleRecord{
-		When:     normalized.When,
-		Emit:     normalized.Emit.Values(),
-		DriverID: driverID,
+		When:        normalized.When,
+		Emit:        normalized.Emit.Values(),
+		DriverID:    driverID,
+		TransformJS: transformJS,
 	})
 	if err != nil {
 		logError(s.Logger, "create rule failed", err)
@@ -161,7 +163,7 @@ func (s *RulesService) UpdateRule(
 	if existing == nil {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("rule not found"))
 	}
-	when, emit, driverID, err := parseRuleInput(incoming)
+	when, emit, driverID, transformJS, err := parseRuleInput(incoming)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -174,11 +176,12 @@ func (s *RulesService) UpdateRule(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	record, err := s.Store.UpdateRule(ctx, storage.RuleRecord{
-		ID:        id,
-		When:      normalized.When,
-		Emit:      normalized.Emit.Values(),
-		DriverID:  driverID,
-		CreatedAt: existing.CreatedAt,
+		ID:          id,
+		When:        normalized.When,
+		Emit:        normalized.Emit.Values(),
+		DriverID:    driverID,
+		TransformJS: transformJS,
+		CreatedAt:   existing.CreatedAt,
 	})
 	if err != nil {
 		logError(s.Logger, "update rule failed", err)
@@ -211,24 +214,25 @@ func (s *RulesService) DeleteRule(
 	return connect.NewResponse(&cloudv1.DeleteRuleResponse{}), nil
 }
 
-func parseRuleInput(rule *cloudv1.Rule) (string, []string, string, error) {
+func parseRuleInput(rule *cloudv1.Rule) (string, []string, string, string, error) {
 	if rule == nil {
-		return "", nil, "", errors.New("missing rule")
+		return "", nil, "", "", errors.New("missing rule")
 	}
 	when := strings.TrimSpace(rule.GetWhen())
 	rawEmit := rule.GetEmit()
 	driverID := strings.TrimSpace(rule.GetDriverId())
+	transformJS := strings.TrimSpace(rule.GetTransformJs())
 	if driverID == "" {
-		return "", nil, "", errors.New("driver_id is required")
+		return "", nil, "", "", errors.New("driver_id is required")
 	}
 	if len(rawEmit) != 1 {
-		return "", nil, "", errors.New("emit must contain exactly one topic")
+		return "", nil, "", "", errors.New("emit must contain exactly one topic")
 	}
 	topic := strings.TrimSpace(rawEmit[0])
 	if topic == "" {
-		return "", nil, "", errors.New("emit topic is required")
+		return "", nil, "", "", errors.New("emit topic is required")
 	}
-	return when, []string{topic}, driverID, nil
+	return when, []string{topic}, driverID, transformJS, nil
 }
 
 func normalizeCoreRule(when string, emit []string, driverName string, driverID string) (core.Rule, error) {
@@ -291,11 +295,12 @@ func (s *RulesService) refreshEngine(ctx context.Context) error {
 				continue
 			}
 			loaded = append(loaded, core.Rule{
-				ID:         record.ID,
-				When:       record.When,
-				Emit:       core.EmitList(record.Emit),
-				DriverID:   record.DriverID,
-				DriverName: driverName,
+				ID:          record.ID,
+				When:        record.When,
+				Emit:        core.EmitList(record.Emit),
+				DriverID:    record.DriverID,
+				TransformJS: strings.TrimSpace(record.TransformJS),
+				DriverName:  driverName,
 			})
 		}
 		normalized, err := core.NormalizeRules(loaded)
@@ -319,11 +324,12 @@ func (s *RulesService) refreshEngine(ctx context.Context) error {
 			continue
 		}
 		grouped[record.TenantID] = append(grouped[record.TenantID], core.Rule{
-			ID:         record.ID,
-			When:       record.When,
-			Emit:       core.EmitList(record.Emit),
-			DriverID:   record.DriverID,
-			DriverName: driverName,
+			ID:          record.ID,
+			When:        record.When,
+			Emit:        core.EmitList(record.Emit),
+			DriverID:    record.DriverID,
+			TransformJS: strings.TrimSpace(record.TransformJS),
+			DriverName:  driverName,
 		})
 	}
 	for id, rules := range grouped {

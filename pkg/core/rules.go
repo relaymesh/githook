@@ -21,7 +21,8 @@ type Rule struct {
 	// Emit is the topic to publish the event to if the 'When' expression is true.
 	Emit EmitList `yaml:"emit"`
 	// DriverID is the identifier of the driver in storage.
-	DriverID string `yaml:"driver_id"`
+	DriverID    string `yaml:"driver_id"`
+	TransformJS string `yaml:"transform_js"`
 	// DriverName is used internally to track the driver name resolved from storage.
 	DriverName string `yaml:"-"`
 	// DriverConfigJSON stores the Relaybus driver configuration (optional).
@@ -36,6 +37,7 @@ type compiledRule struct {
 	when             string
 	emit             []string
 	driverID         string
+	transformJS      string
 	driverName       string
 	driverConfigJSON string
 	driverEnabled    bool
@@ -62,6 +64,7 @@ type ruleSet struct {
 type RuleMatch struct {
 	Topic            string
 	DriverID         string
+	TransformJS      string
 	DriverName       string
 	RuleID           string
 	RuleWhen         string
@@ -75,6 +78,7 @@ type MatchedRule struct {
 	When             string
 	Emit             []string
 	DriverID         string
+	TransformJS      string
 	DriverName       string
 	DriverConfigJSON string
 	DriverEnabled    bool
@@ -117,6 +121,7 @@ func (r *RuleEngine) Update(cfg RulesConfig) error {
 			when:             rule.When,
 			emit:             emit,
 			driverID:         strings.TrimSpace(rule.DriverID),
+			transformJS:      strings.TrimSpace(rule.TransformJS),
 			driverName:       strings.TrimSpace(rule.DriverName),
 			driverConfigJSON: strings.TrimSpace(rule.DriverConfigJSON),
 			driverEnabled:    rule.DriverEnabled,
@@ -249,6 +254,7 @@ func (r *RuleEngine) evaluateWithLoggerForTenant(event Event, tenantID string, l
 				matches = append(matches, RuleMatch{
 					Topic:            topic,
 					DriverID:         rule.driverID,
+					TransformJS:      rule.transformJS,
 					DriverName:       rule.driverName,
 					RuleID:           rule.id,
 					RuleWhen:         rule.when,
@@ -328,6 +334,7 @@ func (r *RuleEngine) evaluateRulesWithLoggerForTenant(event Event, tenantID stri
 				When:             rule.when,
 				Emit:             append([]string(nil), rule.emit...),
 				DriverID:         rule.driverID,
+				TransformJS:      rule.transformJS,
 				DriverName:       rule.driverName,
 				DriverConfigJSON: rule.driverConfigJSON,
 				DriverEnabled:    rule.driverEnabled,

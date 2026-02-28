@@ -19,10 +19,21 @@ func publishMatchesWithFallback(ctx context.Context, event core.Event, matches [
 			event.RequestID, event.Provider, event.Name, len(matches), len(logs), event.StateID, event.NamespaceName)
 	}
 	for idx, match := range matches {
+		eventToPublish := event
 		if idx < len(logs) {
-			event.LogID = logs[idx].ID
+			eventToPublish.LogID = logs[idx].ID
 		} else {
-			event.LogID = ""
+			eventToPublish.LogID = ""
+		}
+		transformed, err := applyRuleTransform(eventToPublish, match.TransformJS)
+		if err != nil {
+			if logger != nil {
+				logger.Printf("transform failed topic=%s rule_id=%s err=%v", match.Topic, match.RuleID, err)
+			}
+			if statusUpdater != nil && idx < len(logs) {
+				statusUpdater(logs[idx].ID, eventLogStatusFailed, err.Error())
+			}
+			continue
 		}
 		matchDriver := strings.TrimSpace(match.DriverName)
 		if matchDriver == "" {
@@ -31,7 +42,7 @@ func publishMatchesWithFallback(ctx context.Context, event core.Event, matches [
 		if logger != nil {
 			logger.Printf("publishing match topic=%s driver=%s driver_id=%s", match.Topic, matchDriver, match.DriverID)
 		}
-		ok, err := publishDynamicMatch(ctx, event, match, dynamic, logger)
+		ok, err := publishDynamicMatch(ctx, transformed, match, dynamic, logger)
 		if err != nil && statusUpdater != nil && idx < len(logs) {
 			statusUpdater(logs[idx].ID, eventLogStatusFailed, err.Error())
 		}
@@ -54,7 +65,7 @@ func publishMatchesWithFallback(ctx context.Context, event core.Event, matches [
 		if logger != nil {
 			logger.Printf("fallback publish attempt topic=%s drivers=%v driver_ids=%v", match.Topic, drivers, match.DriverID)
 		}
-		if err := fallback.PublishForDrivers(ctx, match.Topic, event, drivers); err != nil {
+		if err := fallback.PublishForDrivers(ctx, match.Topic, transformed, drivers); err != nil {
 			if logger != nil {
 				logger.Printf("publish %s failed: %v", match.Topic, err)
 			}

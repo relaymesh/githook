@@ -24,9 +24,10 @@ func TestRulesStoreCRUD(t *testing.T) {
 
 	ctx := storage.WithTenant(context.Background(), "tenant-a")
 	created, err := store.CreateRule(ctx, storage.RuleRecord{
-		When:     "action == \"opened\"",
-		Emit:     []string{"topic"},
-		DriverID: "driver",
+		When:        "action == \"opened\"",
+		Emit:        []string{"topic"},
+		DriverID:    "driver",
+		TransformJS: "function transform(payload){ return payload; }",
 	})
 	if err != nil || created == nil {
 		t.Fatalf("create rule: %v", err)
@@ -35,16 +36,20 @@ func TestRulesStoreCRUD(t *testing.T) {
 	if err != nil || got == nil {
 		t.Fatalf("get rule: %v", err)
 	}
+	if got.TransformJS == "" {
+		t.Fatalf("expected transform_js to persist")
+	}
 	list, err := store.ListRules(ctx)
 	if err != nil || len(list) != 1 {
 		t.Fatalf("list rules: %v", err)
 	}
 	_, err = store.UpdateRule(ctx, storage.RuleRecord{
-		ID:        created.ID,
-		When:      "action == \"closed\"",
-		Emit:      []string{"topic"},
-		DriverID:  "driver",
-		CreatedAt: created.CreatedAt,
+		ID:          created.ID,
+		When:        "action == \"closed\"",
+		Emit:        []string{"topic"},
+		DriverID:    "driver",
+		TransformJS: "function transform(payload){ payload.closed = true; return payload; }",
+		CreatedAt:   created.CreatedAt,
 	})
 	if err != nil {
 		t.Fatalf("update rule: %v", err)

@@ -104,9 +104,10 @@ func toProtoRuleMatches(matches []core.MatchedRule) []*cloudv1.RuleMatch {
 	out := make([]*cloudv1.RuleMatch, 0, len(matches))
 	for _, match := range matches {
 		out = append(out, &cloudv1.RuleMatch{
-			When:     match.When,
-			Emit:     append([]string(nil), match.Emit...),
-			DriverId: match.DriverID,
+			When:        match.When,
+			Emit:        append([]string(nil), match.Emit...),
+			DriverId:    match.DriverID,
+			TransformJs: match.TransformJS,
 		})
 	}
 	return out
@@ -145,12 +146,13 @@ func toProtoRuleRecords(records []storage.RuleRecord) []*cloudv1.RuleRecord {
 
 func toProtoRuleRecord(record storage.RuleRecord) *cloudv1.RuleRecord {
 	return &cloudv1.RuleRecord{
-		Id:        record.ID,
-		When:      record.When,
-		Emit:      append([]string(nil), record.Emit...),
-		DriverId:  record.DriverID,
-		CreatedAt: toProtoTimestamp(record.CreatedAt),
-		UpdatedAt: toProtoTimestamp(record.UpdatedAt),
+		Id:          record.ID,
+		When:        record.When,
+		Emit:        append([]string(nil), record.Emit...),
+		DriverId:    record.DriverID,
+		TransformJs: record.TransformJS,
+		CreatedAt:   toProtoTimestamp(record.CreatedAt),
+		UpdatedAt:   toProtoTimestamp(record.UpdatedAt),
 	}
 }
 

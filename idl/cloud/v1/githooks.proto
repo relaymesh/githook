@@ -387,6 +387,8 @@ message Rule {
 
   // ID of the DriverRecord that defines the broker connection for this rule.
   string driver_id = 4 [(buf.validate.field).string.min_len = 1];
+
+  string transform_js = 5;
 }
 
 // RuleRecord is the persisted form of a Rule, including server-assigned fields.
@@ -411,6 +413,8 @@ message RuleRecord {
 
   // ID of the DriverRecord that defines the broker connection for this rule.
   string driver_id = 7 [(buf.validate.field).string.min_len = 1];
+
+  string transform_js = 8;
 }
 
 // DriverRecord holds the broker connection config for a message driver.
@@ -738,6 +742,8 @@ message RuleMatch {
 
   // The driver ID of the matched rule.
   string driver_id = 4;
+
+  string transform_js = 5;
 }
 
 message MatchRulesRequest {

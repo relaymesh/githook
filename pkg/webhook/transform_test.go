@@ -1,0 +1,77 @@
+package webhook
+
+import (
+	"context"
+	"encoding/json"
+	"testing"
+
+	"github.com/relaymesh/githook/pkg/core"
+	"github.com/relaymesh/githook/pkg/storage"
+)
+
+type capturePublisher struct {
+	events []core.Event
+}
+
+func (p *capturePublisher) Publish(ctx context.Context, topic string, event core.Event) error {
+	p.events = append(p.events, event)
+	return nil
+}
+
+func (p *capturePublisher) PublishForDrivers(ctx context.Context, topic string, event core.Event, drivers []string) error {
+	p.events = append(p.events, event)
+	return nil
+}
+
+func (p *capturePublisher) Close() error { return nil }
+
+func TestApplyRuleTransform(t *testing.T) {
+	evt := core.Event{RawPayload: []byte(`{"action":"opened"}`)}
+	out, err := applyRuleTransform(evt, `function transform(payload){ payload.changed = true; return payload; }`)
+	if err != nil {
+		t.Fatalf("apply transform: %v", err)
+	}
+	var data map[string]interface{}
+	if err := json.Unmarshal(out.RawPayload, &data); err != nil {
+		t.Fatalf("unmarshal transformed payload: %v", err)
+	}
+	if data["changed"] != true {
+		t.Fatalf("expected transformed field, got %v", data)
+	}
+
+	if _, err := applyRuleTransform(evt, `bad javascript`); err == nil {
+		t.Fatalf("expected compile failure")
+	}
+	if _, err := applyRuleTransform(evt, `({ value: 1 })`); err == nil {
+		t.Fatalf("expected missing transform function")
+	}
+}
+
+func TestPublishMatchesWithFallbackAppliesTransform(t *testing.T) {
+	fallback := &capturePublisher{}
+	event := core.Event{RawPayload: []byte(`{"value":1}`), Provider: "github", Name: "push"}
+	matches := []core.RuleMatch{
+		{Topic: "topic.ok", DriverName: "amqp", RuleID: "r1", TransformJS: `function transform(payload){ payload.value = payload.value + 1; return payload; }`},
+		{Topic: "topic.bad", DriverName: "amqp", RuleID: "r2", TransformJS: `bad js`},
+	}
+	logs := []storage.EventLogRecord{{ID: "log-1"}, {ID: "log-2"}}
+
+	updates := map[string]string{}
+	publishMatchesWithFallback(context.Background(), event, matches, logs, nil, fallback, nil, func(id, status, _ string) {
+		updates[id] = status
+	})
+
+	if len(fallback.events) != 1 {
+		t.Fatalf("expected one successful publish, got %d", len(fallback.events))
+	}
+	var payload map[string]interface{}
+	if err := json.Unmarshal(fallback.events[0].RawPayload, &payload); err != nil {
+		t.Fatalf("unmarshal published payload: %v", err)
+	}
+	if payload["value"] != float64(2) {
+		t.Fatalf("expected transformed payload value=2, got %v", payload)
+	}
+	if updates["log-2"] != eventLogStatusFailed {
+		t.Fatalf("expected failed status update for transform error, got %v", updates)
+	}
+}

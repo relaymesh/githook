@@ -13,6 +13,7 @@ func ruleMatchesFromRules(rules []core.MatchedRule) []core.RuleMatch {
 			matches = append(matches, core.RuleMatch{
 				Topic:            topic,
 				DriverID:         rule.DriverID,
+				TransformJS:      rule.TransformJS,
 				DriverName:       rule.DriverName,
 				DriverConfigJSON: rule.DriverConfigJSON,
 				DriverEnabled:    rule.DriverEnabled,

@@ -30,14 +30,15 @@ type Store struct {
 }
 
 type row struct {
-	ID        string    `gorm:"column:id;size:64;primaryKey"`
-	TenantID  string    `gorm:"column:tenant_id;size:64;not null;default:'';index;index:idx_rules_tenant_created,priority:1"`
-	When      string    `gorm:"column:when;type:text;not null"`
-	EmitJSON  string    `gorm:"column:emit_json;type:text"`
-	Emit      string    `gorm:"column:emit;type:text"`
-	DriverID  string    `gorm:"column:driver_id;size:64"`
-	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime;index:idx_rules_tenant_created,priority:2,sort:asc"`
-	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
+	ID          string    `gorm:"column:id;size:64;primaryKey"`
+	TenantID    string    `gorm:"column:tenant_id;size:64;not null;default:'';index;index:idx_rules_tenant_created,priority:1"`
+	When        string    `gorm:"column:when;type:text;not null"`
+	EmitJSON    string    `gorm:"column:emit_json;type:text"`
+	Emit        string    `gorm:"column:emit;type:text"`
+	DriverID    string    `gorm:"column:driver_id;size:64"`
+	TransformJS string    `gorm:"column:transform_js;type:text"`
+	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime;index:idx_rules_tenant_created,priority:2,sort:asc"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime"`
 }
 
 type ruleWithDriver struct {
@@ -47,6 +48,7 @@ type ruleWithDriver struct {
 	EmitJSON      string    `gorm:"column:emit_json;type:text"`
 	Emit          string    `gorm:"column:emit;type:text"`
 	DriverID      string    `gorm:"column:driver_id;size:64"`
+	TransformJS   string    `gorm:"column:transform_js;type:text"`
 	CreatedAt     time.Time `gorm:"column:created_at;autoCreateTime;index:idx_rules_tenant_created,priority:2,sort:asc"`
 	UpdatedAt     time.Time `gorm:"column:updated_at;autoUpdateTime"`
 	DriverName    string    `gorm:"column:driver_name"`
@@ -225,24 +227,26 @@ func toRow(record storage.RuleRecord) (row, error) {
 		return row{}, err
 	}
 	return row{
-		ID:        record.ID,
-		TenantID:  record.TenantID,
-		When:      record.When,
-		EmitJSON:  string(emitJSON),
-		DriverID:  strings.TrimSpace(record.DriverID),
-		CreatedAt: record.CreatedAt,
-		UpdatedAt: record.UpdatedAt,
+		ID:          record.ID,
+		TenantID:    record.TenantID,
+		When:        record.When,
+		EmitJSON:    string(emitJSON),
+		DriverID:    strings.TrimSpace(record.DriverID),
+		TransformJS: strings.TrimSpace(record.TransformJS),
+		CreatedAt:   record.CreatedAt,
+		UpdatedAt:   record.UpdatedAt,
 	}, nil
 }
 
 func fromRow(data row) storage.RuleRecord {
 	record := storage.RuleRecord{
-		ID:        data.ID,
-		TenantID:  data.TenantID,
-		When:      data.When,
-		DriverID:  strings.TrimSpace(data.DriverID),
-		CreatedAt: data.CreatedAt,
-		UpdatedAt: data.UpdatedAt,
+		ID:          data.ID,
+		TenantID:    data.TenantID,
+		When:        data.When,
+		DriverID:    strings.TrimSpace(data.DriverID),
+		TransformJS: strings.TrimSpace(data.TransformJS),
+		CreatedAt:   data.CreatedAt,
+		UpdatedAt:   data.UpdatedAt,
 	}
 	record.Emit = parseEmit(data.EmitJSON, data.Emit)
 	return record
@@ -250,14 +254,15 @@ func fromRow(data row) storage.RuleRecord {
 
 func fromJoinedRow(data ruleWithDriver) storage.RuleRecord {
 	base := row{
-		ID:        data.ID,
-		TenantID:  data.TenantID,
-		When:      data.When,
-		EmitJSON:  data.EmitJSON,
-		Emit:      data.Emit,
-		DriverID:  data.DriverID,
-		CreatedAt: data.CreatedAt,
-		UpdatedAt: data.UpdatedAt,
+		ID:          data.ID,
+		TenantID:    data.TenantID,
+		When:        data.When,
+		EmitJSON:    data.EmitJSON,
+		Emit:        data.Emit,
+		DriverID:    data.DriverID,
+		TransformJS: data.TransformJS,
+		CreatedAt:   data.CreatedAt,
+		UpdatedAt:   data.UpdatedAt,
 	}
 	record := fromRow(base)
 	record.DriverName = strings.TrimSpace(data.DriverName)

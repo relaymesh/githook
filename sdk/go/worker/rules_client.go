@@ -26,10 +26,11 @@ type RulesClient struct {
 
 // RuleRecord mirrors the server rule response.
 type RuleRecord struct {
-	ID       string   `json:"id"`
-	When     string   `json:"when"`
-	Emit     []string `json:"emit"`
-	DriverID string   `json:"driver_id"`
+	ID          string   `json:"id"`
+	When        string   `json:"when"`
+	Emit        []string `json:"emit"`
+	DriverID    string   `json:"driver_id"`
+	TransformJS string   `json:"transform_js"`
 }
 
 // ListRules returns all rules.
@@ -65,10 +66,11 @@ func (c *RulesClient) ListRules(ctx context.Context) ([]RuleRecord, error) {
 			continue
 		}
 		out = append(out, RuleRecord{
-			ID:       record.GetId(),
-			When:     record.GetWhen(),
-			Emit:     record.GetEmit(),
-			DriverID: record.GetDriverId(),
+			ID:          record.GetId(),
+			When:        record.GetWhen(),
+			Emit:        record.GetEmit(),
+			DriverID:    record.GetDriverId(),
+			TransformJS: record.GetTransformJs(),
 		})
 	}
 	return out, nil
@@ -132,9 +134,10 @@ func (c *RulesClient) GetRule(ctx context.Context, id string) (*RuleRecord, erro
 		return nil, fmt.Errorf("rule not found: %s", id)
 	}
 	return &RuleRecord{
-		ID:       record.GetId(),
-		When:     record.GetWhen(),
-		Emit:     record.GetEmit(),
-		DriverID: record.GetDriverId(),
+		ID:          record.GetId(),
+		When:        record.GetWhen(),
+		Emit:        record.GetEmit(),
+		DriverID:    record.GetDriverId(),
+		TransformJS: record.GetTransformJs(),
 	}, nil
 }

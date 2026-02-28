@@ -56,6 +56,7 @@ type RuleRecord struct {
 	When             string
 	Emit             []string
 	DriverID         string
+	TransformJS      string
 	DriverName       string
 	DriverConfigJSON string
 	DriverEnabled    bool

@@ -927,6 +927,11 @@ export declare class Rule extends Message<Rule> {
    */
   driverId: string;
 
+  /**
+   * @generated from field: string transform_js = 5;
+   */
+  transformJs: string;
+
   constructor(data?: PartialMessage<Rule>);
 
   static readonly runtime: typeof proto3;
@@ -989,6 +994,11 @@ export declare class RuleRecord extends Message<RuleRecord> {
    * @generated from field: string driver_id = 7;
    */
   driverId: string;
+
+  /**
+   * @generated from field: string transform_js = 8;
+   */
+  transformJs: string;
 
   constructor(data?: PartialMessage<RuleRecord>);
 
@@ -1783,6 +1793,11 @@ export declare class RuleMatch extends Message<RuleMatch> {
    * @generated from field: string driver_id = 4;
    */
   driverId: string;
+
+  /**
+   * @generated from field: string transform_js = 5;
+   */
+  transformJs: string;
 
   constructor(data?: PartialMessage<RuleMatch>);
 

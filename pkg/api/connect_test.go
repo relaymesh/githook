@@ -99,9 +99,10 @@ func TestRulesServiceCreateUpdateMatch(t *testing.T) {
 	service := &RulesService{Store: ruleStore, DriverStore: driverStore}
 	createResp, err := service.CreateRule(ctx, connect.NewRequest(&cloudv1.CreateRuleRequest{
 		Rule: &cloudv1.Rule{
-			When:     "action == \"opened\"",
-			Emit:     []string{"pr.opened"},
-			DriverId: driver.ID,
+			When:        "action == \"opened\"",
+			Emit:        []string{"pr.opened"},
+			DriverId:    driver.ID,
+			TransformJs: "function transform(payload){ return payload; }",
 		},
 	}))
 	if err != nil {
@@ -116,9 +117,10 @@ func TestRulesServiceCreateUpdateMatch(t *testing.T) {
 	if _, err := service.UpdateRule(ctx, connect.NewRequest(&cloudv1.UpdateRuleRequest{
 		Id: ruleID,
 		Rule: &cloudv1.Rule{
-			When:     "action == \"closed\"",
-			Emit:     []string{"pr.closed"},
-			DriverId: driver.ID,
+			When:        "action == \"closed\"",
+			Emit:        []string{"pr.closed"},
+			DriverId:    driver.ID,
+			TransformJs: "function transform(payload){ payload.closed = true; return payload; }",
 		},
 	})); err != nil {
 		t.Fatalf("update rule: %v", err)
@@ -261,15 +263,16 @@ func TestNamespacesServiceList(t *testing.T) {
 }
 
 func TestRuleHelpersAndPagination(t *testing.T) {
-	if _, _, _, err := parseRuleInput(nil); err == nil {
+	if _, _, _, _, err := parseRuleInput(nil); err == nil {
 		t.Fatalf("expected missing rule error")
 	}
-	when, emit, driverID, err := parseRuleInput(&cloudv1.Rule{
-		When:     " when ",
-		Emit:     []string{"topic"},
-		DriverId: " driver ",
+	when, emit, driverID, transformJS, err := parseRuleInput(&cloudv1.Rule{
+		When:        " when ",
+		Emit:        []string{"topic"},
+		DriverId:    " driver ",
+		TransformJs: " function transform(payload){ return payload; } ",
 	})
-	if err != nil || when != "when" || emit[0] != "topic" || driverID != "driver" {
+	if err != nil || when != "when" || emit[0] != "topic" || driverID != "driver" || transformJS == "" {
 		t.Fatalf("unexpected parse output")
 	}
 
@@ -287,7 +290,7 @@ func TestRuleHelpersAndPagination(t *testing.T) {
 	if token := encodePageTokenFromRaw("5"); token == "" {
 		t.Fatalf("expected encoded token")
 	}
-	if _, _, _, err := parseRuleInput(&cloudv1.Rule{
+	if _, _, _, _, err := parseRuleInput(&cloudv1.Rule{
 		When:     "when",
 		Emit:     []string{"one", "two"},
 		DriverId: "driver",
@@ -340,6 +343,7 @@ func TestConnectHelperCoverage(t *testing.T) {
 			When:             `action == "opened"`,
 			Emit:             []string{"pr.opened"},
 			DriverID:         "driver-1",
+			TransformJS:      "function transform(payload){ return payload; }",
 			DriverName:       "amqp",
 			DriverConfigJSON: `{"url":"amqp://localhost"}`,
 			DriverEnabled:    true,
@@ -356,6 +360,9 @@ func TestConnectHelperCoverage(t *testing.T) {
 		}
 		if got[0].GetWhen() == "" || len(got[0].GetEmit()) != 1 || got[0].GetEmit()[0] != "pr.opened" {
 			t.Fatalf("unexpected converted rule payload: %+v", got[0])
+		}
+		if got[0].GetTransformJs() == "" {
+			t.Fatalf("expected transform_js to be converted")
 		}
 	})
 

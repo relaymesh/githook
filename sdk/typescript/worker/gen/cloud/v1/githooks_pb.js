@@ -293,6 +293,7 @@ export const Rule = /*@__PURE__*/ proto3.makeMessageType(
     { no: 1, name: "when", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "emit", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 4, name: "driver_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "transform_js", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 
@@ -310,6 +311,7 @@ export const RuleRecord = /*@__PURE__*/ proto3.makeMessageType(
     { no: 5, name: "created_at", kind: "message", T: Timestamp },
     { no: 6, name: "updated_at", kind: "message", T: Timestamp },
     { no: 7, name: "driver_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "transform_js", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 
@@ -529,6 +531,7 @@ export const RuleMatch = /*@__PURE__*/ proto3.makeMessageType(
     { no: 1, name: "when", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "emit", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 4, name: "driver_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "transform_js", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 

@@ -61,9 +61,10 @@ func newRulesMatchCmd() *cobra.Command {
 					return fmt.Errorf("rule %d is missing driver_id", idx)
 				}
 				ruleMessages = append(ruleMessages, &cloudv1.Rule{
-					When:     rule.When,
-					Emit:     rule.Emit.Values(),
-					DriverId: ruleDriverID,
+					When:        rule.When,
+					Emit:        rule.Emit.Values(),
+					DriverId:    ruleDriverID,
+					TransformJs: strings.TrimSpace(rule.TransformJS),
 				})
 			}
 			opts, err := connectClientOptions()
@@ -151,6 +152,7 @@ func newRulesCreateCmd() *cobra.Command {
 	var when string
 	var emits []string
 	var driverID string
+	var transformJS string
 	cmd := &cobra.Command{
 		Use:     "create",
 		Short:   "Create a new rule",
@@ -169,9 +171,10 @@ func newRulesCreateCmd() *cobra.Command {
 			client := cloudv1connect.NewRulesServiceClient(http.DefaultClient, apiBaseURL, opts...)
 			req := connect.NewRequest(&cloudv1.CreateRuleRequest{
 				Rule: &cloudv1.Rule{
-					When:     strings.TrimSpace(when),
-					Emit:     emits,
-					DriverId: strings.TrimSpace(driverID),
+					When:        strings.TrimSpace(when),
+					Emit:        emits,
+					DriverId:    strings.TrimSpace(driverID),
+					TransformJs: strings.TrimSpace(transformJS),
 				},
 			})
 			applyTenantHeader(req)
@@ -185,6 +188,7 @@ func newRulesCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&when, "when", "", "Rule expression")
 	cmd.Flags().StringSliceVar(&emits, "emit", nil, "Emit topic (repeatable)")
 	cmd.Flags().StringVar(&driverID, "driver-id", "", "Driver ID override")
+	cmd.Flags().StringVar(&transformJS, "transform-js", "", "JavaScript transform function body")
 	return cmd
 }
 
@@ -193,6 +197,7 @@ func newRulesUpdateCmd() *cobra.Command {
 	var when string
 	var emits []string
 	var driverID string
+	var transformJS string
 	cmd := &cobra.Command{
 		Use:     "update",
 		Short:   "Update an existing rule",
@@ -212,9 +217,10 @@ func newRulesUpdateCmd() *cobra.Command {
 			req := connect.NewRequest(&cloudv1.UpdateRuleRequest{
 				Id: id,
 				Rule: &cloudv1.Rule{
-					When:     strings.TrimSpace(when),
-					Emit:     emits,
-					DriverId: strings.TrimSpace(driverID),
+					When:        strings.TrimSpace(when),
+					Emit:        emits,
+					DriverId:    strings.TrimSpace(driverID),
+					TransformJs: strings.TrimSpace(transformJS),
 				},
 			})
 			applyTenantHeader(req)
@@ -229,6 +235,7 @@ func newRulesUpdateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&when, "when", "", "Rule expression")
 	cmd.Flags().StringSliceVar(&emits, "emit", nil, "Emit topic (repeatable)")
 	cmd.Flags().StringVar(&driverID, "driver-id", "", "Driver ID override")
+	cmd.Flags().StringVar(&transformJS, "transform-js", "", "JavaScript transform function body")
 	return cmd
 }
 

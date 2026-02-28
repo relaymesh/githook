@@ -155,6 +155,7 @@ func loadRulesForTenant(ctx context.Context, store storage.RuleStore, driverStor
 			When:             record.When,
 			Emit:             core.EmitList(record.Emit),
 			DriverID:         driverID,
+			TransformJS:      strings.TrimSpace(record.TransformJS),
 			DriverName:       driverName,
 			DriverConfigJSON: strings.TrimSpace(record.DriverConfigJSON),
 			DriverEnabled:    record.DriverEnabled,
