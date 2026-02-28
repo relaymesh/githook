@@ -10,6 +10,8 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/relaymesh/githook/pkg/core"
+	driverspkg "github.com/relaymesh/githook/pkg/drivers"
 	cloudv1 "github.com/relaymesh/githook/pkg/gen/cloud/v1"
 	"github.com/relaymesh/githook/pkg/storage"
 )
@@ -21,8 +23,10 @@ const (
 
 // EventLogsService handles queries for webhook event logs and analytics.
 type EventLogsService struct {
-	Store  storage.EventLogStore
-	Logger *log.Logger
+	Store       storage.EventLogStore
+	DriverStore storage.DriverStore
+	Publisher   core.Publisher
+	Logger      *log.Logger
 }
 
 func (s *EventLogsService) ListEventLogs(
@@ -280,6 +284,99 @@ func (s *EventLogsService) UpdateEventLogStatus(
 	}
 	logger.Printf("event log update ok log_id=%s status=%s tenant=%s", logID, status, tenantID)
 	return connect.NewResponse(&cloudv1.UpdateEventLogStatusResponse{}), nil
+}
+
+func (s *EventLogsService) ReplayEventLog(
+	ctx context.Context,
+	req *connect.Request[cloudv1.ReplayEventLogRequest],
+) (*connect.Response[cloudv1.ReplayEventLogResponse], error) {
+	if s.Store == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
+	}
+	if s.DriverStore == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("driver storage not configured"))
+	}
+	if req == nil || req.Msg == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request is required"))
+	}
+	logID := strings.TrimSpace(req.Msg.GetLogId())
+	driverName := strings.TrimSpace(req.Msg.GetDriverName())
+	if logID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("log_id is required"))
+	}
+	if driverName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("driver_name is required"))
+	}
+
+	record, err := s.Store.GetEventLog(ctx, logID)
+	if err != nil {
+		logError(s.Logger, "get event log failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("get event log failed"))
+	}
+	if record == nil {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("event log not found"))
+	}
+	topic := strings.TrimSpace(record.Topic)
+	if topic == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("event log topic is empty"))
+	}
+
+	driverRecord, err := s.DriverStore.GetDriver(ctx, driverName)
+	if err != nil {
+		logError(s.Logger, "get driver failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("get driver failed"))
+	}
+	if driverRecord == nil {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("driver not found"))
+	}
+	if !driverRecord.Enabled {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("driver is disabled"))
+	}
+
+	publisher := s.Publisher
+	if publisher == nil {
+		cfg, err := driverspkg.ConfigFromDriver(driverRecord.Name, driverRecord.ConfigJSON)
+		if err != nil {
+			logError(s.Logger, "driver config parse failed", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("driver config parse failed"))
+		}
+		publisher, err = core.NewPublisher(cfg)
+		if err != nil {
+			logError(s.Logger, "publisher init failed", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("publisher init failed"))
+		}
+		defer func() { _ = publisher.Close() }()
+	}
+
+	payload := record.Body
+	if len(record.TransformedBody) > 0 {
+		payload = record.TransformedBody
+	}
+	if len(payload) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("event log payload is empty"))
+	}
+
+	event := core.Event{
+		Provider:       record.Provider,
+		Name:           record.Name,
+		RequestID:      record.RequestID,
+		StateID:        record.StateID,
+		InstallationID: record.InstallationID,
+		NamespaceID:    record.NamespaceID,
+		NamespaceName:  record.NamespaceName,
+		RawPayload:     append([]byte(nil), payload...),
+		LogID:          record.ID,
+	}
+	if err := publisher.PublishForDrivers(ctx, topic, event, []string{driverRecord.Name}); err != nil {
+		logError(s.Logger, "replay publish failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("replay publish failed"))
+	}
+
+	return connect.NewResponse(&cloudv1.ReplayEventLogResponse{
+		LogId:      record.ID,
+		Topic:      topic,
+		DriverName: driverRecord.Name,
+	}), nil
 }
 
 func decodePageToken(token string) (int, error) {

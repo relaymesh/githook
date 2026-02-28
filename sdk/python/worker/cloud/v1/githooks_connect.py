@@ -916,6 +916,9 @@ class EventLogsService(Protocol):
     async def update_event_log_status(self, request: cloud_dot_v1_dot_githooks__pb2.UpdateEventLogStatusRequest, ctx: RequestContext) -> cloud_dot_v1_dot_githooks__pb2.UpdateEventLogStatusResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
+    async def replay_event_log(self, request: cloud_dot_v1_dot_githooks__pb2.ReplayEventLogRequest, ctx: RequestContext) -> cloud_dot_v1_dot_githooks__pb2.ReplayEventLogResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
 
 class EventLogsServiceASGIApplication(ConnectASGIApplication[EventLogsService]):
     def __init__(self, service: EventLogsService | AsyncGenerator[EventLogsService], *, interceptors: Iterable[Interceptor]=(), read_max_bytes: int | None = None) -> None:
@@ -971,6 +974,16 @@ class EventLogsServiceASGIApplication(ConnectASGIApplication[EventLogsService]):
                         idempotency_level=IdempotencyLevel.UNKNOWN,
                     ),
                     function=svc.update_event_log_status,
+                ),
+                "/cloud.v1.EventLogsService/ReplayEventLog": Endpoint.unary(
+                    method=MethodInfo(
+                        name="ReplayEventLog",
+                        service_name="cloud.v1.EventLogsService",
+                        input=cloud_dot_v1_dot_githooks__pb2.ReplayEventLogRequest,
+                        output=cloud_dot_v1_dot_githooks__pb2.ReplayEventLogResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.replay_event_log,
                 ),
             },
             interceptors=interceptors,
@@ -1078,6 +1091,26 @@ class EventLogsServiceClient(ConnectClient):
                 service_name="cloud.v1.EventLogsService",
                 input=cloud_dot_v1_dot_githooks__pb2.UpdateEventLogStatusRequest,
                 output=cloud_dot_v1_dot_githooks__pb2.UpdateEventLogStatusResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    async def replay_event_log(
+        self,
+        request: cloud_dot_v1_dot_githooks__pb2.ReplayEventLogRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> cloud_dot_v1_dot_githooks__pb2.ReplayEventLogResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="ReplayEventLog",
+                service_name="cloud.v1.EventLogsService",
+                input=cloud_dot_v1_dot_githooks__pb2.ReplayEventLogRequest,
+                output=cloud_dot_v1_dot_githooks__pb2.ReplayEventLogResponse,
                 idempotency_level=IdempotencyLevel.UNKNOWN,
             ),
             headers=headers,
@@ -1946,6 +1979,8 @@ class EventLogsServiceSync(Protocol):
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
     def update_event_log_status(self, request: cloud_dot_v1_dot_githooks__pb2.UpdateEventLogStatusRequest, ctx: RequestContext) -> cloud_dot_v1_dot_githooks__pb2.UpdateEventLogStatusResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def replay_event_log(self, request: cloud_dot_v1_dot_githooks__pb2.ReplayEventLogRequest, ctx: RequestContext) -> cloud_dot_v1_dot_githooks__pb2.ReplayEventLogResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
 
 class EventLogsServiceWSGIApplication(ConnectWSGIApplication):
@@ -2001,6 +2036,16 @@ class EventLogsServiceWSGIApplication(ConnectWSGIApplication):
                         idempotency_level=IdempotencyLevel.UNKNOWN,
                     ),
                     function=service.update_event_log_status,
+                ),
+                "/cloud.v1.EventLogsService/ReplayEventLog": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="ReplayEventLog",
+                        service_name="cloud.v1.EventLogsService",
+                        input=cloud_dot_v1_dot_githooks__pb2.ReplayEventLogRequest,
+                        output=cloud_dot_v1_dot_githooks__pb2.ReplayEventLogResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.replay_event_log,
                 ),
             },
             interceptors=interceptors,
@@ -2108,6 +2153,26 @@ class EventLogsServiceClientSync(ConnectClientSync):
                 service_name="cloud.v1.EventLogsService",
                 input=cloud_dot_v1_dot_githooks__pb2.UpdateEventLogStatusRequest,
                 output=cloud_dot_v1_dot_githooks__pb2.UpdateEventLogStatusResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def replay_event_log(
+        self,
+        request: cloud_dot_v1_dot_githooks__pb2.ReplayEventLogRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> cloud_dot_v1_dot_githooks__pb2.ReplayEventLogResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="ReplayEventLog",
+                service_name="cloud.v1.EventLogsService",
+                input=cloud_dot_v1_dot_githooks__pb2.ReplayEventLogRequest,
+                output=cloud_dot_v1_dot_githooks__pb2.ReplayEventLogResponse,
                 idempotency_level=IdempotencyLevel.UNKNOWN,
             ),
             headers=headers,

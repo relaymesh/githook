@@ -434,6 +434,7 @@ export const EventLogRecord = /*@__PURE__*/ proto3.makeMessageType(
     { no: 18, name: "headers", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: EventLogHeaderValues} },
     { no: 19, name: "body", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
     { no: 20, name: "body_hash", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 21, name: "transformed_body", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
   ],
 );
 
@@ -971,5 +972,28 @@ export const UpdateEventLogStatusRequest = /*@__PURE__*/ proto3.makeMessageType(
 export const UpdateEventLogStatusResponse = /*@__PURE__*/ proto3.makeMessageType(
   "cloud.v1.UpdateEventLogStatusResponse",
   [],
+);
+
+/**
+ * @generated from message cloud.v1.ReplayEventLogRequest
+ */
+export const ReplayEventLogRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "cloud.v1.ReplayEventLogRequest",
+  () => [
+    { no: 1, name: "log_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "driver_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message cloud.v1.ReplayEventLogResponse
+ */
+export const ReplayEventLogResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "cloud.v1.ReplayEventLogResponse",
+  () => [
+    { no: 1, name: "log_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "topic", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "driver_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
 );
 

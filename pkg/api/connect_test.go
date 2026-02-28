@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/relaymesh/githook/pkg/auth"
+	"github.com/relaymesh/githook/pkg/core"
 	cloudv1 "github.com/relaymesh/githook/pkg/gen/cloud/v1"
 	"github.com/relaymesh/githook/pkg/storage"
 )
@@ -184,11 +185,16 @@ func TestProvidersServiceLifecycle(t *testing.T) {
 
 func TestEventLogsServiceLifecycle(t *testing.T) {
 	store := storage.NewMockEventLogStore()
-	service := &EventLogsService{Store: store}
+	driverStore := storage.NewMockDriverStore()
+	replayPublisher := &replayCapturePublisher{}
+	service := &EventLogsService{Store: store, DriverStore: driverStore, Publisher: replayPublisher}
 	ctx := storage.WithTenant(context.Background(), "tenant-a")
 	now := time.Now().UTC()
+	if _, err := driverStore.UpsertDriver(ctx, storage.DriverRecord{Name: "http", ConfigJSON: `{"endpoint":"http://localhost:8088/{topic}"}`, Enabled: true}); err != nil {
+		t.Fatalf("upsert replay driver: %v", err)
+	}
 	if err := store.CreateEventLogs(ctx, []storage.EventLogRecord{
-		{ID: "id-1", Provider: "github", Name: "push", RequestID: "req-1", CreatedAt: now, Matched: true},
+		{ID: "id-1", Provider: "github", Name: "push", RequestID: "req-1", Topic: "relaybus.demo", Body: []byte(`{"a":1}`), TransformedBody: []byte(`{"a":2}`), CreatedAt: now, Matched: true},
 		{ID: "id-2", Provider: "gitlab", Name: "merge", RequestID: "req-2", CreatedAt: now.Add(time.Minute)},
 	}); err != nil {
 		t.Fatalf("create event logs: %v", err)
@@ -234,7 +240,55 @@ func TestEventLogsServiceLifecycle(t *testing.T) {
 	})); err != nil {
 		t.Fatalf("update status: %v", err)
 	}
+
+	replayResp, err := service.ReplayEventLog(ctx, connect.NewRequest(&cloudv1.ReplayEventLogRequest{LogId: "id-1", DriverName: "http"}))
+	if err != nil {
+		t.Fatalf("replay event log: %v", err)
+	}
+	if replayResp.Msg.GetLogId() != "id-1" || replayResp.Msg.GetTopic() != "relaybus.demo" || replayResp.Msg.GetDriverName() != "http" {
+		t.Fatalf("unexpected replay response: %+v", replayResp.Msg)
+	}
+	if replayPublisher.published != 1 || replayPublisher.lastTopic != "relaybus.demo" || replayPublisher.lastEvent.RawPayload == nil {
+		t.Fatalf("expected replay publish called once, got published=%d topic=%s", replayPublisher.published, replayPublisher.lastTopic)
+	}
+	if string(replayPublisher.lastEvent.RawPayload) != `{"a":2}` {
+		t.Fatalf("expected transformed payload replayed, got %s", string(replayPublisher.lastEvent.RawPayload))
+	}
 }
+
+func TestEventLogsServiceReplayValidation(t *testing.T) {
+	ctx := storage.WithTenant(context.Background(), "tenant-a")
+	store := storage.NewMockEventLogStore()
+	driverStore := storage.NewMockDriverStore()
+	service := &EventLogsService{Store: store, DriverStore: driverStore, Publisher: &replayCapturePublisher{}}
+
+	if _, err := service.ReplayEventLog(ctx, connect.NewRequest(&cloudv1.ReplayEventLogRequest{})); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("expected invalid argument for empty replay request")
+	}
+
+	if _, err := service.ReplayEventLog(ctx, connect.NewRequest(&cloudv1.ReplayEventLogRequest{LogId: "missing", DriverName: "http"})); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Fatalf("expected not found for missing log")
+	}
+}
+
+type replayCapturePublisher struct {
+	published int
+	lastTopic string
+	lastEvent core.Event
+}
+
+func (r *replayCapturePublisher) Publish(ctx context.Context, topic string, event core.Event) error {
+	r.published++
+	r.lastTopic = topic
+	r.lastEvent = event
+	return nil
+}
+
+func (r *replayCapturePublisher) PublishForDrivers(ctx context.Context, topic string, event core.Event, drivers []string) error {
+	return r.Publish(ctx, topic, event)
+}
+
+func (r *replayCapturePublisher) Close() error { return nil }
 
 func TestNamespacesServiceList(t *testing.T) {
 	store := storage.NewMockNamespaceStore()

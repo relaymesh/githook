@@ -122,6 +122,9 @@ const (
 	// EventLogsServiceUpdateEventLogStatusProcedure is the fully-qualified name of the
 	// EventLogsService's UpdateEventLogStatus RPC.
 	EventLogsServiceUpdateEventLogStatusProcedure = "/cloud.v1.EventLogsService/UpdateEventLogStatus"
+	// EventLogsServiceReplayEventLogProcedure is the fully-qualified name of the EventLogsService's
+	// ReplayEventLog RPC.
+	EventLogsServiceReplayEventLogProcedure = "/cloud.v1.EventLogsService/ReplayEventLog"
 )
 
 // InstallationsServiceClient is a client for the cloud.v1.InstallationsService service.
@@ -1078,6 +1081,7 @@ type EventLogsServiceClient interface {
 	// UpdateEventLogStatus lets workers report delivery outcome back to the server.
 	// Valid status values: "queued", "delivered", "success", "failed".
 	UpdateEventLogStatus(context.Context, *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error)
+	ReplayEventLog(context.Context, *connect.Request[v1.ReplayEventLogRequest]) (*connect.Response[v1.ReplayEventLogResponse], error)
 }
 
 // NewEventLogsServiceClient constructs a client for the cloud.v1.EventLogsService service. By
@@ -1121,6 +1125,12 @@ func NewEventLogsServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(eventLogsServiceMethods.ByName("UpdateEventLogStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		replayEventLog: connect.NewClient[v1.ReplayEventLogRequest, v1.ReplayEventLogResponse](
+			httpClient,
+			baseURL+EventLogsServiceReplayEventLogProcedure,
+			connect.WithSchema(eventLogsServiceMethods.ByName("ReplayEventLog")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1131,6 +1141,7 @@ type eventLogsServiceClient struct {
 	getEventLogTimeseries *connect.Client[v1.GetEventLogTimeseriesRequest, v1.GetEventLogTimeseriesResponse]
 	getEventLogBreakdown  *connect.Client[v1.GetEventLogBreakdownRequest, v1.GetEventLogBreakdownResponse]
 	updateEventLogStatus  *connect.Client[v1.UpdateEventLogStatusRequest, v1.UpdateEventLogStatusResponse]
+	replayEventLog        *connect.Client[v1.ReplayEventLogRequest, v1.ReplayEventLogResponse]
 }
 
 // ListEventLogs calls cloud.v1.EventLogsService.ListEventLogs.
@@ -1158,6 +1169,11 @@ func (c *eventLogsServiceClient) UpdateEventLogStatus(ctx context.Context, req *
 	return c.updateEventLogStatus.CallUnary(ctx, req)
 }
 
+// ReplayEventLog calls cloud.v1.EventLogsService.ReplayEventLog.
+func (c *eventLogsServiceClient) ReplayEventLog(ctx context.Context, req *connect.Request[v1.ReplayEventLogRequest]) (*connect.Response[v1.ReplayEventLogResponse], error) {
+	return c.replayEventLog.CallUnary(ctx, req)
+}
+
 // EventLogsServiceHandler is an implementation of the cloud.v1.EventLogsService service.
 type EventLogsServiceHandler interface {
 	// ListEventLogs returns paginated event log records. Supports rich filtering
@@ -1176,6 +1192,7 @@ type EventLogsServiceHandler interface {
 	// UpdateEventLogStatus lets workers report delivery outcome back to the server.
 	// Valid status values: "queued", "delivered", "success", "failed".
 	UpdateEventLogStatus(context.Context, *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error)
+	ReplayEventLog(context.Context, *connect.Request[v1.ReplayEventLogRequest]) (*connect.Response[v1.ReplayEventLogResponse], error)
 }
 
 // NewEventLogsServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1215,6 +1232,12 @@ func NewEventLogsServiceHandler(svc EventLogsServiceHandler, opts ...connect.Han
 		connect.WithSchema(eventLogsServiceMethods.ByName("UpdateEventLogStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	eventLogsServiceReplayEventLogHandler := connect.NewUnaryHandler(
+		EventLogsServiceReplayEventLogProcedure,
+		svc.ReplayEventLog,
+		connect.WithSchema(eventLogsServiceMethods.ByName("ReplayEventLog")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/cloud.v1.EventLogsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case EventLogsServiceListEventLogsProcedure:
@@ -1227,6 +1250,8 @@ func NewEventLogsServiceHandler(svc EventLogsServiceHandler, opts ...connect.Han
 			eventLogsServiceGetEventLogBreakdownHandler.ServeHTTP(w, r)
 		case EventLogsServiceUpdateEventLogStatusProcedure:
 			eventLogsServiceUpdateEventLogStatusHandler.ServeHTTP(w, r)
+		case EventLogsServiceReplayEventLogProcedure:
+			eventLogsServiceReplayEventLogHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1254,4 +1279,8 @@ func (UnimplementedEventLogsServiceHandler) GetEventLogBreakdown(context.Context
 
 func (UnimplementedEventLogsServiceHandler) UpdateEventLogStatus(context.Context, *connect.Request[v1.UpdateEventLogStatusRequest]) (*connect.Response[v1.UpdateEventLogStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.EventLogsService.UpdateEventLogStatus is not implemented"))
+}
+
+func (UnimplementedEventLogsServiceHandler) ReplayEventLog(context.Context, *connect.Request[v1.ReplayEventLogRequest]) (*connect.Response[v1.ReplayEventLogResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cloud.v1.EventLogsService.ReplayEventLog is not implemented"))
 }

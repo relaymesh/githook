@@ -126,6 +126,29 @@ func (m *MockEventLogStore) ListEventLogs(ctx context.Context, filter EventLogFi
 	return append([]EventLogRecord(nil), filtered[start:end]...), nil
 }
 
+func (m *MockEventLogStore) GetEventLog(ctx context.Context, id string) (*EventLogRecord, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	tenantID := TenantFromContext(ctx)
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, errors.New("id is required")
+	}
+	for _, record := range m.values {
+		if record.ID != id {
+			continue
+		}
+		if tenantID != "" && record.TenantID != tenantID {
+			continue
+		}
+		copyRecord := record
+		copyRecord.Body = append([]byte(nil), record.Body...)
+		copyRecord.TransformedBody = append([]byte(nil), record.TransformedBody...)
+		return &copyRecord, nil
+	}
+	return nil, nil
+}
+
 func (m *MockEventLogStore) GetEventLogAnalytics(ctx context.Context, filter EventLogFilter) (EventLogAnalytics, error) {
 	records, err := m.ListEventLogs(ctx, EventLogFilter{
 		TenantID:       filter.TenantID,

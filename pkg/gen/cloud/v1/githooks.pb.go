@@ -2043,9 +2043,10 @@ type EventLogRecord struct {
 	// Raw webhook request body bytes.
 	Body []byte `protobuf:"bytes,19,opt,name=body,proto3" json:"body,omitempty"`
 	// SHA-256 hash of the body for integrity verification.
-	BodyHash      string `protobuf:"bytes,20,opt,name=body_hash,json=bodyHash,proto3" json:"body_hash,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	BodyHash        string `protobuf:"bytes,20,opt,name=body_hash,json=bodyHash,proto3" json:"body_hash,omitempty"`
+	TransformedBody []byte `protobuf:"bytes,21,opt,name=transformed_body,json=transformedBody,proto3" json:"transformed_body,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *EventLogRecord) Reset() {
@@ -2216,6 +2217,13 @@ func (x *EventLogRecord) GetBodyHash() string {
 		return x.BodyHash
 	}
 	return ""
+}
+
+func (x *EventLogRecord) GetTransformedBody() []byte {
+	if x != nil {
+		return x.TransformedBody
+	}
+	return nil
 }
 
 // EventLogCount is a key/count pair used in analytics breakdowns.
@@ -4977,6 +4985,118 @@ func (*UpdateEventLogStatusResponse) Descriptor() ([]byte, []int) {
 	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{70}
 }
 
+type ReplayEventLogRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LogId         string                 `protobuf:"bytes,1,opt,name=log_id,json=logId,proto3" json:"log_id,omitempty"`
+	DriverName    string                 `protobuf:"bytes,2,opt,name=driver_name,json=driverName,proto3" json:"driver_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReplayEventLogRequest) Reset() {
+	*x = ReplayEventLogRequest{}
+	mi := &file_cloud_v1_githooks_proto_msgTypes[71]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplayEventLogRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplayEventLogRequest) ProtoMessage() {}
+
+func (x *ReplayEventLogRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cloud_v1_githooks_proto_msgTypes[71]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplayEventLogRequest.ProtoReflect.Descriptor instead.
+func (*ReplayEventLogRequest) Descriptor() ([]byte, []int) {
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{71}
+}
+
+func (x *ReplayEventLogRequest) GetLogId() string {
+	if x != nil {
+		return x.LogId
+	}
+	return ""
+}
+
+func (x *ReplayEventLogRequest) GetDriverName() string {
+	if x != nil {
+		return x.DriverName
+	}
+	return ""
+}
+
+type ReplayEventLogResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LogId         string                 `protobuf:"bytes,1,opt,name=log_id,json=logId,proto3" json:"log_id,omitempty"`
+	Topic         string                 `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
+	DriverName    string                 `protobuf:"bytes,3,opt,name=driver_name,json=driverName,proto3" json:"driver_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReplayEventLogResponse) Reset() {
+	*x = ReplayEventLogResponse{}
+	mi := &file_cloud_v1_githooks_proto_msgTypes[72]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplayEventLogResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplayEventLogResponse) ProtoMessage() {}
+
+func (x *ReplayEventLogResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cloud_v1_githooks_proto_msgTypes[72]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplayEventLogResponse.ProtoReflect.Descriptor instead.
+func (*ReplayEventLogResponse) Descriptor() ([]byte, []int) {
+	return file_cloud_v1_githooks_proto_rawDescGZIP(), []int{72}
+}
+
+func (x *ReplayEventLogResponse) GetLogId() string {
+	if x != nil {
+		return x.LogId
+	}
+	return ""
+}
+
+func (x *ReplayEventLogResponse) GetTopic() string {
+	if x != nil {
+		return x.Topic
+	}
+	return ""
+}
+
+func (x *ReplayEventLogResponse) GetDriverName() string {
+	if x != nil {
+		return x.DriverName
+	}
+	return ""
+}
+
 var File_cloud_v1_githooks_proto protoreflect.FileDescriptor
 
 const file_cloud_v1_githooks_proto_rawDesc = "" +
@@ -5127,7 +5247,7 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\x14GetSCMClientResponse\x12+\n" +
 	"\x06client\x18\x01 \x01(\v2\x13.cloud.v1.SCMClientR\x06client\".\n" +
 	"\x14EventLogHeaderValues\x12\x16\n" +
-	"\x06values\x18\x01 \x03(\tR\x06values\"\xfe\x05\n" +
+	"\x06values\x18\x01 \x03(\tR\x06values\"\xa9\x06\n" +
 	"\x0eEventLogRecord\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x12\n" +
@@ -5152,7 +5272,8 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"updated_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12?\n" +
 	"\aheaders\x18\x12 \x03(\v2%.cloud.v1.EventLogRecord.HeadersEntryR\aheaders\x12\x12\n" +
 	"\x04body\x18\x13 \x01(\fR\x04body\x12\x1b\n" +
-	"\tbody_hash\x18\x14 \x01(\tR\bbodyHash\x1aZ\n" +
+	"\tbody_hash\x18\x14 \x01(\tR\bbodyHash\x12)\n" +
+	"\x10transformed_body\x18\x15 \x01(\fR\x0ftransformedBody\x1aZ\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x124\n" +
 	"\x05value\x18\x02 \x01(\v2\x1e.cloud.v1.EventLogHeaderValuesR\x05value:\x028\x01\"7\n" +
@@ -5350,7 +5471,16 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\x06log_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05logId\x12C\n" +
 	"\x06status\x18\x02 \x01(\tB+\xbaH(r&\x10\x01R\x06queuedR\tdeliveredR\asuccessR\x06failedR\x06status\x12#\n" +
 	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"\x1e\n" +
-	"\x1cUpdateEventLogStatusResponse*\xc2\x01\n" +
+	"\x1cUpdateEventLogStatusResponse\"a\n" +
+	"\x15ReplayEventLogRequest\x12\x1e\n" +
+	"\x06log_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05logId\x12(\n" +
+	"\vdriver_name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
+	"driverName\"f\n" +
+	"\x16ReplayEventLogResponse\x12\x15\n" +
+	"\x06log_id\x18\x01 \x01(\tR\x05logId\x12\x14\n" +
+	"\x05topic\x18\x02 \x01(\tR\x05topic\x12\x1f\n" +
+	"\vdriver_name\x18\x03 \x01(\tR\n" +
+	"driverName*\xc2\x01\n" +
 	"\x1aEventLogTimeseriesInterval\x12-\n" +
 	")EVENT_LOG_TIMESERIES_INTERVAL_UNSPECIFIED\x10\x00\x12&\n" +
 	"\"EVENT_LOG_TIMESERIES_INTERVAL_HOUR\x10\x01\x12%\n" +
@@ -5404,13 +5534,14 @@ const file_cloud_v1_githooks_proto_rawDesc = "" +
 	"\x0eDeleteProvider\x12\x1f.cloud.v1.DeleteProviderRequest\x1a .cloud.v1.DeleteProviderResponse2[\n" +
 	"\n" +
 	"SCMService\x12M\n" +
-	"\fGetSCMClient\x12\x1d.cloud.v1.GetSCMClientRequest\x1a\x1e.cloud.v1.GetSCMClientResponse2\x83\x04\n" +
+	"\fGetSCMClient\x12\x1d.cloud.v1.GetSCMClientRequest\x1a\x1e.cloud.v1.GetSCMClientResponse2\xd8\x04\n" +
 	"\x10EventLogsService\x12P\n" +
 	"\rListEventLogs\x12\x1e.cloud.v1.ListEventLogsRequest\x1a\x1f.cloud.v1.ListEventLogsResponse\x12e\n" +
 	"\x14GetEventLogAnalytics\x12%.cloud.v1.GetEventLogAnalyticsRequest\x1a&.cloud.v1.GetEventLogAnalyticsResponse\x12h\n" +
 	"\x15GetEventLogTimeseries\x12&.cloud.v1.GetEventLogTimeseriesRequest\x1a'.cloud.v1.GetEventLogTimeseriesResponse\x12e\n" +
 	"\x14GetEventLogBreakdown\x12%.cloud.v1.GetEventLogBreakdownRequest\x1a&.cloud.v1.GetEventLogBreakdownResponse\x12e\n" +
-	"\x14UpdateEventLogStatus\x12%.cloud.v1.UpdateEventLogStatusRequest\x1a&.cloud.v1.UpdateEventLogStatusResponseB\x95\x01\n" +
+	"\x14UpdateEventLogStatus\x12%.cloud.v1.UpdateEventLogStatusRequest\x1a&.cloud.v1.UpdateEventLogStatusResponse\x12S\n" +
+	"\x0eReplayEventLog\x12\x1f.cloud.v1.ReplayEventLogRequest\x1a .cloud.v1.ReplayEventLogResponseB\x95\x01\n" +
 	"\fcom.cloud.v1B\rGithooksProtoP\x01Z5github.com/relaymesh/githook/pkg/gen/cloud/v1;cloudv1\xa2\x02\x03CXX\xaa\x02\bCloud.V1\xca\x02\bCloud\\V1\xe2\x02\x14Cloud\\V1\\GPBMetadata\xea\x02\tCloud::V1b\x06proto3"
 
 var (
@@ -5426,7 +5557,7 @@ func file_cloud_v1_githooks_proto_rawDescGZIP() []byte {
 }
 
 var file_cloud_v1_githooks_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_cloud_v1_githooks_proto_msgTypes = make([]protoimpl.MessageInfo, 72)
+var file_cloud_v1_githooks_proto_msgTypes = make([]protoimpl.MessageInfo, 74)
 var file_cloud_v1_githooks_proto_goTypes = []any{
 	(EventLogTimeseriesInterval)(0),       // 0: cloud.v1.EventLogTimeseriesInterval
 	(EventLogBreakdownGroup)(0),           // 1: cloud.v1.EventLogBreakdownGroup
@@ -5502,40 +5633,42 @@ var file_cloud_v1_githooks_proto_goTypes = []any{
 	(*GetEventLogBreakdownResponse)(nil),  // 71: cloud.v1.GetEventLogBreakdownResponse
 	(*UpdateEventLogStatusRequest)(nil),   // 72: cloud.v1.UpdateEventLogStatusRequest
 	(*UpdateEventLogStatusResponse)(nil),  // 73: cloud.v1.UpdateEventLogStatusResponse
-	nil,                                   // 74: cloud.v1.EventLogRecord.HeadersEntry
-	(*timestamppb.Timestamp)(nil),         // 75: google.protobuf.Timestamp
+	(*ReplayEventLogRequest)(nil),         // 74: cloud.v1.ReplayEventLogRequest
+	(*ReplayEventLogResponse)(nil),        // 75: cloud.v1.ReplayEventLogResponse
+	nil,                                   // 76: cloud.v1.EventLogRecord.HeadersEntry
+	(*timestamppb.Timestamp)(nil),         // 77: google.protobuf.Timestamp
 }
 var file_cloud_v1_githooks_proto_depIdxs = []int32{
-	75, // 0: cloud.v1.InstallRecord.expires_at:type_name -> google.protobuf.Timestamp
-	75, // 1: cloud.v1.InstallRecord.created_at:type_name -> google.protobuf.Timestamp
-	75, // 2: cloud.v1.InstallRecord.updated_at:type_name -> google.protobuf.Timestamp
-	75, // 3: cloud.v1.NamespaceRecord.created_at:type_name -> google.protobuf.Timestamp
-	75, // 4: cloud.v1.NamespaceRecord.updated_at:type_name -> google.protobuf.Timestamp
+	77, // 0: cloud.v1.InstallRecord.expires_at:type_name -> google.protobuf.Timestamp
+	77, // 1: cloud.v1.InstallRecord.created_at:type_name -> google.protobuf.Timestamp
+	77, // 2: cloud.v1.InstallRecord.updated_at:type_name -> google.protobuf.Timestamp
+	77, // 3: cloud.v1.NamespaceRecord.created_at:type_name -> google.protobuf.Timestamp
+	77, // 4: cloud.v1.NamespaceRecord.updated_at:type_name -> google.protobuf.Timestamp
 	3,  // 5: cloud.v1.ListInstallationsResponse.installations:type_name -> cloud.v1.InstallRecord
 	3,  // 6: cloud.v1.GetInstallationByIDResponse.installation:type_name -> cloud.v1.InstallRecord
 	3,  // 7: cloud.v1.UpsertInstallationRequest.installation:type_name -> cloud.v1.InstallRecord
 	3,  // 8: cloud.v1.UpsertInstallationResponse.installation:type_name -> cloud.v1.InstallRecord
 	4,  // 9: cloud.v1.ListNamespacesResponse.namespaces:type_name -> cloud.v1.NamespaceRecord
 	4,  // 10: cloud.v1.SyncNamespacesResponse.namespaces:type_name -> cloud.v1.NamespaceRecord
-	75, // 11: cloud.v1.RuleRecord.created_at:type_name -> google.protobuf.Timestamp
-	75, // 12: cloud.v1.RuleRecord.updated_at:type_name -> google.protobuf.Timestamp
-	75, // 13: cloud.v1.DriverRecord.created_at:type_name -> google.protobuf.Timestamp
-	75, // 14: cloud.v1.DriverRecord.updated_at:type_name -> google.protobuf.Timestamp
-	75, // 15: cloud.v1.ProviderRecord.created_at:type_name -> google.protobuf.Timestamp
-	75, // 16: cloud.v1.ProviderRecord.updated_at:type_name -> google.protobuf.Timestamp
-	75, // 17: cloud.v1.SCMClient.expires_at:type_name -> google.protobuf.Timestamp
+	77, // 11: cloud.v1.RuleRecord.created_at:type_name -> google.protobuf.Timestamp
+	77, // 12: cloud.v1.RuleRecord.updated_at:type_name -> google.protobuf.Timestamp
+	77, // 13: cloud.v1.DriverRecord.created_at:type_name -> google.protobuf.Timestamp
+	77, // 14: cloud.v1.DriverRecord.updated_at:type_name -> google.protobuf.Timestamp
+	77, // 15: cloud.v1.ProviderRecord.created_at:type_name -> google.protobuf.Timestamp
+	77, // 16: cloud.v1.ProviderRecord.updated_at:type_name -> google.protobuf.Timestamp
+	77, // 17: cloud.v1.SCMClient.expires_at:type_name -> google.protobuf.Timestamp
 	25, // 18: cloud.v1.GetSCMClientResponse.client:type_name -> cloud.v1.SCMClient
-	75, // 19: cloud.v1.EventLogRecord.created_at:type_name -> google.protobuf.Timestamp
-	75, // 20: cloud.v1.EventLogRecord.updated_at:type_name -> google.protobuf.Timestamp
-	74, // 21: cloud.v1.EventLogRecord.headers:type_name -> cloud.v1.EventLogRecord.HeadersEntry
+	77, // 19: cloud.v1.EventLogRecord.created_at:type_name -> google.protobuf.Timestamp
+	77, // 20: cloud.v1.EventLogRecord.updated_at:type_name -> google.protobuf.Timestamp
+	76, // 21: cloud.v1.EventLogRecord.headers:type_name -> cloud.v1.EventLogRecord.HeadersEntry
 	30, // 22: cloud.v1.EventLogAnalytics.by_provider:type_name -> cloud.v1.EventLogCount
 	30, // 23: cloud.v1.EventLogAnalytics.by_event:type_name -> cloud.v1.EventLogCount
 	30, // 24: cloud.v1.EventLogAnalytics.by_topic:type_name -> cloud.v1.EventLogCount
 	30, // 25: cloud.v1.EventLogAnalytics.by_rule:type_name -> cloud.v1.EventLogCount
 	30, // 26: cloud.v1.EventLogAnalytics.by_installation:type_name -> cloud.v1.EventLogCount
 	30, // 27: cloud.v1.EventLogAnalytics.by_namespace:type_name -> cloud.v1.EventLogCount
-	75, // 28: cloud.v1.EventLogTimeseriesBucket.start_time:type_name -> google.protobuf.Timestamp
-	75, // 29: cloud.v1.EventLogTimeseriesBucket.end_time:type_name -> google.protobuf.Timestamp
+	77, // 28: cloud.v1.EventLogTimeseriesBucket.start_time:type_name -> google.protobuf.Timestamp
+	77, // 29: cloud.v1.EventLogTimeseriesBucket.end_time:type_name -> google.protobuf.Timestamp
 	34, // 30: cloud.v1.MatchRulesRequest.event:type_name -> cloud.v1.EventPayload
 	21, // 31: cloud.v1.MatchRulesRequest.rules:type_name -> cloud.v1.Rule
 	35, // 32: cloud.v1.MatchRulesResponse.matches:type_name -> cloud.v1.RuleMatch
@@ -5553,18 +5686,18 @@ var file_cloud_v1_githooks_proto_depIdxs = []int32{
 	24, // 44: cloud.v1.GetProviderResponse.provider:type_name -> cloud.v1.ProviderRecord
 	24, // 45: cloud.v1.UpsertProviderRequest.provider:type_name -> cloud.v1.ProviderRecord
 	24, // 46: cloud.v1.UpsertProviderResponse.provider:type_name -> cloud.v1.ProviderRecord
-	75, // 47: cloud.v1.ListEventLogsRequest.start_time:type_name -> google.protobuf.Timestamp
-	75, // 48: cloud.v1.ListEventLogsRequest.end_time:type_name -> google.protobuf.Timestamp
+	77, // 47: cloud.v1.ListEventLogsRequest.start_time:type_name -> google.protobuf.Timestamp
+	77, // 48: cloud.v1.ListEventLogsRequest.end_time:type_name -> google.protobuf.Timestamp
 	29, // 49: cloud.v1.ListEventLogsResponse.logs:type_name -> cloud.v1.EventLogRecord
-	75, // 50: cloud.v1.GetEventLogAnalyticsRequest.start_time:type_name -> google.protobuf.Timestamp
-	75, // 51: cloud.v1.GetEventLogAnalyticsRequest.end_time:type_name -> google.protobuf.Timestamp
+	77, // 50: cloud.v1.GetEventLogAnalyticsRequest.start_time:type_name -> google.protobuf.Timestamp
+	77, // 51: cloud.v1.GetEventLogAnalyticsRequest.end_time:type_name -> google.protobuf.Timestamp
 	31, // 52: cloud.v1.GetEventLogAnalyticsResponse.analytics:type_name -> cloud.v1.EventLogAnalytics
-	75, // 53: cloud.v1.GetEventLogTimeseriesRequest.start_time:type_name -> google.protobuf.Timestamp
-	75, // 54: cloud.v1.GetEventLogTimeseriesRequest.end_time:type_name -> google.protobuf.Timestamp
+	77, // 53: cloud.v1.GetEventLogTimeseriesRequest.start_time:type_name -> google.protobuf.Timestamp
+	77, // 54: cloud.v1.GetEventLogTimeseriesRequest.end_time:type_name -> google.protobuf.Timestamp
 	0,  // 55: cloud.v1.GetEventLogTimeseriesRequest.interval:type_name -> cloud.v1.EventLogTimeseriesInterval
 	32, // 56: cloud.v1.GetEventLogTimeseriesResponse.buckets:type_name -> cloud.v1.EventLogTimeseriesBucket
-	75, // 57: cloud.v1.GetEventLogBreakdownRequest.start_time:type_name -> google.protobuf.Timestamp
-	75, // 58: cloud.v1.GetEventLogBreakdownRequest.end_time:type_name -> google.protobuf.Timestamp
+	77, // 57: cloud.v1.GetEventLogBreakdownRequest.start_time:type_name -> google.protobuf.Timestamp
+	77, // 58: cloud.v1.GetEventLogBreakdownRequest.end_time:type_name -> google.protobuf.Timestamp
 	1,  // 59: cloud.v1.GetEventLogBreakdownRequest.group_by:type_name -> cloud.v1.EventLogBreakdownGroup
 	2,  // 60: cloud.v1.GetEventLogBreakdownRequest.sort_by:type_name -> cloud.v1.EventLogBreakdownSort
 	33, // 61: cloud.v1.GetEventLogBreakdownResponse.breakdowns:type_name -> cloud.v1.EventLogBreakdown
@@ -5597,36 +5730,38 @@ var file_cloud_v1_githooks_proto_depIdxs = []int32{
 	68, // 88: cloud.v1.EventLogsService.GetEventLogTimeseries:input_type -> cloud.v1.GetEventLogTimeseriesRequest
 	70, // 89: cloud.v1.EventLogsService.GetEventLogBreakdown:input_type -> cloud.v1.GetEventLogBreakdownRequest
 	72, // 90: cloud.v1.EventLogsService.UpdateEventLogStatus:input_type -> cloud.v1.UpdateEventLogStatusRequest
-	6,  // 91: cloud.v1.InstallationsService.ListInstallations:output_type -> cloud.v1.ListInstallationsResponse
-	8,  // 92: cloud.v1.InstallationsService.GetInstallationByID:output_type -> cloud.v1.GetInstallationByIDResponse
-	10, // 93: cloud.v1.InstallationsService.UpsertInstallation:output_type -> cloud.v1.UpsertInstallationResponse
-	12, // 94: cloud.v1.InstallationsService.DeleteInstallation:output_type -> cloud.v1.DeleteInstallationResponse
-	14, // 95: cloud.v1.NamespacesService.ListNamespaces:output_type -> cloud.v1.ListNamespacesResponse
-	16, // 96: cloud.v1.NamespacesService.SyncNamespaces:output_type -> cloud.v1.SyncNamespacesResponse
-	19, // 97: cloud.v1.NamespacesService.GetNamespaceWebhook:output_type -> cloud.v1.GetNamespaceWebhookResponse
-	20, // 98: cloud.v1.NamespacesService.SetNamespaceWebhook:output_type -> cloud.v1.SetNamespaceWebhookResponse
-	37, // 99: cloud.v1.RulesService.MatchRules:output_type -> cloud.v1.MatchRulesResponse
-	39, // 100: cloud.v1.RulesService.ListRules:output_type -> cloud.v1.ListRulesResponse
-	41, // 101: cloud.v1.RulesService.GetRule:output_type -> cloud.v1.GetRuleResponse
-	43, // 102: cloud.v1.RulesService.CreateRule:output_type -> cloud.v1.CreateRuleResponse
-	45, // 103: cloud.v1.RulesService.UpdateRule:output_type -> cloud.v1.UpdateRuleResponse
-	47, // 104: cloud.v1.RulesService.DeleteRule:output_type -> cloud.v1.DeleteRuleResponse
-	49, // 105: cloud.v1.DriversService.ListDrivers:output_type -> cloud.v1.ListDriversResponse
-	51, // 106: cloud.v1.DriversService.GetDriver:output_type -> cloud.v1.GetDriverResponse
-	53, // 107: cloud.v1.DriversService.UpsertDriver:output_type -> cloud.v1.UpsertDriverResponse
-	55, // 108: cloud.v1.DriversService.DeleteDriver:output_type -> cloud.v1.DeleteDriverResponse
-	57, // 109: cloud.v1.ProvidersService.ListProviders:output_type -> cloud.v1.ListProvidersResponse
-	59, // 110: cloud.v1.ProvidersService.GetProvider:output_type -> cloud.v1.GetProviderResponse
-	61, // 111: cloud.v1.ProvidersService.UpsertProvider:output_type -> cloud.v1.UpsertProviderResponse
-	63, // 112: cloud.v1.ProvidersService.DeleteProvider:output_type -> cloud.v1.DeleteProviderResponse
-	27, // 113: cloud.v1.SCMService.GetSCMClient:output_type -> cloud.v1.GetSCMClientResponse
-	65, // 114: cloud.v1.EventLogsService.ListEventLogs:output_type -> cloud.v1.ListEventLogsResponse
-	67, // 115: cloud.v1.EventLogsService.GetEventLogAnalytics:output_type -> cloud.v1.GetEventLogAnalyticsResponse
-	69, // 116: cloud.v1.EventLogsService.GetEventLogTimeseries:output_type -> cloud.v1.GetEventLogTimeseriesResponse
-	71, // 117: cloud.v1.EventLogsService.GetEventLogBreakdown:output_type -> cloud.v1.GetEventLogBreakdownResponse
-	73, // 118: cloud.v1.EventLogsService.UpdateEventLogStatus:output_type -> cloud.v1.UpdateEventLogStatusResponse
-	91, // [91:119] is the sub-list for method output_type
-	63, // [63:91] is the sub-list for method input_type
+	74, // 91: cloud.v1.EventLogsService.ReplayEventLog:input_type -> cloud.v1.ReplayEventLogRequest
+	6,  // 92: cloud.v1.InstallationsService.ListInstallations:output_type -> cloud.v1.ListInstallationsResponse
+	8,  // 93: cloud.v1.InstallationsService.GetInstallationByID:output_type -> cloud.v1.GetInstallationByIDResponse
+	10, // 94: cloud.v1.InstallationsService.UpsertInstallation:output_type -> cloud.v1.UpsertInstallationResponse
+	12, // 95: cloud.v1.InstallationsService.DeleteInstallation:output_type -> cloud.v1.DeleteInstallationResponse
+	14, // 96: cloud.v1.NamespacesService.ListNamespaces:output_type -> cloud.v1.ListNamespacesResponse
+	16, // 97: cloud.v1.NamespacesService.SyncNamespaces:output_type -> cloud.v1.SyncNamespacesResponse
+	19, // 98: cloud.v1.NamespacesService.GetNamespaceWebhook:output_type -> cloud.v1.GetNamespaceWebhookResponse
+	20, // 99: cloud.v1.NamespacesService.SetNamespaceWebhook:output_type -> cloud.v1.SetNamespaceWebhookResponse
+	37, // 100: cloud.v1.RulesService.MatchRules:output_type -> cloud.v1.MatchRulesResponse
+	39, // 101: cloud.v1.RulesService.ListRules:output_type -> cloud.v1.ListRulesResponse
+	41, // 102: cloud.v1.RulesService.GetRule:output_type -> cloud.v1.GetRuleResponse
+	43, // 103: cloud.v1.RulesService.CreateRule:output_type -> cloud.v1.CreateRuleResponse
+	45, // 104: cloud.v1.RulesService.UpdateRule:output_type -> cloud.v1.UpdateRuleResponse
+	47, // 105: cloud.v1.RulesService.DeleteRule:output_type -> cloud.v1.DeleteRuleResponse
+	49, // 106: cloud.v1.DriversService.ListDrivers:output_type -> cloud.v1.ListDriversResponse
+	51, // 107: cloud.v1.DriversService.GetDriver:output_type -> cloud.v1.GetDriverResponse
+	53, // 108: cloud.v1.DriversService.UpsertDriver:output_type -> cloud.v1.UpsertDriverResponse
+	55, // 109: cloud.v1.DriversService.DeleteDriver:output_type -> cloud.v1.DeleteDriverResponse
+	57, // 110: cloud.v1.ProvidersService.ListProviders:output_type -> cloud.v1.ListProvidersResponse
+	59, // 111: cloud.v1.ProvidersService.GetProvider:output_type -> cloud.v1.GetProviderResponse
+	61, // 112: cloud.v1.ProvidersService.UpsertProvider:output_type -> cloud.v1.UpsertProviderResponse
+	63, // 113: cloud.v1.ProvidersService.DeleteProvider:output_type -> cloud.v1.DeleteProviderResponse
+	27, // 114: cloud.v1.SCMService.GetSCMClient:output_type -> cloud.v1.GetSCMClientResponse
+	65, // 115: cloud.v1.EventLogsService.ListEventLogs:output_type -> cloud.v1.ListEventLogsResponse
+	67, // 116: cloud.v1.EventLogsService.GetEventLogAnalytics:output_type -> cloud.v1.GetEventLogAnalyticsResponse
+	69, // 117: cloud.v1.EventLogsService.GetEventLogTimeseries:output_type -> cloud.v1.GetEventLogTimeseriesResponse
+	71, // 118: cloud.v1.EventLogsService.GetEventLogBreakdown:output_type -> cloud.v1.GetEventLogBreakdownResponse
+	73, // 119: cloud.v1.EventLogsService.UpdateEventLogStatus:output_type -> cloud.v1.UpdateEventLogStatusResponse
+	75, // 120: cloud.v1.EventLogsService.ReplayEventLog:output_type -> cloud.v1.ReplayEventLogResponse
+	92, // [92:121] is the sub-list for method output_type
+	63, // [63:92] is the sub-list for method input_type
 	63, // [63:63] is the sub-list for extension type_name
 	63, // [63:63] is the sub-list for extension extendee
 	0,  // [0:63] is the sub-list for field type_name
@@ -5643,7 +5778,7 @@ func file_cloud_v1_githooks_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cloud_v1_githooks_proto_rawDesc), len(file_cloud_v1_githooks_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   72,
+			NumMessages:   74,
 			NumExtensions: 0,
 			NumServices:   7,
 		},

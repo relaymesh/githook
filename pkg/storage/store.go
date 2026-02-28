@@ -313,6 +313,7 @@ type DriverStore interface {
 type EventLogStore interface {
 	CreateEventLogs(ctx context.Context, records []EventLogRecord) error
 	ListEventLogs(ctx context.Context, filter EventLogFilter) ([]EventLogRecord, error)
+	GetEventLog(ctx context.Context, id string) (*EventLogRecord, error)
 	GetEventLogAnalytics(ctx context.Context, filter EventLogFilter) (EventLogAnalytics, error)
 	GetEventLogTimeseries(ctx context.Context, filter EventLogFilter, interval EventLogInterval) ([]EventLogTimeseriesBucket, error)
 	GetEventLogBreakdown(ctx context.Context, filter EventLogFilter, groupBy EventLogBreakdownGroup, sortBy EventLogBreakdownSort, sortDesc bool, pageSize int, pageToken string, includeLatency bool) ([]EventLogBreakdown, string, error)

@@ -151,6 +151,7 @@ service EventLogsService {
   // UpdateEventLogStatus lets workers report delivery outcome back to the server.
   // Valid status values: "queued", "delivered", "success", "failed".
   rpc UpdateEventLogStatus(UpdateEventLogStatusRequest) returns (UpdateEventLogStatusResponse);
+  rpc ReplayEventLog(ReplayEventLogRequest) returns (ReplayEventLogResponse);
 }
 
 // InstallRecord holds the OAuth credentials and metadata for a single SCM app
@@ -575,6 +576,8 @@ message EventLogRecord {
 
   // SHA-256 hash of the body for integrity verification.
   string body_hash = 20;
+
+  bytes transformed_body = 21;
 }
 
 // EventLogCount is a key/count pair used in analytics breakdowns.
@@ -1128,3 +1131,15 @@ message UpdateEventLogStatusRequest {
 }
 
 message UpdateEventLogStatusResponse {}
+
+message ReplayEventLogRequest {
+  string log_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  string driver_name = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message ReplayEventLogResponse {
+  string log_id = 1;
+  string topic = 2;
+  string driver_name = 3;
+}

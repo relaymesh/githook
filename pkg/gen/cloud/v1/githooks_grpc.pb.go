@@ -1416,6 +1416,7 @@ const (
 	EventLogsService_GetEventLogTimeseries_FullMethodName = "/cloud.v1.EventLogsService/GetEventLogTimeseries"
 	EventLogsService_GetEventLogBreakdown_FullMethodName  = "/cloud.v1.EventLogsService/GetEventLogBreakdown"
 	EventLogsService_UpdateEventLogStatus_FullMethodName  = "/cloud.v1.EventLogsService/UpdateEventLogStatus"
+	EventLogsService_ReplayEventLog_FullMethodName        = "/cloud.v1.EventLogsService/ReplayEventLog"
 )
 
 // EventLogsServiceClient is the client API for EventLogsService service.
@@ -1443,6 +1444,7 @@ type EventLogsServiceClient interface {
 	// UpdateEventLogStatus lets workers report delivery outcome back to the server.
 	// Valid status values: "queued", "delivered", "success", "failed".
 	UpdateEventLogStatus(ctx context.Context, in *UpdateEventLogStatusRequest, opts ...grpc.CallOption) (*UpdateEventLogStatusResponse, error)
+	ReplayEventLog(ctx context.Context, in *ReplayEventLogRequest, opts ...grpc.CallOption) (*ReplayEventLogResponse, error)
 }
 
 type eventLogsServiceClient struct {
@@ -1503,6 +1505,16 @@ func (c *eventLogsServiceClient) UpdateEventLogStatus(ctx context.Context, in *U
 	return out, nil
 }
 
+func (c *eventLogsServiceClient) ReplayEventLog(ctx context.Context, in *ReplayEventLogRequest, opts ...grpc.CallOption) (*ReplayEventLogResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReplayEventLogResponse)
+	err := c.cc.Invoke(ctx, EventLogsService_ReplayEventLog_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // EventLogsServiceServer is the server API for EventLogsService service.
 // All implementations must embed UnimplementedEventLogsServiceServer
 // for forward compatibility.
@@ -1528,6 +1540,7 @@ type EventLogsServiceServer interface {
 	// UpdateEventLogStatus lets workers report delivery outcome back to the server.
 	// Valid status values: "queued", "delivered", "success", "failed".
 	UpdateEventLogStatus(context.Context, *UpdateEventLogStatusRequest) (*UpdateEventLogStatusResponse, error)
+	ReplayEventLog(context.Context, *ReplayEventLogRequest) (*ReplayEventLogResponse, error)
 	mustEmbedUnimplementedEventLogsServiceServer()
 }
 
@@ -1552,6 +1565,9 @@ func (UnimplementedEventLogsServiceServer) GetEventLogBreakdown(context.Context,
 }
 func (UnimplementedEventLogsServiceServer) UpdateEventLogStatus(context.Context, *UpdateEventLogStatusRequest) (*UpdateEventLogStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateEventLogStatus not implemented")
+}
+func (UnimplementedEventLogsServiceServer) ReplayEventLog(context.Context, *ReplayEventLogRequest) (*ReplayEventLogResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReplayEventLog not implemented")
 }
 func (UnimplementedEventLogsServiceServer) mustEmbedUnimplementedEventLogsServiceServer() {}
 func (UnimplementedEventLogsServiceServer) testEmbeddedByValue()                          {}
@@ -1664,6 +1680,24 @@ func _EventLogsService_UpdateEventLogStatus_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EventLogsService_ReplayEventLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReplayEventLogRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EventLogsServiceServer).ReplayEventLog(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EventLogsService_ReplayEventLog_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EventLogsServiceServer).ReplayEventLog(ctx, req.(*ReplayEventLogRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // EventLogsService_ServiceDesc is the grpc.ServiceDesc for EventLogsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1690,6 +1724,10 @@ var EventLogsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateEventLogStatus",
 			Handler:    _EventLogsService_UpdateEventLogStatus_Handler,
+		},
+		{
+			MethodName: "ReplayEventLog",
+			Handler:    _EventLogsService_ReplayEventLog_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -1456,6 +1456,11 @@ export declare class EventLogRecord extends Message<EventLogRecord> {
    */
   bodyHash: string;
 
+  /**
+   * @generated from field: bytes transformed_body = 21;
+   */
+  transformedBody: Uint8Array;
+
   constructor(data?: PartialMessage<EventLogRecord>);
 
   static readonly runtime: typeof proto3;
@@ -3229,5 +3234,68 @@ export declare class UpdateEventLogStatusResponse extends Message<UpdateEventLog
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateEventLogStatusResponse;
 
   static equals(a: UpdateEventLogStatusResponse | PlainMessage<UpdateEventLogStatusResponse> | undefined, b: UpdateEventLogStatusResponse | PlainMessage<UpdateEventLogStatusResponse> | undefined): boolean;
+}
+
+/**
+ * @generated from message cloud.v1.ReplayEventLogRequest
+ */
+export declare class ReplayEventLogRequest extends Message<ReplayEventLogRequest> {
+  /**
+   * @generated from field: string log_id = 1;
+   */
+  logId: string;
+
+  /**
+   * @generated from field: string driver_name = 2;
+   */
+  driverName: string;
+
+  constructor(data?: PartialMessage<ReplayEventLogRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "cloud.v1.ReplayEventLogRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReplayEventLogRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ReplayEventLogRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ReplayEventLogRequest;
+
+  static equals(a: ReplayEventLogRequest | PlainMessage<ReplayEventLogRequest> | undefined, b: ReplayEventLogRequest | PlainMessage<ReplayEventLogRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message cloud.v1.ReplayEventLogResponse
+ */
+export declare class ReplayEventLogResponse extends Message<ReplayEventLogResponse> {
+  /**
+   * @generated from field: string log_id = 1;
+   */
+  logId: string;
+
+  /**
+   * @generated from field: string topic = 2;
+   */
+  topic: string;
+
+  /**
+   * @generated from field: string driver_name = 3;
+   */
+  driverName: string;
+
+  constructor(data?: PartialMessage<ReplayEventLogResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "cloud.v1.ReplayEventLogResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReplayEventLogResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ReplayEventLogResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ReplayEventLogResponse;
+
+  static equals(a: ReplayEventLogResponse | PlainMessage<ReplayEventLogResponse> | undefined, b: ReplayEventLogResponse | PlainMessage<ReplayEventLogResponse> | undefined): boolean;
 }
 
