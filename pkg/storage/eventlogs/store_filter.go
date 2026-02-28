@@ -9,13 +9,7 @@ import (
 )
 
 func applyFilter(query *gorm.DB, filter storage.EventLogFilter, ctx context.Context) *gorm.DB {
-	tenantID := filter.TenantID
-	if tenantID == "" {
-		tenantID = storage.TenantFromContext(ctx)
-	}
-	if tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
-	}
+	query = query.Scopes(storage.TenantScope(ctx, filter.TenantID, "tenant_id"))
 	if filter.Provider != "" {
 		query = query.Where("provider = ?", filter.Provider)
 	}

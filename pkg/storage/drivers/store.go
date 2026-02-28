@@ -8,10 +8,6 @@ import (
 	"time"
 
 	"github.com/relaymesh/githook/pkg/storage"
-
-	"github.com/glebarez/sqlite"
-	"gorm.io/driver/mysql"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -52,15 +48,12 @@ func Open(cfg Config) (*Store, error) {
 	if cfg.DSN == "" {
 		return nil, errors.New("storage dsn is required")
 	}
-	driver := normalizeDriver(cfg.Driver)
-	if driver == "" {
-		driver = normalizeDriver(cfg.Dialect)
-	}
-	if driver == "" {
-		return nil, errors.New("unsupported storage driver")
+	driver, err := storage.ResolveSQLDriver(cfg.Driver, cfg.Dialect)
+	if err != nil {
+		return nil, err
 	}
 
-	gormDB, err := openGorm(driver, cfg.DSN)
+	gormDB, err := storage.OpenGorm(driver, cfg.DSN)
 	if err != nil {
 		return nil, err
 	}
@@ -221,41 +214,11 @@ func (s *Store) migrate() error {
 }
 
 func (s *Store) tableDB() *gorm.DB {
-	return s.db.Table(s.table)
+	return s.db.Session(&gorm.Session{NewDB: true}).Table(s.table)
 }
 
 func tenantIDFromContext(ctx context.Context) string {
-	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		return tenantID
-	}
-	return globalTenantID
-}
-
-func normalizeDriver(value string) string {
-	value = strings.ToLower(strings.TrimSpace(value))
-	switch value {
-	case "postgres", "postgresql", "pgx":
-		return "postgres"
-	case "mysql":
-		return "mysql"
-	case "sqlite", "sqlite3":
-		return "sqlite"
-	default:
-		return ""
-	}
-}
-
-func openGorm(driver, dsn string) (*gorm.DB, error) {
-	switch driver {
-	case "postgres":
-		return gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	case "mysql":
-		return gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	case "sqlite":
-		return gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	default:
-		return nil, fmt.Errorf("unsupported storage driver: %s", driver)
-	}
+	return storage.ResolveTenant(ctx, globalTenantID)
 }
 
 func toRow(record storage.DriverRecord) row {

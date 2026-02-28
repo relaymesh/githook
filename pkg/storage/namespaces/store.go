@@ -3,15 +3,10 @@ package namespaces
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/relaymesh/githook/pkg/storage"
-
-	"github.com/glebarez/sqlite"
-	"gorm.io/driver/mysql"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -60,15 +55,12 @@ func Open(cfg Config) (*Store, error) {
 	if cfg.DSN == "" {
 		return nil, errors.New("storage dsn is required")
 	}
-	driver := normalizeDriver(cfg.Driver)
-	if driver == "" {
-		driver = normalizeDriver(cfg.Dialect)
-	}
-	if driver == "" {
-		return nil, errors.New("unsupported storage driver")
+	driver, err := storage.ResolveSQLDriver(cfg.Driver, cfg.Dialect)
+	if err != nil {
+		return nil, err
 	}
 
-	gormDB, err := openGorm(driver, cfg.DSN)
+	gormDB, err := storage.OpenGorm(driver, cfg.DSN)
 	if err != nil {
 		return nil, err
 	}
@@ -157,9 +149,7 @@ func (s *Store) GetNamespace(ctx context.Context, provider, repoID, instanceKey 
 	if instanceKey != "" {
 		query = query.Where("provider_instance_key = ?", instanceKey)
 	}
-	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
-	}
+	query = query.Scopes(storage.TenantScope(ctx, "", "tenant_id"))
 	err := query.Take(&data).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -177,11 +167,7 @@ func (s *Store) ListNamespaces(ctx context.Context, filter storage.NamespaceFilt
 		return nil, errors.New("store is not initialized")
 	}
 	query := s.tableDB().WithContext(ctx)
-	if filter.TenantID != "" {
-		query = query.Where("tenant_id = ?", filter.TenantID)
-	} else if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
-	}
+	query = query.Scopes(storage.TenantScope(ctx, filter.TenantID, "tenant_id"))
 	if filter.Provider != "" {
 		query = query.Where("provider = ?", filter.Provider)
 	}
@@ -235,9 +221,7 @@ func (s *Store) DeleteNamespace(ctx context.Context, provider, repoID, instanceK
 	if instanceKey != "" {
 		query = query.Where("provider_instance_key = ?", instanceKey)
 	}
-	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
-	}
+	query = query.Scopes(storage.TenantScope(ctx, "", "tenant_id"))
 	return query.Delete(&row{}).Error
 }
 
@@ -269,34 +253,7 @@ func (s *Store) migrate() error {
 }
 
 func (s *Store) tableDB() *gorm.DB {
-	return s.db.Table(s.table)
-}
-
-func normalizeDriver(value string) string {
-	value = strings.ToLower(strings.TrimSpace(value))
-	switch value {
-	case "postgres", "postgresql", "pgx":
-		return "postgres"
-	case "mysql":
-		return "mysql"
-	case "sqlite", "sqlite3":
-		return "sqlite"
-	default:
-		return ""
-	}
-}
-
-func openGorm(driver, dsn string) (*gorm.DB, error) {
-	switch driver {
-	case "postgres":
-		return gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	case "mysql":
-		return gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	case "sqlite":
-		return gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	default:
-		return nil, fmt.Errorf("unsupported storage driver: %s", driver)
-	}
+	return s.db.Session(&gorm.Session{NewDB: true}).Table(s.table)
 }
 
 func toRow(record storage.NamespaceRecord) row {

@@ -3,15 +3,10 @@ package installations
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/relaymesh/githook/pkg/storage"
-
-	"github.com/glebarez/sqlite"
-	"gorm.io/driver/mysql"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -59,15 +54,12 @@ func Open(cfg Config) (*Store, error) {
 	if cfg.DSN == "" {
 		return nil, errors.New("storage dsn is required")
 	}
-	driver := normalizeDriver(cfg.Driver)
-	if driver == "" {
-		driver = normalizeDriver(cfg.Dialect)
-	}
-	if driver == "" {
-		return nil, errors.New("unsupported storage driver")
+	driver, err := storage.ResolveSQLDriver(cfg.Driver, cfg.Dialect)
+	if err != nil {
+		return nil, err
 	}
 
-	gormDB, err := openGorm(driver, cfg.DSN)
+	gormDB, err := storage.OpenGorm(driver, cfg.DSN)
 	if err != nil {
 		return nil, err
 	}
@@ -141,9 +133,7 @@ func (s *Store) GetInstallation(ctx context.Context, provider, accountID, instal
 	query := s.tableDB().
 		WithContext(ctx).
 		Where("provider = ? AND account_id = ? AND installation_id = ?", provider, accountID, installationID)
-	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
-	}
+	query = query.Scopes(storage.TenantScope(ctx, "", "tenant_id"))
 	err := query.Take(&data).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -164,9 +154,7 @@ func (s *Store) GetInstallationByInstallationID(ctx context.Context, provider, i
 	query := s.tableDB().
 		WithContext(ctx).
 		Where("provider = ? AND installation_id = ?", provider, installationID)
-	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
-	}
+	query = query.Scopes(storage.TenantScope(ctx, "", "tenant_id"))
 	err := query.Order("updated_at desc").Take(&data).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -193,9 +181,7 @@ func (s *Store) GetInstallationByInstallationIDAndInstanceKey(ctx context.Contex
 	query := s.tableDB().
 		WithContext(ctx).
 		Where("provider = ? AND installation_id = ? AND provider_instance_key = ?", provider, installationID, instanceKey)
-	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
-	}
+	query = query.Scopes(storage.TenantScope(ctx, "", "tenant_id"))
 	err := query.Order("updated_at desc").Take(&data).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -219,9 +205,7 @@ func (s *Store) ListInstallations(ctx context.Context, provider, accountID strin
 	if accountID != "" {
 		query = query.Where("account_id = ?", accountID)
 	}
-	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
-	}
+	query = query.Scopes(storage.TenantScope(ctx, "", "tenant_id"))
 	err := query.Find(&data).Error
 	if err != nil {
 		return nil, err
@@ -251,9 +235,7 @@ func (s *Store) DeleteInstallation(ctx context.Context, provider, accountID, ins
 	if instanceKey != "" {
 		query = query.Where("provider_instance_key = ?", instanceKey)
 	}
-	if tenantID := storage.TenantFromContext(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
-	}
+	query = query.Scopes(storage.TenantScope(ctx, "", "tenant_id"))
 	return query.Delete(&row{}).Error
 }
 
@@ -285,34 +267,7 @@ func (s *Store) migrate() error {
 }
 
 func (s *Store) tableDB() *gorm.DB {
-	return s.db.Table(s.table)
-}
-
-func normalizeDriver(value string) string {
-	value = strings.ToLower(strings.TrimSpace(value))
-	switch value {
-	case "postgres", "postgresql", "pgx":
-		return "postgres"
-	case "mysql":
-		return "mysql"
-	case "sqlite", "sqlite3":
-		return "sqlite"
-	default:
-		return ""
-	}
-}
-
-func openGorm(driver, dsn string) (*gorm.DB, error) {
-	switch driver {
-	case "postgres":
-		return gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	case "mysql":
-		return gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	case "sqlite":
-		return gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	default:
-		return nil, fmt.Errorf("unsupported storage driver: %s", driver)
-	}
+	return s.db.Session(&gorm.Session{NewDB: true}).Table(s.table)
 }
 
 func toRow(record storage.InstallRecord) row {

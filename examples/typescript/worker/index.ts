@@ -19,6 +19,7 @@ async function main() {
   );
 
   const provider = NewRemoteSCMClientProvider();
+  let attempts = 0;
 
   const options = [WithEndpoint(endpoint), WithClientProvider(provider)];
   options.push(
@@ -49,43 +50,53 @@ async function main() {
 
   wk.HandleRule(ruleId, async (_ctx, evt) => {
     if (!evt) return;
-    console.log(`topic=${evt.topic} provider=${evt.provider} type=${evt.type}`);
-    console.log(`metadata=${JSON.stringify(evt.metadata ?? {})}`);
-    const payloadText = evt.payload?.toString("utf8") ?? "";
-    if (payloadText) {
-      try {
-        const payloadJson = JSON.parse(payloadText);
-        console.log(`payload=${JSON.stringify(payloadJson)}`);
-      } catch {
-        console.log(`payload=${payloadText}`);
-      }
-    }
-    if (evt.normalized) {
-      console.log(`normalized=${JSON.stringify(evt.normalized)}`);
-    }
-
-    const gh = GitHubClient(evt);
-    if (!gh) {
-      console.log(`github client not available for provider=${evt.provider} (installation may not be configured)`);
-      return;
-    }
-
-    const { owner, repo } = repositoryFromEvent(evt);
-    if (!owner || !repo) {
-      console.log("repository info missing in payload; skipping github read");
-      return;
-    }
+    attempts += 1;
 
     try {
-      const repository = await gh.requestJSON<Record<string, unknown>>(
-        "GET",
-        `/repos/${owner}/${repo}`,
-      );
-      console.log(
-        `github read ok full_name=${repository.full_name} private=${repository.private} default_branch=${repository.default_branch}`,
-      );
+      if (attempts % 2 === 0) {
+        throw new Error(`intentional failure for status test (seq=${attempts})`);
+      }
+
+      console.log(`handler success seq=${attempts} topic=${evt.topic} provider=${evt.provider} type=${evt.type}`);
+      console.log(`topic=${evt.topic} provider=${evt.provider} type=${evt.type}`);
+      console.log(`metadata=${JSON.stringify(evt.metadata ?? {})}`);
+      const payloadText = evt.payload?.toString("utf8") ?? "";
+      if (payloadText) {
+        try {
+          const payloadJson = JSON.parse(payloadText);
+          console.log(`payload=${JSON.stringify(payloadJson)}`);
+        } catch {
+          console.log(`payload=${payloadText}`);
+        }
+      }
+      if (evt.normalized) {
+        console.log(`normalized=${JSON.stringify(evt.normalized)}`);
+      }
+
+      const gh = GitHubClient(evt);
+      if (!gh) {
+        console.log(`github client not available for provider=${evt.provider} (installation may not be configured)`);
+        return;
+      }
+
+      const { owner, repo } = repositoryFromEvent(evt);
+      if (!owner || !repo) {
+        console.log("repository info missing in payload; skipping github read");
+        return;
+      }
+
+      try {
+        const repository = await gh.requestJSON<Record<string, unknown>>("GET", `/repos/${owner}/${repo}`);
+        console.log(
+          `github read ok full_name=${repository.full_name} private=${repository.private} default_branch=${repository.default_branch}`,
+        );
+      } catch (err) {
+        console.log(`github read failed owner=${owner} repo=${repo} err=${err}`);
+      }
     } catch (err) {
-      console.log(`github read failed owner=${owner} repo=${repo} err=${err}`);
+      const wrappedErr = err instanceof Error ? err : new Error(String(err));
+      console.error(`handler failed seq=${attempts} err=${wrappedErr.message}`);
+      throw wrappedErr;
     }
   });
 

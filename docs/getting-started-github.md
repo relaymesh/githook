@@ -1,6 +1,6 @@
 # Getting Started: GitHub
 
-Set up a GitHub webhook pipeline: run the server, create a provider instance, install the GitHub App, and receive events.
+This guide sets up a local GitHub webhook pipeline: run the server, register a provider instance, install the GitHub App, and receive events.
 
 ## Prerequisites
 
@@ -63,6 +63,8 @@ Start the server:
 go run ./main.go serve --config config.yaml
 ```
 
+Verify the server is running by checking logs for startup output.
+
 ## 5) Create the provider instance
 
 Create `github.yaml`:
@@ -98,6 +100,15 @@ githook --endpoint http://localhost:8080 rules create \
   --when 'action == "opened"' \
   --emit pr.opened \
   --driver-id <driver-id>
+```
+
+`--driver-id` is the driver record ID (see `githook drivers list`).
+
+Optional updates:
+
+```bash
+githook --endpoint http://localhost:8080 drivers update --name amqp --config-file amqp.yaml
+githook --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>
 ```
 
 ## 7) Install the GitHub App

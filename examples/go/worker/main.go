@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"strings"
+	"sync/atomic"
 	"syscall"
 
 	worker "github.com/relaymesh/githook/sdk/go/worker"
@@ -29,10 +31,27 @@ func main() {
 		worker.WithClientProvider(worker.NewRemoteSCMClientProvider()),
 	)
 
-	wk.HandleRule(ruleID, func(ctx context.Context, evt *worker.Event) error {
+	var attempts atomic.Uint64
+
+	wk.HandleRule(ruleID, func(ctx context.Context, evt *worker.Event) (err error) {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				err = fmt.Errorf("panic recovered: %v", recovered)
+			}
+		}()
+
 		if evt == nil {
 			return nil
 		}
+
+		seq := attempts.Add(1)
+		if seq%2 == 0 {
+			err = fmt.Errorf("intentional failure for status test (seq=%d)", seq)
+			log.Printf("handler failed seq=%d err=%v", seq, err)
+			return err
+		}
+
+		log.Printf("handler success seq=%d topic=%s provider=%s type=%s", seq, evt.Topic, evt.Provider, evt.Type)
 		log.Printf("topic=%s provider=%s type=%s", evt.Topic, evt.Provider, evt.Type)
 
 		ghClient, ok := worker.GitHubClient(evt)

@@ -1,6 +1,8 @@
 # Event Compatibility
 
-Githooks preserves provider event names in `Event.Name` and sets `Event.Provider` to the source system. Rules should target payload fields, not provider-specific envelope fields.
+Githook preserves provider event names in `Event.Name` and sets `Event.Provider` to the source system. Rules should target payload fields, not provider-specific envelope fields.
+
+Rules evaluate a flattened view of the JSON payload, so fields like `action` and `pull_request.title` are accessible directly in expressions.
 
 ## GitHub
 - Header: `X-GitHub-Event`
@@ -21,6 +23,8 @@ Githooks preserves provider event names in `Event.Name` and sets `Event.Provider
 - GitHub payloads use `pull_request` (singular), not `pull_requests`.
 - Bitbucket events use keys like `pullrequest:created`.
 - GitLab event names come from `X-Gitlab-Event` (e.g., `Merge Request Hook`).
+
+For rule syntax and JSONPath examples, see `docs/rules.md`.
 
 ## Message Metadata
 

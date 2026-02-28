@@ -2,16 +2,16 @@
 
 > **⚠️ Warning:** Research and development only. Not production-ready.
 
-githook is a webhook router for GitHub/GitLab/Bitbucket. It receives events, evaluates rules, and publishes matching events to AMQP/NATS/Kafka. Workers consume events and can fetch SCM clients (GitHub/GitLab/Bitbucket) from the server.
+githook is a multi-tenant webhook router for GitHub, GitLab, and Bitbucket. It receives webhook events, evaluates rules, and publishes matching events to AMQP, NATS, or Kafka. Workers subscribe to those topics and can request SCM clients from the server.
 
-## What it includes ✨
+## Core concepts
 
-- Unified webhook endpoints for GitHub, GitLab, Bitbucket
-- Rule-based routing (`when` + `emit`) with stored rules
-- Driver configs stored per tenant (AMQP/NATS/Kafka)
-- Worker SDKs (Go/TypeScript/Python) using rule IDs
-- Optional OAuth2-authenticated API
-- Event log storage with headers/body + body hash
+- Provider instance: a per-tenant provider configuration (OAuth + webhook secret + optional enterprise URLs).
+- Driver: a broker configuration (AMQP/NATS/Kafka) stored per tenant.
+- Rule: a `when` expression plus `emit` topic(s) targeting a driver.
+- Worker: consumes published events and can request SCM clients from the server.
+- Tenant: logical workspace selected by `X-Tenant-ID` or `--tenant-id`.
+- Event log: stored webhook headers/body plus a body hash for auditing.
 
 ## Install 🧰
 
@@ -85,8 +85,6 @@ exchange: githook.events
 routing_key_template: "{topic}"
 ```
 
-Make sure the exchange exists in your broker.
-
 4) Create a rule:
 
 ```bash
@@ -95,6 +93,8 @@ githook --endpoint http://localhost:8080 rules create \
   --emit pr.opened \
   --driver-id <driver-id>
 ```
+
+`--driver-id` is the driver record ID (see `githook drivers list`).
 
 5) Point your provider webhook to:
 
@@ -117,13 +117,27 @@ http://<server-host>/webhooks/bitbucket
 Go:
 
 ```go
+var attempts atomic.Uint64
+
 wk := worker.New(worker.WithEndpoint("http://localhost:8080"))
 
-wk.HandleRule("<rule-id>", func(ctx context.Context, evt *worker.Event) error {
+wk.HandleRule("<rule-id>", func(ctx context.Context, evt *worker.Event) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("panic recovered: %v", recovered)
+		}
+	}()
+
 	if evt == nil {
 		return nil
 	}
-	log.Printf("topic=%s provider=%s type=%s", evt.Topic, evt.Provider, evt.Type)
+
+	seq := attempts.Add(1)
+	if seq%2 == 0 {
+		return fmt.Errorf("intentional failure for status test (seq=%d)", seq)
+	}
+
+	log.Printf("success seq=%d topic=%s provider=%s type=%s", seq, evt.Topic, evt.Provider, evt.Type)
 	return nil
 })
 
@@ -136,9 +150,21 @@ TypeScript:
 import { New, WithEndpoint } from "@relaymesh/githook";
 
 const worker = New(WithEndpoint("http://localhost:8080"));
+let attempts = 0;
 
 worker.HandleRule("<rule-id>", async (evt) => {
-  console.log(evt.topic, evt.provider, evt.type);
+  attempts += 1;
+  try {
+    if (attempts % 2 === 0) {
+      throw new Error(`intentional failure for status test (seq=${attempts})`);
+    }
+
+    console.log("success", attempts, evt.topic, evt.provider, evt.type);
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    console.error("handler failed", attempts, error.message);
+    throw error;
+  }
 });
 
 await worker.Run();
@@ -150,12 +176,34 @@ Python:
 from relaymesh_githook import New, WithEndpoint
 
 wk = New(WithEndpoint("http://localhost:8080"))
+attempts = 0
 
-wk.HandleRule("<rule-id>", lambda ctx, evt: print(evt.topic, evt.provider, evt.type))
+def handler(ctx, evt):
+    global attempts
+    attempts += 1
+    try:
+        if attempts % 2 == 0:
+            raise RuntimeError(f"intentional failure for status test (seq={attempts})")
+
+        print("success", attempts, evt.topic, evt.provider, evt.type)
+    except Exception as exc:
+        print("handler failed", attempts, str(exc))
+        raise
+
+wk.HandleRule("<rule-id>", handler)
 
 wk.Run()
 ```
 
-## Docs 📚
+For these examples, every second event fails on purpose so you can validate event log status transitions (`success` vs `failed`) end to end.
 
-See `docs/` for provider setup, OAuth flows, rules, drivers, event logs, and SDK details.
+## Docs index 📚
+
+- Getting started: `docs/getting-started-github.md`, `docs/getting-started-gitlab.md`, `docs/getting-started-bitbucket.md`
+- CLI: `docs/cli.md`
+- Rules: `docs/rules.md`
+- Drivers: `docs/drivers.md`
+- Auth: `docs/auth.md`
+- Events: `docs/events.md`
+- Observability: `docs/observability.md`
+- SDK clients: `docs/sdk_clients.md`

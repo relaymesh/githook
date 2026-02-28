@@ -94,6 +94,15 @@ githook --endpoint http://localhost:8080 rules create \
   --driver-id <driver-id>
 ```
 
+`--driver-id` is the driver record ID (see `githook drivers list`).
+
+Optional updates:
+
+```bash
+githook --endpoint http://localhost:8080 drivers update --name amqp --config-file amqp.yaml
+githook --endpoint http://localhost:8080 providers delete --provider gitlab --hash <instance-hash>
+```
+
 ## 7) Complete OAuth onboarding
 
 Get the provider instance hash:

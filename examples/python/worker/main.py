@@ -11,6 +11,7 @@ from relaymesh_githook import (
 )
 
 stop = threading.Event()
+attempts = 0
 
 
 def shutdown(_signum, _frame):
@@ -48,37 +49,49 @@ def repository_from_event(evt):
 
 
 def handle(ctx, evt):
-    print(f"topic={evt.topic} provider={evt.provider} type={evt.type}")
-
-    gh = GitHubClient(evt)
-    if not gh:
-        print(
-            f"github client not available for provider={evt.provider} (installation may not be configured)"
-        )
-        return
-
-    owner, repo = repository_from_event(evt)
-    if not owner or not repo:
-        print("repository info missing in payload; skipping github read")
-        return
-
+    global attempts
+    attempts += 1
     try:
-        repository = gh.request_json("GET", f"/repos/{owner}/{repo}")
-        if isinstance(repository, dict):
-            full_name = repository.get("full_name")
-            private = repository.get("private")
-            default_branch = repository.get("default_branch")
-        else:
-            full_name = None
-            private = None
-            default_branch = None
+        if attempts % 2 == 0:
+            raise RuntimeError(f"intentional failure for status test (seq={attempts})")
+
         print(
-            f"github read ok full_name={full_name} "
-            f"private={private} "
-            f"default_branch={default_branch}"
+            f"handler success seq={attempts} topic={evt.topic} provider={evt.provider} type={evt.type}"
         )
+        print(f"topic={evt.topic} provider={evt.provider} type={evt.type}")
+
+        gh = GitHubClient(evt)
+        if not gh:
+            print(
+                f"github client not available for provider={evt.provider} (installation may not be configured)"
+            )
+            return
+
+        owner, repo = repository_from_event(evt)
+        if not owner or not repo:
+            print("repository info missing in payload; skipping github read")
+            return
+
+        try:
+            repository = gh.request_json("GET", f"/repos/{owner}/{repo}")
+            if isinstance(repository, dict):
+                full_name = repository.get("full_name")
+                private = repository.get("private")
+                default_branch = repository.get("default_branch")
+            else:
+                full_name = None
+                private = None
+                default_branch = None
+            print(
+                f"github read ok full_name={full_name} "
+                f"private={private} "
+                f"default_branch={default_branch}"
+            )
+        except Exception as err:
+            print(f"github read failed owner={owner} repo={repo} err={err}")
     except Exception as err:
-        print(f"github read failed owner={owner} repo={repo} err={err}")
+        print(f"handler failed seq={attempts} err={err}")
+        raise
 
 
 wk.HandleRule(rule_id, handle)

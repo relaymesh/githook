@@ -1,6 +1,6 @@
 # CLI Usage
 
-The `githook` binary doubles as a server and a CLI for Connect RPC endpoints.
+The `githook` binary runs the server and provides a CLI for Connect RPC endpoints.
 
 ## Server
 
@@ -12,10 +12,11 @@ githook serve --config config.yaml
 
 - `--endpoint`: Base URL for Connect RPC calls (overrides `endpoint` in config)
 - `--config`: Path to config file (default: `config.yaml`)
-- `--tenant-id`: Tenant ID to send in `X-Tenant-ID` (default: `default`) when hitting the API
+- `--tenant-id`: Tenant ID sent in `X-Tenant-ID` (default: `default`)
 
-When OAuth2 auth is enabled, the CLI uses `auth.oauth2` from the config to fetch a
-client-credentials token and attaches `Authorization: Bearer <token>` to requests.
+`--config` is used by `serve` and `init`. Provider and driver commands use `--config-file` for their YAML payloads.
+
+When OAuth2 auth is enabled, the CLI uses `auth.oauth2` from the config to fetch a client-credentials token and attaches `Authorization: Bearer <token>` to requests.
 If auth is enabled on the server, the CLI must be run with a config file.
 The CLI reads `endpoint` from the config when `--endpoint` is not provided.
 
@@ -83,11 +84,11 @@ Throw `--tenant-id` on these commands when targeting a different tenant (default
 ```bash
 githook --endpoint http://localhost:8080 providers list
 githook --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>
-githook --endpoint http://localhost:8080 --tenant-id acme providers set --provider github --config-file github.yaml
+githook --endpoint http://localhost:8080 --tenant-id acme providers create --provider github --config-file github.yaml
 githook --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>
 ```
 
-`providers set` reads the provided YAML and stores it as the provider instance configuration. Because the CLI automatically sends `X-Tenant-ID`, you can also override the tenant via `--tenant-id` so the new provider lands in the right workspace. The API generates the instance hash on creation; store it for later use with `providers get`, `providers delete`, and the OAuth onboarding `instance=` query parameter.
+`providers create` reads the provided YAML and stores it as the provider instance configuration. Because the CLI automatically sends `X-Tenant-ID`, you can override the tenant via `--tenant-id` so the new provider lands in the right workspace. The API generates the instance hash on creation; store it for later use with `providers get`, `providers delete`, and the OAuth onboarding `instance=` query parameter.
 
 ### Config File Format
 
@@ -105,7 +106,7 @@ oauth:
   client_secret: your-client-secret
 ```
 
-### Flags for `providers set`
+### Flags for `providers create`
 
 | Flag | Description |
 |------|-------------|
@@ -119,11 +120,13 @@ oauth:
 ```bash
 githook --endpoint http://localhost:8080 drivers list
 githook --endpoint http://localhost:8080 drivers get --name amqp
-githook --endpoint http://localhost:8080 --tenant-id acme drivers set --name amqp --config-file amqp.yaml
+githook --endpoint http://localhost:8080 --tenant-id acme drivers create --name amqp --config-file amqp.yaml
 githook --endpoint http://localhost:8080 drivers delete --name amqp
 ```
 
 The driver config file must be YAML and the CLI converts it to the JSON payload required by the API. `--tenant-id` decides which tenant owns the driver.
+
+Use `githook drivers list` to see driver record IDs for `rules create --driver-id`.
 
 ## Rules (curl)
 
