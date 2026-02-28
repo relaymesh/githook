@@ -29,12 +29,12 @@ type Store struct {
 
 type row struct {
 	ID             string     `gorm:"column:id;size:64;primaryKey"`
-	TenantID       string     `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_installation,priority:1"`
-	Provider       string     `gorm:"column:provider;size:32;not null;uniqueIndex:idx_installation,priority:2"`
+	TenantID       string     `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_installation,priority:1;index:idx_installation_provider_installation_updated,priority:1;index:idx_installation_provider_installation_instance_updated,priority:1"`
+	Provider       string     `gorm:"column:provider;size:32;not null;uniqueIndex:idx_installation,priority:2;index:idx_installation_provider_installation_updated,priority:2;index:idx_installation_provider_installation_instance_updated,priority:2"`
 	AccountID      string     `gorm:"column:account_id;size:128;not null;uniqueIndex:idx_installation,priority:3"`
 	AccountName    string     `gorm:"column:account_name;size:255"`
-	InstallationID string     `gorm:"column:installation_id;size:128;not null;uniqueIndex:idx_installation,priority:4"`
-	InstanceKey    string     `gorm:"column:provider_instance_key;size:64;uniqueIndex:idx_installation,priority:5"`
+	InstallationID string     `gorm:"column:installation_id;size:128;not null;uniqueIndex:idx_installation,priority:4;index:idx_installation_provider_installation_updated,priority:3;index:idx_installation_provider_installation_instance_updated,priority:3"`
+	InstanceKey    string     `gorm:"column:provider_instance_key;size:64;uniqueIndex:idx_installation,priority:5;index:idx_installation_provider_installation_instance_updated,priority:4"`
 	EnterpriseID   string     `gorm:"column:enterprise_id;size:128"`
 	EnterpriseSlug string     `gorm:"column:enterprise_slug;size:255"`
 	EnterpriseName string     `gorm:"column:enterprise_name;size:255"`
@@ -43,7 +43,7 @@ type row struct {
 	ExpiresAt      *time.Time `gorm:"column:expires_at"`
 	MetadataJSON   string     `gorm:"column:metadata_json;type:text"`
 	CreatedAt      time.Time  `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt      time.Time  `gorm:"column:updated_at;autoUpdateTime"`
+	UpdatedAt      time.Time  `gorm:"column:updated_at;autoUpdateTime;index:idx_installation_provider_installation_updated,priority:4,sort:desc;index:idx_installation_provider_installation_instance_updated,priority:5,sort:desc"`
 }
 
 // Open creates a GORM-backed installations store.

@@ -31,23 +31,23 @@ type Store struct {
 
 type row struct {
 	ID        string    `gorm:"column:id;size:64;primaryKey"`
-	TenantID  string    `gorm:"column:tenant_id;size:64;not null;default:'';index"`
+	TenantID  string    `gorm:"column:tenant_id;size:64;not null;default:'';index;index:idx_rules_tenant_created,priority:1"`
 	When      string    `gorm:"column:when;type:text;not null"`
 	EmitJSON  string    `gorm:"column:emit_json;type:text"`
 	Emit      string    `gorm:"column:emit;type:text"`
 	DriverID  string    `gorm:"column:driver_id;size:64"`
-	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime;index:idx_rules_tenant_created,priority:2,sort:asc"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
 }
 
 type ruleWithDriver struct {
 	ID            string    `gorm:"column:id;size:64;primaryKey"`
-	TenantID      string    `gorm:"column:tenant_id;size:64;not null;default:'';index"`
+	TenantID      string    `gorm:"column:tenant_id;size:64;not null;default:'';index;index:idx_rules_tenant_created,priority:1"`
 	When          string    `gorm:"column:when;type:text;not null"`
 	EmitJSON      string    `gorm:"column:emit_json;type:text"`
 	Emit          string    `gorm:"column:emit;type:text"`
 	DriverID      string    `gorm:"column:driver_id;size:64"`
-	CreatedAt     time.Time `gorm:"column:created_at;autoCreateTime"`
+	CreatedAt     time.Time `gorm:"column:created_at;autoCreateTime;index:idx_rules_tenant_created,priority:2,sort:asc"`
 	UpdatedAt     time.Time `gorm:"column:updated_at;autoUpdateTime"`
 	DriverName    string    `gorm:"column:driver_name"`
 	DriverConfig  string    `gorm:"column:driver_config_json"`

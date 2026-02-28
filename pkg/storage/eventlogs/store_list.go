@@ -13,7 +13,8 @@ func (s *Store) ListEventLogs(ctx context.Context, filter storage.EventLogFilter
 		return nil, errors.New("store is not initialized")
 	}
 	query := applyFilter(s.tableDB().WithContext(ctx), filter, ctx).
-		Order("created_at desc")
+		Order("created_at desc").
+		Order("id desc")
 	if filter.Limit > 0 {
 		query = query.Limit(filter.Limit)
 	}

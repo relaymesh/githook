@@ -27,8 +27,8 @@ type Store struct {
 
 type row struct {
 	ID             string    `gorm:"column:id;size:64;primaryKey"`
-	TenantID       string    `gorm:"column:tenant_id;size:64;not null;default:'';index"`
-	Provider       string    `gorm:"column:provider;size:32;not null;index"`
+	TenantID       string    `gorm:"column:tenant_id;size:64;not null;default:'';index;index:idx_event_logs_tenant_created,priority:1;index:idx_event_logs_tenant_provider_created,priority:1;index:idx_event_logs_tenant_status_created,priority:1;index:idx_event_logs_tenant_matched_created,priority:1"`
+	Provider       string    `gorm:"column:provider;size:32;not null;index;index:idx_event_logs_tenant_provider_created,priority:2"`
 	Name           string    `gorm:"column:name;size:128;not null;index"`
 	RequestID      string    `gorm:"column:request_id;size:128;index"`
 	StateID        string    `gorm:"column:state_id;size:128;index"`
@@ -42,11 +42,11 @@ type row struct {
 	HeadersJSON    string    `gorm:"column:headers_json;type:text"`
 	Body           string    `gorm:"column:body;type:text"`
 	BodyHash       string    `gorm:"column:body_hash;size:64;index"`
-	Matched        bool      `gorm:"column:matched;not null;default:false;index"`
-	Status         string    `gorm:"column:status;size:32;not null;default:'queued';index"`
+	Matched        bool      `gorm:"column:matched;not null;default:false;index;index:idx_event_logs_tenant_matched_created,priority:2"`
+	Status         string    `gorm:"column:status;size:32;not null;default:'queued';index;index:idx_event_logs_tenant_status_created,priority:2"`
 	ErrorMessage   string    `gorm:"column:error_message;type:text"`
 	LatencyMS      int64     `gorm:"column:latency_ms;not null;default:0;index"`
-	CreatedAt      time.Time `gorm:"column:created_at;autoCreateTime;index"`
+	CreatedAt      time.Time `gorm:"column:created_at;autoCreateTime;index;index:idx_event_logs_tenant_created,priority:2,sort:desc;index:idx_event_logs_tenant_provider_created,priority:3,sort:desc;index:idx_event_logs_tenant_status_created,priority:3,sort:desc;index:idx_event_logs_tenant_matched_created,priority:3,sort:desc"`
 	UpdatedAt      time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
 }
 
