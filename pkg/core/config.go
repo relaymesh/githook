@@ -88,8 +88,9 @@ type AMQPConfig struct {
 }
 
 type HTTPConfig struct {
-	Endpoint   string `yaml:"endpoint" json:"endpoint"`
-	RetryCount int    `yaml:"retry_count" json:"retry_count"`
+	Endpoint     string `yaml:"endpoint" json:"endpoint"`
+	RetryCount   int    `yaml:"retry_count" json:"retry_count"`
+	WebhookToken string `yaml:"webhook_token" json:"webhook_token"`
 }
 
 type PublishRetryConfig struct {

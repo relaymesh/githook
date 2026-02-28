@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	amqpadapter "github.com/relaymesh/relaybus/sdk/amqp/go"
 	relaycore "github.com/relaymesh/relaybus/sdk/core/go"
 	relaymessage "github.com/relaymesh/relaybus/sdk/core/go/message"
@@ -160,7 +161,11 @@ func newSinglePublisher(cfg RelaybusConfig, driver string, retryCfg PublishRetry
 		if strings.TrimSpace(cfg.HTTP.Endpoint) == "" {
 			return nil, fmt.Errorf("http endpoint is required")
 		}
-		pub, err := httpadapter.NewPublisher(httpadapter.Config{Endpoint: cfg.HTTP.Endpoint})
+		headers := map[string]string{}
+		if token := strings.TrimSpace(cfg.HTTP.WebhookToken); token != "" {
+			headers["X-Webhook-Token"] = token
+		}
+		pub, err := httpadapter.NewPublisher(httpadapter.Config{Endpoint: cfg.HTTP.Endpoint, Headers: headers})
 		if err != nil {
 			return nil, err
 		}
@@ -309,10 +314,16 @@ func (w *relaybusPublisher) Publish(ctx context.Context, topic string, event Eve
 	metadata["content_type"] = "application/x-protobuf"
 	metadata["schema"] = "cloud.v1.EventPayload"
 	msg := relaymessage.Message{
-		Topic:       topic,
-		Payload:     protoPayload,
-		ContentType: "application/x-protobuf",
-		Metadata:    metadata,
+		ID:            event.LogID,
+		Topic:         topic,
+		Payload:       protoPayload,
+		Timestamp:     time.Now().UTC(),
+		ContentType:   "application/x-protobuf",
+		Metadata:      metadata,
+		SchemaVersion: "v1",
+	}
+	if strings.TrimSpace(msg.ID) == "" {
+		msg.ID = uuid.NewString()
 	}
 	return w.publisher.Publish(ctx, topic, msg)
 }

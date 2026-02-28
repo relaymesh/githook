@@ -111,7 +111,7 @@ func TestConfigFromDriver(t *testing.T) {
 	})
 
 	t.Run("valid http", func(t *testing.T) {
-		cfg, err := ConfigFromDriver("http", `{"endpoint":"http://localhost:8088/{topic}"}`)
+		cfg, err := ConfigFromDriver("http", `{"endpoint":"http://localhost:8088/{topic}","retry_count":5,"webhook_token":"abc123"}`)
 		if err != nil {
 			t.Fatalf("config from driver: %v", err)
 		}
@@ -121,6 +121,12 @@ func TestConfigFromDriver(t *testing.T) {
 		if cfg.HTTP.Endpoint != "http://localhost:8088/{topic}" {
 			t.Fatalf("unexpected http config: %+v", cfg.HTTP)
 		}
+		if cfg.HTTP.RetryCount != 5 {
+			t.Fatalf("expected http retry_count=5, got %+v", cfg.HTTP)
+		}
+		if cfg.HTTP.WebhookToken != "abc123" {
+			t.Fatalf("expected webhook token mapping, got %+v", cfg.HTTP)
+		}
 	})
 }
 
@@ -128,7 +134,9 @@ func TestRecordsFromConfigHTTP(t *testing.T) {
 	cfg := core.RelaybusConfig{
 		Driver: "http",
 		HTTP: core.HTTPConfig{
-			Endpoint: "http://localhost:8088/{topic}",
+			Endpoint:     "http://localhost:8088/{topic}",
+			RetryCount:   3,
+			WebhookToken: "tok-1",
 		},
 	}
 	records, err := RecordsFromConfig(cfg)
@@ -137,5 +145,12 @@ func TestRecordsFromConfigHTTP(t *testing.T) {
 	}
 	if len(records) != 1 || records[0].Name != "http" {
 		t.Fatalf("unexpected records: %+v", records)
+	}
+	parsed, err := ConfigFromDriver("http", records[0].ConfigJSON)
+	if err != nil {
+		t.Fatalf("config from stored http driver: %v", err)
+	}
+	if parsed.HTTP.RetryCount != 3 || parsed.HTTP.WebhookToken != "tok-1" {
+		t.Fatalf("expected stored http retry/token, got %+v", parsed.HTTP)
 	}
 }

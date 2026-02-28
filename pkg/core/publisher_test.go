@@ -2,6 +2,8 @@ package core
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	relaymessage "github.com/relaymesh/relaybus/sdk/core/go/message"
@@ -182,5 +184,34 @@ func TestPublishUsesRawPayloadAndMetadata(t *testing.T) {
 	}
 	if stub.lastMsg.Metadata["request_id"] != "req-123" {
 		t.Fatalf("expected request_id metadata")
+	}
+}
+
+func TestHTTPDriverPublishesWebhookTokenHeader(t *testing.T) {
+	var headerValue string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		headerValue = r.Header.Get("X-Webhook-Token")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	pub, err := NewPublisher(RelaybusConfig{
+		Driver: "http",
+		HTTP: HTTPConfig{
+			Endpoint:     srv.URL + "/{topic}",
+			WebhookToken: "secret-123",
+		},
+	})
+	if err != nil {
+		t.Fatalf("new http publisher: %v", err)
+	}
+	defer func() { _ = pub.Close() }()
+
+	err = pub.PublishForDrivers(context.Background(), "relaybus.demo", Event{Provider: "github", Name: "push", RawPayload: []byte(`{"ok":true}`)}, nil)
+	if err != nil {
+		t.Fatalf("publish via http driver: %v", err)
+	}
+	if headerValue != "secret-123" {
+		t.Fatalf("expected X-Webhook-Token header, got %q", headerValue)
 	}
 }
