@@ -66,6 +66,8 @@ func marshalDriverConfig(name string, cfg core.RelaybusConfig) (string, error) {
 		return marshalJSON(cfg.NATS)
 	case "kafka":
 		return marshalJSON(cfg.Kafka)
+	case "http":
+		return marshalJSON(cfg.HTTP)
 	default:
 		return "", errors.New("unsupported driver: " + name)
 	}
@@ -82,6 +84,8 @@ func applyDriverConfig(cfg *core.RelaybusConfig, name, raw string) error {
 		return unmarshalJSON(raw, &cfg.NATS)
 	case "kafka":
 		return unmarshalJSON(raw, &cfg.Kafka)
+	case "http":
+		return unmarshalJSON(raw, &cfg.HTTP)
 	default:
 		return errors.New("unsupported driver: " + name)
 	}

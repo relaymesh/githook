@@ -208,7 +208,7 @@ func (h *GitHubHandler) emit(r *http.Request, logger *log.Logger, event core.Eve
 	if h.logs == nil {
 		matchRules := ruleMatchesFromRules(matches)
 		logger.Printf("event provider=%s name=%s topics=%v", event.Provider, event.Name, topicsFromMatches(matchRules))
-		publishMatchesWithFallback(r.Context(), event, matchRules, nil, h.dynamicDrivers, h.publisher, logger, nil)
+		publishMatchesWithFallback(r.Context(), event, matchRules, nil, h.dynamicDrivers, h.publisher, logger, nil, nil)
 		return
 	}
 
@@ -223,5 +223,13 @@ func (h *GitHubHandler) emit(r *http.Request, logger *log.Logger, event core.Eve
 			logger.Printf("event log update failed: %v", err)
 		}
 	}
-	publishMatchesWithFallback(r.Context(), event, matchRules, matchLogs, h.dynamicDrivers, h.publisher, logger, statusUpdater)
+	payloadUpdater := func(recordID string, transformed []byte) {
+		if recordID == "" {
+			return
+		}
+		if err := h.logs.UpdateEventLogTransformedPayload(r.Context(), recordID, transformed); err != nil {
+			logger.Printf("event log transformed payload update failed: %v", err)
+		}
+	}
+	publishMatchesWithFallback(r.Context(), event, matchRules, matchLogs, h.dynamicDrivers, h.publisher, logger, statusUpdater, payloadUpdater)
 }

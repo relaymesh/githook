@@ -57,30 +57,39 @@ type RelaybusConfig struct {
 	Kafka        KafkaConfig        `yaml:"kafka"`
 	NATS         NATSConfig         `yaml:"nats"`
 	AMQP         AMQPConfig         `yaml:"amqp"`
+	HTTP         HTTPConfig         `yaml:"http"`
 	PublishRetry PublishRetryConfig `yaml:"publish_retry"`
 	DLQDriver    string             `yaml:"dlq_driver"`
 }
 
 // KafkaConfig holds configuration for the Kafka pub/sub.
 type KafkaConfig struct {
-	Brokers     []string `yaml:"brokers"`
-	Broker      string   `yaml:"broker"`
-	TopicPrefix string   `yaml:"topic_prefix"`
+	Brokers     []string `yaml:"brokers" json:"brokers"`
+	Broker      string   `yaml:"broker" json:"broker"`
+	TopicPrefix string   `yaml:"topic_prefix" json:"topic_prefix"`
+	RetryCount  int      `yaml:"retry_count" json:"retry_count"`
 }
 
 // NATSConfig holds configuration for the NATS pub/sub.
 type NATSConfig struct {
-	URL           string `yaml:"url"`
-	SubjectPrefix string `yaml:"subject_prefix"`
+	URL           string `yaml:"url" json:"url"`
+	SubjectPrefix string `yaml:"subject_prefix" json:"subject_prefix"`
+	RetryCount    int    `yaml:"retry_count" json:"retry_count"`
 }
 
 // AMQPConfig holds configuration for the AMQP pub/sub.
 type AMQPConfig struct {
-	URL                string `yaml:"url"`
-	Exchange           string `yaml:"exchange"`
-	RoutingKeyTemplate string `yaml:"routing_key_template"`
-	Mandatory          bool   `yaml:"mandatory"`
-	Immediate          bool   `yaml:"immediate"`
+	URL                string `yaml:"url" json:"url"`
+	Exchange           string `yaml:"exchange" json:"exchange"`
+	RoutingKeyTemplate string `yaml:"routing_key_template" json:"routing_key_template"`
+	Mandatory          bool   `yaml:"mandatory" json:"mandatory"`
+	Immediate          bool   `yaml:"immediate" json:"immediate"`
+	RetryCount         int    `yaml:"retry_count" json:"retry_count"`
+}
+
+type HTTPConfig struct {
+	Endpoint   string `yaml:"endpoint" json:"endpoint"`
+	RetryCount int    `yaml:"retry_count" json:"retry_count"`
 }
 
 type PublishRetryConfig struct {

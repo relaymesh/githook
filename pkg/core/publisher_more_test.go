@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	relaymessage "github.com/relaymesh/relaybus/sdk/core/go/message"
 )
@@ -35,12 +36,21 @@ func TestValidatePublisherDriverAndConfig(t *testing.T) {
 	if err := validatePublisherDriver(RelaybusConfig{Kafka: KafkaConfig{Broker: "localhost:9092"}}, "kafka"); err != nil {
 		t.Fatalf("expected kafka broker fallback validation success: %v", err)
 	}
+	if err := validatePublisherDriver(RelaybusConfig{}, "http"); err == nil {
+		t.Fatalf("expected http endpoint required")
+	}
+	if err := validatePublisherDriver(RelaybusConfig{HTTP: HTTPConfig{Endpoint: "http://localhost:8088/{topic}"}}, "http"); err != nil {
+		t.Fatalf("expected valid http config: %v", err)
+	}
 	if err := validatePublisherDriver(RelaybusConfig{}, "unknown"); err == nil {
 		t.Fatalf("expected unknown driver error")
 	}
 
 	if err := ValidatePublisherConfig(RelaybusConfig{Drivers: []string{"kafka"}, Kafka: KafkaConfig{Brokers: []string{"b1:9092"}}}); err != nil {
 		t.Fatalf("expected valid kafka config: %v", err)
+	}
+	if err := ValidatePublisherConfig(RelaybusConfig{Drivers: []string{"http"}, HTTP: HTTPConfig{Endpoint: "http://localhost:8088/{topic}"}}); err != nil {
+		t.Fatalf("expected valid http config: %v", err)
 	}
 }
 
@@ -53,6 +63,74 @@ func TestRelaybusRetryPolicyDefaults(t *testing.T) {
 		t.Fatalf("expected non-negative delays")
 	}
 }
+
+func TestDriverRetryConfig(t *testing.T) {
+	base := RelaybusConfig{
+		PublishRetry: PublishRetryConfig{Attempts: 3, DelayMS: 50},
+		AMQP:         AMQPConfig{RetryCount: 7},
+		NATS:         NATSConfig{RetryCount: 6},
+		Kafka:        KafkaConfig{RetryCount: 5},
+		HTTP:         HTTPConfig{RetryCount: 4},
+	}
+	if got := driverRetryConfig(base, "amqp"); got.Attempts != 7 {
+		t.Fatalf("expected amqp retry override, got %+v", got)
+	}
+	if got := driverRetryConfig(base, "nats"); got.Attempts != 6 {
+		t.Fatalf("expected nats retry override, got %+v", got)
+	}
+	if got := driverRetryConfig(base, "kafka"); got.Attempts != 5 {
+		t.Fatalf("expected kafka retry override, got %+v", got)
+	}
+	if got := driverRetryConfig(base, "http"); got.Attempts != 4 {
+		t.Fatalf("expected http retry override, got %+v", got)
+	}
+	if got := driverRetryConfig(base, "unknown"); got.Attempts != 3 {
+		t.Fatalf("expected base retry for unknown, got %+v", got)
+	}
+}
+
+func TestRetryingPublisher(t *testing.T) {
+	t.Run("eventual success", func(t *testing.T) {
+		calls := 0
+		base := &publisherRecorder{delegate: &stubPublisher{}, onPublish: func() { calls++ }}
+		r := &retryingPublisher{
+			base: Publisher(&publisherRecorder{delegate: PublisherFunc(func(ctx context.Context, topic string, event Event) error {
+				calls++
+				if calls < 3 {
+					return errors.New("fail")
+				}
+				return nil
+			})}),
+			attempts: 3,
+			delay:    0,
+		}
+		_ = base
+		if err := r.Publish(context.Background(), "topic", Event{}); err != nil {
+			t.Fatalf("expected eventual success, got %v", err)
+		}
+	})
+
+	t.Run("context cancel", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		r := &retryingPublisher{base: &errPublisher{err: errors.New("always")}, attempts: 3, delay: time.Second}
+		if err := r.Publish(ctx, "topic", Event{}); err == nil {
+			t.Fatalf("expected canceled error")
+		}
+	})
+}
+
+type PublisherFunc func(ctx context.Context, topic string, event Event) error
+
+func (f PublisherFunc) Publish(ctx context.Context, topic string, event Event) error {
+	return f(ctx, topic, event)
+}
+
+func (f PublisherFunc) PublishForDrivers(ctx context.Context, topic string, event Event, drivers []string) error {
+	return f(ctx, topic, event)
+}
+
+func (f PublisherFunc) Close() error { return nil }
 
 func TestPublisherMuxUnknownDriverAndDLQ(t *testing.T) {
 	primaryErr := errors.New("publish failed")

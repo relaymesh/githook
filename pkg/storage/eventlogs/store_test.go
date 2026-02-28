@@ -18,15 +18,22 @@ func TestEventLogsStoreCRUD(t *testing.T) {
 	ctx := storage.WithTenant(context.Background(), "tenant-a")
 	now := time.Now().UTC()
 	if err := store.CreateEventLogs(ctx, []storage.EventLogRecord{
-		{ID: "id-1", Provider: "github", Name: "push", RequestID: "req-1", CreatedAt: now, Matched: true},
+		{ID: "id-1", Provider: "github", Name: "push", RequestID: "req-1", CreatedAt: now, Matched: true, Body: []byte(`{"a":1}`)},
 		{ID: "id-2", Provider: "gitlab", Name: "merge", RequestID: "req-2", CreatedAt: now.Add(time.Minute)},
 	}); err != nil {
 		t.Fatalf("create event logs: %v", err)
 	}
 
+	if err := store.UpdateEventLogTransformedPayload(ctx, "id-1", []byte(`{"a":2}`)); err != nil {
+		t.Fatalf("update transformed payload: %v", err)
+	}
+
 	list, err := store.ListEventLogs(ctx, storage.EventLogFilter{Provider: "github"})
 	if err != nil || len(list) != 1 {
 		t.Fatalf("list event logs: %v", err)
+	}
+	if string(list[0].Body) != `{"a":1}` || string(list[0].TransformedBody) != `{"a":2}` {
+		t.Fatalf("expected original and transformed payloads, got body=%s transformed=%s", string(list[0].Body), string(list[0].TransformedBody))
 	}
 
 	if err := store.UpdateEventLogStatus(ctx, "id-1", "success", ""); err != nil {

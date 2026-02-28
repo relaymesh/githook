@@ -11,6 +11,7 @@ import (
 	amqpadapter "github.com/relaymesh/relaybus/sdk/amqp/go"
 	relaycore "github.com/relaymesh/relaybus/sdk/core/go"
 	relaymessage "github.com/relaymesh/relaybus/sdk/core/go/message"
+	httpadapter "github.com/relaymesh/relaybus/sdk/http/go"
 	kafkaadapter "github.com/relaymesh/relaybus/sdk/kafka/go"
 	natsadapter "github.com/relaymesh/relaybus/sdk/nats/go"
 	"google.golang.org/protobuf/proto"
@@ -57,8 +58,9 @@ func NewPublisher(cfg RelaybusConfig) (Publisher, error) {
 	pubs := make(map[string]Publisher, len(drivers))
 	builtDrivers := make([]string, 0, len(drivers))
 	for _, driver := range drivers {
+		retryCfg := driverRetryConfig(cfg, driver)
 		pub, err := retryPublisherBuild(func() (Publisher, error) {
-			return newSinglePublisher(cfg, driver)
+			return newSinglePublisher(cfg, driver, retryCfg)
 		})
 		if err != nil {
 			continue
@@ -94,7 +96,7 @@ func ValidatePublisherConfig(cfg RelaybusConfig) error {
 	return nil
 }
 
-func newSinglePublisher(cfg RelaybusConfig, driver string) (Publisher, error) {
+func newSinglePublisher(cfg RelaybusConfig, driver string, retryCfg PublishRetryConfig) (Publisher, error) {
 	switch strings.ToLower(driver) {
 	case "kafka":
 		brokers := cfg.Kafka.Brokers
@@ -106,7 +108,7 @@ func newSinglePublisher(cfg RelaybusConfig, driver string) (Publisher, error) {
 		}
 		pub, err := relaycore.NewPublisher(relaycore.Config{
 			Destination: "kafka",
-			Retry:       relaybusRetryPolicy(cfg.PublishRetry),
+			Retry:       relaybusRetryPolicy(retryCfg),
 			Logger:      relaycore.NopLogger{},
 			Kafka: kafkaadapter.Config{
 				Brokers:     brokers,
@@ -123,7 +125,7 @@ func newSinglePublisher(cfg RelaybusConfig, driver string) (Publisher, error) {
 		}
 		pub, err := relaycore.NewPublisher(relaycore.Config{
 			Destination: "nats",
-			Retry:       relaybusRetryPolicy(cfg.PublishRetry),
+			Retry:       relaybusRetryPolicy(retryCfg),
 			Logger:      relaycore.NopLogger{},
 			NATS: natsadapter.Config{
 				URL:           cfg.NATS.URL,
@@ -138,10 +140,9 @@ func newSinglePublisher(cfg RelaybusConfig, driver string) (Publisher, error) {
 		if cfg.AMQP.URL == "" {
 			return nil, fmt.Errorf("amqp url is required")
 		}
-		fmt.Println(cfg.AMQP)
 		pub, err := relaycore.NewPublisher(relaycore.Config{
 			Destination: "amqp",
-			Retry:       relaybusRetryPolicy(cfg.PublishRetry),
+			Retry:       relaybusRetryPolicy(retryCfg),
 			Logger:      relaycore.NopLogger{},
 			AMQP: amqpadapter.Config{
 				URL:                cfg.AMQP.URL,
@@ -155,12 +156,52 @@ func newSinglePublisher(cfg RelaybusConfig, driver string) (Publisher, error) {
 			return nil, err
 		}
 		return &relaybusPublisher{publisher: pub}, nil
+	case "http":
+		if strings.TrimSpace(cfg.HTTP.Endpoint) == "" {
+			return nil, fmt.Errorf("http endpoint is required")
+		}
+		pub, err := httpadapter.NewPublisher(httpadapter.Config{Endpoint: cfg.HTTP.Endpoint})
+		if err != nil {
+			return nil, err
+		}
+		base := &relaybusPublisher{publisher: pub}
+		if retryCfg.Attempts <= 1 {
+			return base, nil
+		}
+		return &retryingPublisher{
+			base:     base,
+			attempts: retryCfg.Attempts,
+			delay:    time.Duration(retryCfg.DelayMS) * time.Millisecond,
+		}, nil
 	default:
 		if factory, ok := publisherFactories[strings.ToLower(driver)]; ok {
 			return factory(cfg)
 		}
 		return nil, fmt.Errorf("unsupported relaybus driver: %s", driver)
 	}
+}
+
+func driverRetryConfig(cfg RelaybusConfig, driver string) PublishRetryConfig {
+	result := cfg.PublishRetry
+	switch strings.ToLower(strings.TrimSpace(driver)) {
+	case "amqp":
+		if cfg.AMQP.RetryCount > 0 {
+			result.Attempts = cfg.AMQP.RetryCount
+		}
+	case "nats":
+		if cfg.NATS.RetryCount > 0 {
+			result.Attempts = cfg.NATS.RetryCount
+		}
+	case "kafka":
+		if cfg.Kafka.RetryCount > 0 {
+			result.Attempts = cfg.Kafka.RetryCount
+		}
+	case "http":
+		if cfg.HTTP.RetryCount > 0 {
+			result.Attempts = cfg.HTTP.RetryCount
+		}
+	}
+	return result
 }
 
 func validatePublisherDriver(cfg RelaybusConfig, driver string) error {
@@ -182,6 +223,11 @@ func validatePublisherDriver(cfg RelaybusConfig, driver string) error {
 		}
 		if len(brokers) == 0 {
 			return fmt.Errorf("kafka brokers are required")
+		}
+		return nil
+	case "http":
+		if strings.TrimSpace(cfg.HTTP.Endpoint) == "" {
+			return fmt.Errorf("http endpoint is required")
 		}
 		return nil
 	default:
@@ -289,6 +335,50 @@ type publisherMux struct {
 	publishers     map[string]Publisher
 	defaultDrivers []string
 	dlqDriver      string
+}
+
+type retryingPublisher struct {
+	base     Publisher
+	attempts int
+	delay    time.Duration
+}
+
+func (r *retryingPublisher) Publish(ctx context.Context, topic string, event Event) error {
+	if r == nil || r.base == nil {
+		return errors.New("publisher not configured")
+	}
+	attempts := r.attempts
+	if attempts <= 0 {
+		attempts = 1
+	}
+	var lastErr error
+	for i := 0; i < attempts; i++ {
+		if err := r.base.Publish(ctx, topic, event); err == nil {
+			return nil
+		} else {
+			lastErr = err
+		}
+		if i+1 >= attempts || r.delay <= 0 {
+			continue
+		}
+		select {
+		case <-ctx.Done():
+			return errors.Join(lastErr, ctx.Err())
+		case <-time.After(r.delay):
+		}
+	}
+	return lastErr
+}
+
+func (r *retryingPublisher) PublishForDrivers(ctx context.Context, topic string, event Event, drivers []string) error {
+	return r.Publish(ctx, topic, event)
+}
+
+func (r *retryingPublisher) Close() error {
+	if r == nil || r.base == nil {
+		return nil
+	}
+	return r.base.Close()
 }
 
 // Publish sends an event to the default drivers.

@@ -106,3 +106,29 @@ func (s *Store) UpdateEventLogStatus(ctx context.Context, id, status, errorMessa
 	}
 	return nil
 }
+
+func (s *Store) UpdateEventLogTransformedPayload(ctx context.Context, id string, transformedBody []byte) error {
+	if s == nil || s.db == nil {
+		return errors.New("store is not initialized")
+	}
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return errors.New("id is required")
+	}
+	tenantID := storage.TenantFromContext(ctx)
+	query := s.tableDB().WithContext(ctx).Where("id = ?", id)
+	if tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	result := query.Updates(map[string]interface{}{
+		"transformed_body": string(transformedBody),
+		"updated_at":       time.Now().UTC(),
+	})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("event log not found")
+	}
+	return nil
+}

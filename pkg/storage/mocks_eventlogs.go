@@ -216,6 +216,25 @@ func (m *MockEventLogStore) UpdateEventLogStatus(ctx context.Context, id, status
 	return nil
 }
 
+func (m *MockEventLogStore) UpdateEventLogTransformedPayload(ctx context.Context, id string, transformedBody []byte) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	tenantID := TenantFromContext(ctx)
+	for i, record := range m.values {
+		if record.ID != id {
+			continue
+		}
+		if tenantID != "" && record.TenantID != tenantID {
+			continue
+		}
+		record.TransformedBody = append([]byte(nil), transformedBody...)
+		record.UpdatedAt = time.Now().UTC()
+		m.values[i] = record
+		return nil
+	}
+	return errors.New("event log not found")
+}
+
 func (m *MockEventLogStore) GetEventLogTimeseries(ctx context.Context, filter EventLogFilter, interval EventLogInterval) ([]EventLogTimeseriesBucket, error) {
 	if interval == "" {
 		return nil, errors.New("interval is required")

@@ -109,4 +109,33 @@ func TestConfigFromDriver(t *testing.T) {
 			t.Fatalf("unexpected amqp config: %+v", cfg.AMQP)
 		}
 	})
+
+	t.Run("valid http", func(t *testing.T) {
+		cfg, err := ConfigFromDriver("http", `{"endpoint":"http://localhost:8088/{topic}"}`)
+		if err != nil {
+			t.Fatalf("config from driver: %v", err)
+		}
+		if cfg.Driver != "http" {
+			t.Fatalf("expected http driver, got %q", cfg.Driver)
+		}
+		if cfg.HTTP.Endpoint != "http://localhost:8088/{topic}" {
+			t.Fatalf("unexpected http config: %+v", cfg.HTTP)
+		}
+	})
+}
+
+func TestRecordsFromConfigHTTP(t *testing.T) {
+	cfg := core.RelaybusConfig{
+		Driver: "http",
+		HTTP: core.HTTPConfig{
+			Endpoint: "http://localhost:8088/{topic}",
+		},
+	}
+	records, err := RecordsFromConfig(cfg)
+	if err != nil {
+		t.Fatalf("records from config: %v", err)
+	}
+	if len(records) != 1 || records[0].Name != "http" {
+		t.Fatalf("unexpected records: %+v", records)
+	}
 }

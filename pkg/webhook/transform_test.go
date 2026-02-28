@@ -82,8 +82,11 @@ func TestPublishMatchesWithFallbackAppliesTransform(t *testing.T) {
 	logs := []storage.EventLogRecord{{ID: "log-1"}, {ID: "log-2"}}
 
 	updates := map[string]string{}
+	payloadUpdates := map[string][]byte{}
 	publishMatchesWithFallback(context.Background(), event, matches, logs, nil, fallback, nil, func(id, status, _ string) {
 		updates[id] = status
+	}, func(id string, transformed []byte) {
+		payloadUpdates[id] = append([]byte(nil), transformed...)
 	})
 
 	if len(fallback.events) != 1 {
@@ -98,5 +101,8 @@ func TestPublishMatchesWithFallbackAppliesTransform(t *testing.T) {
 	}
 	if updates["log-2"] != eventLogStatusFailed {
 		t.Fatalf("expected failed status update for transform error, got %v", updates)
+	}
+	if len(payloadUpdates["log-1"]) == 0 {
+		t.Fatalf("expected transformed payload update for successful match")
 	}
 }

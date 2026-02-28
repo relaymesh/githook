@@ -77,28 +77,29 @@ type DriverRecord struct {
 
 // EventLogRecord stores metadata about webhook events and rule matches.
 type EventLogRecord struct {
-	TenantID       string
-	ID             string
-	Provider       string
-	Name           string
-	RequestID      string
-	StateID        string
-	InstallationID string
-	NamespaceID    string
-	NamespaceName  string
-	Topic          string
-	RuleID         string
-	RuleWhen       string
-	Drivers        []string
-	Headers        map[string][]string
-	Body           []byte
-	BodyHash       string
-	Matched        bool
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
-	Status         string
-	ErrorMessage   string
-	LatencyMS      int64
+	TenantID        string
+	ID              string
+	Provider        string
+	Name            string
+	RequestID       string
+	StateID         string
+	InstallationID  string
+	NamespaceID     string
+	NamespaceName   string
+	Topic           string
+	RuleID          string
+	RuleWhen        string
+	Drivers         []string
+	Headers         map[string][]string
+	Body            []byte
+	TransformedBody []byte
+	BodyHash        string
+	Matched         bool
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Status          string
+	ErrorMessage    string
+	LatencyMS       int64
 }
 
 // EventLogFilter selects event log rows.
@@ -315,6 +316,7 @@ type EventLogStore interface {
 	GetEventLogAnalytics(ctx context.Context, filter EventLogFilter) (EventLogAnalytics, error)
 	GetEventLogTimeseries(ctx context.Context, filter EventLogFilter, interval EventLogInterval) ([]EventLogTimeseriesBucket, error)
 	GetEventLogBreakdown(ctx context.Context, filter EventLogFilter, groupBy EventLogBreakdownGroup, sortBy EventLogBreakdownSort, sortDesc bool, pageSize int, pageToken string, includeLatency bool) ([]EventLogBreakdown, string, error)
+	UpdateEventLogTransformedPayload(ctx context.Context, id string, transformedBody []byte) error
 	UpdateEventLogStatus(ctx context.Context, id, status, errorMessage string) error
 	Close() error
 }

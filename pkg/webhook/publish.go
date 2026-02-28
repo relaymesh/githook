@@ -10,7 +10,7 @@ import (
 	"github.com/relaymesh/githook/pkg/storage"
 )
 
-func publishMatchesWithFallback(ctx context.Context, event core.Event, matches []core.RuleMatch, logs []storage.EventLogRecord, dynamic *drivers.DynamicPublisherCache, fallback core.Publisher, logger *log.Logger, statusUpdater func(string, string, string)) {
+func publishMatchesWithFallback(ctx context.Context, event core.Event, matches []core.RuleMatch, logs []storage.EventLogRecord, dynamic *drivers.DynamicPublisherCache, fallback core.Publisher, logger *log.Logger, statusUpdater func(string, string, string), payloadUpdater func(string, []byte)) {
 	if len(matches) == 0 {
 		return
 	}
@@ -34,6 +34,9 @@ func publishMatchesWithFallback(ctx context.Context, event core.Event, matches [
 				statusUpdater(logs[idx].ID, eventLogStatusFailed, err.Error())
 			}
 			continue
+		}
+		if payloadUpdater != nil && idx < len(logs) {
+			payloadUpdater(logs[idx].ID, transformed.RawPayload)
 		}
 		matchDriver := strings.TrimSpace(match.DriverName)
 		if matchDriver == "" {
