@@ -20,8 +20,19 @@ wk := worker.New(
 )
 
 wk.HandleRule("<rule-id>", func(ctx context.Context, evt *worker.Event) error {
-  if gh, ok := worker.GitHubClient(evt); ok {
-    _, _, _ = gh.Repositories.List(ctx, "", nil)
+  switch strings.ToLower(evt.Provider) {
+  case "github":
+    if gh, ok := worker.GitHubClient(evt); ok {
+      _, _, _ = gh.Repositories.List(ctx, "", nil)
+    }
+  case "gitlab":
+    if _, ok := worker.GitLabClient(evt); ok {
+      // Use gitlab client APIs here.
+    }
+  case "bitbucket":
+    if _, ok := worker.BitbucketClient(evt); ok {
+      // Use bitbucket client APIs here.
+    }
   }
   return nil
 })
@@ -30,17 +41,38 @@ wk.HandleRule("<rule-id>", func(ctx context.Context, evt *worker.Event) error {
 TypeScript:
 
 ```ts
-import { New, WithEndpoint, NewRemoteSCMClientProvider, GitHubClient } from "@relaymesh/githook";
+import {
+  New,
+  WithEndpoint,
+  WithClientProvider,
+  NewRemoteSCMClientProvider,
+  GitHubClient,
+  GitLabClient,
+  BitbucketClient,
+} from "@relaymesh/githook";
 
 const worker = New(
   WithEndpoint("http://localhost:8080"),
-  NewRemoteSCMClientProvider(),
+  WithClientProvider(NewRemoteSCMClientProvider()),
 );
 
-worker.HandleRule("<rule-id>", async (evt) => {
-  const gh = GitHubClient(evt);
-  if (gh) {
-    await gh.requestJSON("GET", "/user");
+worker.HandleRule("<rule-id>", async (_ctx, evt) => {
+  switch ((evt.provider || "").toLowerCase()) {
+    case "github": {
+      const gh = GitHubClient(evt);
+      if (gh) await gh.requestJSON("GET", "/user");
+      break;
+    }
+    case "gitlab": {
+      const gl = GitLabClient(evt);
+      if (gl) await gl.requestJSON("GET", "/user");
+      break;
+    }
+    case "bitbucket": {
+      const bb = BitbucketClient(evt);
+      if (bb) await bb.requestJSON("GET", "/user");
+      break;
+    }
   }
 });
 ```
@@ -50,7 +82,15 @@ If a client cannot be resolved, the helpers return `nil`/`undefined`. Treat that
 Python:
 
 ```python
-from relaymesh_githook import New, WithEndpoint, WithClientProvider, NewRemoteSCMClientProvider, GitHubClient
+from relaymesh_githook import (
+    New,
+    WithEndpoint,
+    WithClientProvider,
+    NewRemoteSCMClientProvider,
+    GitHubClient,
+    GitLabClient,
+    BitbucketClient,
+)
 
 wk = New(
     WithEndpoint("http://localhost:8080"),
@@ -58,7 +98,16 @@ wk = New(
 )
 
 def handler(ctx, evt):
-    client = GitHubClient(evt)
+    provider = (evt.provider or "").lower()
+    if provider == "github":
+        client = GitHubClient(evt)
+    elif provider == "gitlab":
+        client = GitLabClient(evt)
+    elif provider == "bitbucket":
+        client = BitbucketClient(evt)
+    else:
+        client = None
+
     if client:
         client.request_json("GET", "/user")
 
@@ -85,3 +134,11 @@ Each SDK updates event log status automatically after your handler runs:
 
 - Successful return/completion updates status to `success`.
 - Returned errors (Go) or thrown/raised exceptions (TypeScript/Python) update status to `failed` and include the error message.
+
+## Runtime options (retry, concurrency, logging)
+
+All three SDKs support equivalent runtime controls:
+
+- Retry count: `WithRetryCount(n)` retries handler execution up to `n` extra times (total attempts = `n + 1`).
+- Concurrency: `WithConcurrency(n)` limits in-flight message handling.
+- Logging hooks: `WithListener(...)` gives lifecycle callbacks; `WithLogger(...)` overrides default logger output.

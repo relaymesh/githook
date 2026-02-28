@@ -80,3 +80,33 @@ func TestApplyDriverConfigNil(t *testing.T) {
 		t.Fatalf("expected error for nil config")
 	}
 }
+
+func TestConfigFromDriver(t *testing.T) {
+	t.Run("missing name", func(t *testing.T) {
+		if _, err := ConfigFromDriver("", "{}"); err == nil {
+			t.Fatalf("expected missing driver name error")
+		}
+	})
+
+	t.Run("unsupported driver", func(t *testing.T) {
+		if _, err := ConfigFromDriver("custom", "{}"); err == nil {
+			t.Fatalf("expected unsupported driver error")
+		}
+	})
+
+	t.Run("valid amqp", func(t *testing.T) {
+		cfg, err := ConfigFromDriver("amqp", `{"url":"amqp://localhost","exchange":"events"}`)
+		if err != nil {
+			t.Fatalf("config from driver: %v", err)
+		}
+		if cfg.Driver != "amqp" {
+			t.Fatalf("expected amqp driver, got %q", cfg.Driver)
+		}
+		if len(cfg.Drivers) != 1 || cfg.Drivers[0] != "amqp" {
+			t.Fatalf("unexpected drivers: %v", cfg.Drivers)
+		}
+		if cfg.AMQP.URL != "amqp://localhost" || cfg.AMQP.Exchange != "events" {
+			t.Fatalf("unexpected amqp config: %+v", cfg.AMQP)
+		}
+	})
+}

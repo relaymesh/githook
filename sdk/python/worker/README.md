@@ -16,7 +16,15 @@ No additional packages are required.
 import signal
 import threading
 
-from relaymesh_githook import New, NewRemoteSCMClientProvider, WithClientProvider, WithEndpoint
+from relaymesh_githook import (
+    Listener,
+    New,
+    NewRemoteSCMClientProvider,
+    WithClientProvider,
+    WithConcurrency,
+    WithEndpoint,
+    WithListener,
+)
 
 stop = threading.Event()
 
@@ -29,6 +37,8 @@ signal.signal(signal.SIGTERM, shutdown)
 wk = New(
     WithEndpoint("http://localhost:8080"),
     WithClientProvider(NewRemoteSCMClientProvider()),
+    WithConcurrency(4),
+    WithListener(Listener()),
 )
 
 def handle(ctx, evt):
@@ -54,17 +64,33 @@ def handle_with_ctx(ctx, evt):
     print(ctx.request_id, evt.topic)
 ```
 
-## Using SCM Clients
+## Using SCM Clients (GitHub/GitLab/Bitbucket)
 
 ```python
-from relaymesh_githook import GitHubClient
+from relaymesh_githook import BitbucketClient, GitHubClient, GitLabClient
 
 def handler(ctx, evt):
-    gh = GitHubClient(evt)
-    if gh:
-        user = gh.request_json("GET", "/user")
-        print(user.get("login"))
+    provider = (evt.provider or "").lower()
+    if provider == "github":
+        client = GitHubClient(evt)
+    elif provider == "gitlab":
+        client = GitLabClient(evt)
+    elif provider == "bitbucket":
+        client = BitbucketClient(evt)
+    else:
+        client = None
+
+    if client:
+        user = client.request_json("GET", "/user")
+        print(user)
 ```
+
+## Retry, concurrency, and status updates
+
+- Set retry behavior with `WithRetryCount(n)`.
+- Set in-flight processing with `WithConcurrency(n)`.
+- Use `WithListener(...)` to log lifecycle callbacks and status outcomes.
+- Worker status updates are automatic: success on clean return, failed on raised exception.
 
 ## OAuth2 mode
 

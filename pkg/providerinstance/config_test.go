@@ -98,3 +98,43 @@ func TestProviderConfigFromRecord(t *testing.T) {
 		t.Fatalf("expected enabled true")
 	}
 }
+
+func TestProviderInstanceHelpers(t *testing.T) {
+	t.Run("records from empty config", func(t *testing.T) {
+		records, err := RecordsFromConfig(auth.Config{})
+		if err != nil {
+			t.Fatalf("records from empty config: %v", err)
+		}
+		if len(records) != 0 {
+			t.Fatalf("expected no records for empty config")
+		}
+	})
+
+	t.Run("normalize invalid config json", func(t *testing.T) {
+		if normalized, ok := NormalizeProviderConfigJSON("{"); ok || normalized != "" {
+			t.Fatalf("expected invalid json normalize to fail")
+		}
+	})
+
+	t.Run("provider config from invalid record json", func(t *testing.T) {
+		_, err := ProviderConfigFromRecord(storage.ProviderInstanceRecord{ConfigJSON: "{"})
+		if err == nil {
+			t.Fatalf("expected invalid config json error")
+		}
+	})
+
+	t.Run("hasProviderConfig coverage", func(t *testing.T) {
+		if hasProviderConfig(auth.ProviderConfig{}) {
+			t.Fatalf("expected empty provider config to be false")
+		}
+		if !hasProviderConfig(auth.ProviderConfig{Enabled: true}) {
+			t.Fatalf("expected enabled config to be true")
+		}
+		if !hasProviderConfig(auth.ProviderConfig{Webhook: auth.WebhookConfig{Secret: "x"}}) {
+			t.Fatalf("expected webhook config to be true")
+		}
+		if !hasProviderConfig(auth.ProviderConfig{OAuth: auth.OAuthConfig{ClientID: "id"}}) {
+			t.Fatalf("expected oauth config to be true")
+		}
+	})
+}

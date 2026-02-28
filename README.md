@@ -117,13 +117,22 @@ http://<server-host>/webhooks/bitbucket
 Go:
 
 ```go
-wk := worker.New(worker.WithEndpoint("http://localhost:8080"))
+wk := worker.New(
+  worker.WithEndpoint("http://localhost:8080"),
+  worker.WithClientProvider(worker.NewRemoteSCMClientProvider()),
+  worker.WithConcurrency(4),
+  worker.WithRetryCount(1),
+)
 
 wk.HandleRule("<rule-id>", func(ctx context.Context, evt *worker.Event) error {
-	if evt == nil {
-		return nil
-	}
-	log.Printf("topic=%s provider=%s type=%s", evt.Topic, evt.Provider, evt.Type)
+  switch strings.ToLower(evt.Provider) {
+  case "github":
+    _, _ = worker.GitHubClient(evt)
+  case "gitlab":
+    _, _ = worker.GitLabClient(evt)
+  case "bitbucket":
+    _, _ = worker.BitbucketClient(evt)
+  }
 	return nil
 })
 
@@ -133,15 +142,37 @@ _ = wk.Run(ctx)
 TypeScript:
 
 ```ts
-import { New, WithEndpoint } from "@relaymesh/githook";
+import {
+  New,
+  WithEndpoint,
+  WithClientProvider,
+  WithConcurrency,
+  WithRetryCount,
+  NewRemoteSCMClientProvider,
+  GitHubClient,
+  GitLabClient,
+  BitbucketClient,
+} from "@relaymesh/githook";
 
-const worker = New(WithEndpoint("http://localhost:8080"));
+const worker = New(
+  WithEndpoint("http://localhost:8080"),
+  WithClientProvider(NewRemoteSCMClientProvider()),
+  WithConcurrency(4),
+  WithRetryCount(1),
+);
 
-worker.HandleRule("<rule-id>", async (evt) => {
-  if (!evt) {
-    return;
+worker.HandleRule("<rule-id>", async (_ctx, evt) => {
+  switch ((evt.provider || "").toLowerCase()) {
+    case "github":
+      GitHubClient(evt);
+      break;
+    case "gitlab":
+      GitLabClient(evt);
+      break;
+    case "bitbucket":
+      BitbucketClient(evt);
+      break;
   }
-  console.log(`topic=${evt.topic} provider=${evt.provider} type=${evt.type}`);
 });
 
 await worker.Run();
@@ -150,12 +181,31 @@ await worker.Run();
 Python:
 
 ```python
-from relaymesh_githook import New, WithEndpoint
+from relaymesh_githook import (
+    New,
+    WithEndpoint,
+    WithClientProvider,
+    WithConcurrency,
+    NewRemoteSCMClientProvider,
+    GitHubClient,
+    GitLabClient,
+    BitbucketClient,
+)
 
-wk = New(WithEndpoint("http://localhost:8080"))
+wk = New(
+    WithEndpoint("http://localhost:8080"),
+    WithClientProvider(NewRemoteSCMClientProvider()),
+    WithConcurrency(4),
+)
 
 def handler(ctx, evt):
-    print(f"topic={evt.topic} provider={evt.provider} type={evt.type}")
+    provider = (evt.provider or "").lower()
+    if provider == "github":
+        GitHubClient(evt)
+    elif provider == "gitlab":
+        GitLabClient(evt)
+    elif provider == "bitbucket":
+        BitbucketClient(evt)
 
 wk.HandleRule("<rule-id>", handler)
 
@@ -163,6 +213,7 @@ wk.Run()
 ```
 
 If a handler returns an error (Go) or throws/raises an exception (TypeScript/Python), the SDK marks the event log status as `failed`; otherwise it is marked `success`.
+Use `WithRetryCount(n)` and `WithConcurrency(n)` in each SDK to control retry attempts and in-flight message processing.
 
 ## Docs index 📚
 

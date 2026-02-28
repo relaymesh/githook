@@ -2,15 +2,49 @@ package drivers
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/relaymesh/githook/pkg/core"
 	"github.com/relaymesh/githook/pkg/storage"
 )
 
+type stubDriverStore struct {
+	listDriversFn func(ctx context.Context) ([]storage.DriverRecord, error)
+}
+
+func (s *stubDriverStore) ListDrivers(ctx context.Context) ([]storage.DriverRecord, error) {
+	if s.listDriversFn == nil {
+		return nil, nil
+	}
+	return s.listDriversFn(ctx)
+}
+
+func (s *stubDriverStore) GetDriver(ctx context.Context, name string) (*storage.DriverRecord, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (s *stubDriverStore) GetDriverByID(ctx context.Context, id string) (*storage.DriverRecord, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (s *stubDriverStore) UpsertDriver(ctx context.Context, record storage.DriverRecord) (*storage.DriverRecord, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (s *stubDriverStore) DeleteDriver(ctx context.Context, name string) error {
+	return errors.New("not implemented")
+}
+
+func (s *stubDriverStore) Close() error {
+	return nil
+}
+
 type stubPublisher struct {
 	published bool
 	closed    bool
+	err       error
 }
 
 func (s *stubPublisher) Publish(ctx context.Context, topic string, event core.Event) error {
@@ -25,7 +59,7 @@ func (s *stubPublisher) PublishForDrivers(ctx context.Context, topic string, eve
 
 func (s *stubPublisher) Close() error {
 	s.closed = true
-	return nil
+	return s.err
 }
 
 func TestCacheKeyFromContext(t *testing.T) {
@@ -77,5 +111,92 @@ func TestTenantPublisherNoFallback(t *testing.T) {
 	}
 	if err := tenantPub.Close(); err != nil {
 		t.Fatalf("unexpected close error")
+	}
+}
+
+func TestCacheRefreshNoStoreAndListError(t *testing.T) {
+	cache := NewCache(nil, core.RelaybusConfig{}, nil)
+	if err := cache.Refresh(context.Background()); err != nil {
+		t.Fatalf("refresh with nil store: %v", err)
+	}
+
+	expectedErr := errors.New("list drivers failed")
+	cache = NewCache(&stubDriverStore{listDriversFn: func(ctx context.Context) ([]storage.DriverRecord, error) {
+		return nil, expectedErr
+	}}, core.RelaybusConfig{}, nil)
+	if err := cache.Refresh(context.Background()); !errors.Is(err, expectedErr) {
+		t.Fatalf("expected list error, got %v", err)
+	}
+}
+
+func TestCacheRefreshTenantClearsPublisherWhenNoDrivers(t *testing.T) {
+	cache := NewCache(nil, core.RelaybusConfig{}, nil)
+	pub := &stubPublisher{}
+	cache.pub.Set(globalDriverKey, pub)
+	cache.config.Set(globalDriverKey, core.RelaybusConfig{Driver: "amqp"})
+
+	if err := cache.refreshTenant(globalDriverKey, nil); err != nil {
+		t.Fatalf("refresh tenant: %v", err)
+	}
+	if !pub.closed {
+		t.Fatalf("expected existing publisher to be closed")
+	}
+	if got, ok := cache.pub.Get(globalDriverKey); ok && got != nil {
+		t.Fatalf("expected publisher removed after refresh")
+	}
+	if got, ok := cache.config.Get(globalDriverKey); ok && (got.Driver != "" || len(got.Drivers) > 0) {
+		t.Fatalf("expected tenant config removed")
+	}
+}
+
+func TestCachePublisherForUsesCachedPublisherAndRefreshError(t *testing.T) {
+	cache := NewCache(nil, core.RelaybusConfig{}, nil)
+	cached := &stubPublisher{}
+	cache.pub.Set(globalDriverKey, cached)
+
+	pub, err := cache.PublisherFor(context.Background())
+	if err != nil {
+		t.Fatalf("publisher for cached tenant: %v", err)
+	}
+	if pub != cached {
+		t.Fatalf("expected cached publisher")
+	}
+
+	refreshErr := errors.New("refresh failed")
+	cache = NewCache(&stubDriverStore{listDriversFn: func(ctx context.Context) ([]storage.DriverRecord, error) {
+		return nil, refreshErr
+	}}, core.RelaybusConfig{}, nil)
+	if _, err := cache.PublisherFor(context.Background()); !errors.Is(err, refreshErr) {
+		t.Fatalf("expected refresh error, got %v", err)
+	}
+}
+
+func TestCacheRefreshTenantConfigError(t *testing.T) {
+	cache := NewCache(nil, core.RelaybusConfig{}, nil)
+	err := cache.refreshTenant(globalDriverKey, []storage.DriverRecord{{
+		Name:       "unsupported",
+		Enabled:    true,
+		ConfigJSON: `{}`,
+	}})
+	if err == nil {
+		t.Fatalf("expected refresh tenant to fail for unsupported driver")
+	}
+}
+
+func TestTenantPublisherCloseReturnsFallbackError(t *testing.T) {
+	fallbackErr := errors.New("close failed")
+	fallback := &stubPublisher{err: fallbackErr}
+	tenantPub := NewTenantPublisher(nil, fallback)
+	if err := tenantPub.Close(); !errors.Is(err, fallbackErr) {
+		t.Fatalf("expected fallback close error, got %v", err)
+	}
+}
+
+func TestCacheCloseIgnoresPublisherCloseErrors(t *testing.T) {
+	cache := NewCache(nil, core.RelaybusConfig{}, nil)
+	cache.pub.Set(globalDriverKey, &stubPublisher{err: fmt.Errorf("boom")})
+	cache.Close()
+	if got, ok := cache.pub.Get(globalDriverKey); ok && got != nil {
+		t.Fatalf("expected cache close to remove publishers")
 	}
 }

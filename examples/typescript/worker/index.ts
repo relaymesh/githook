@@ -4,9 +4,14 @@ import {
   WithClientProvider,
   WithAPIKey,
   WithTenant,
+  WithConcurrency,
+  WithRetryCount,
+  WithLogger,
   WithListener,
   NewRemoteSCMClientProvider,
   GitHubClient,
+  GitLabClient,
+  BitbucketClient,
 } from "@relaymesh/githook";
 
 async function main() {
@@ -14,14 +19,26 @@ async function main() {
   const ruleId = process.env.GITHOOK_RULE_ID ?? "85101e9f-3bcf-4ed0-b561-750c270ef6c3";
   const apiKey = process.env.GITHOOK_API_KEY ?? "";
   const tenantId = process.env.GITHOOK_TENANT_ID ?? "";
+  const concurrency = intFromEnv(process.env.GITHOOK_CONCURRENCY, 4);
+  const retryCount = intFromEnv(process.env.GITHOOK_RETRY_COUNT, 1);
   console.log(
-    `config endpoint=${endpoint} apiKeySet=${apiKey.length > 0} tenantId=${tenantId || "(empty)"}`,
+    `config endpoint=${endpoint} apiKeySet=${apiKey.length > 0} tenantId=${tenantId || "(empty)"} concurrency=${concurrency} retryCount=${retryCount}`,
   );
 
   const provider = NewRemoteSCMClientProvider();
-  let attempts = 0;
 
-  const options = [WithEndpoint(endpoint), WithClientProvider(provider)];
+  const options = [
+    WithEndpoint(endpoint),
+    WithClientProvider(provider),
+    WithConcurrency(concurrency),
+    WithRetryCount(retryCount),
+    WithLogger({
+      printf: (format, ...args) => {
+        const rendered = format.replace(/%s/g, () => String(args.shift() ?? ""));
+        console.log(`example-worker ${rendered}`);
+      },
+    }),
+  ];
   options.push(
     WithListener({
       onMessageStart: (_ctx, evt) => {
@@ -49,33 +66,17 @@ async function main() {
   const wk = New(...options);
 
   wk.HandleRule(ruleId, async (_ctx, evt) => {
-    if (!evt) return;
-    attempts += 1;
+    if (!evt) {
+      return;
+    }
 
-    try {
-      if (attempts % 2 === 0) {
-        throw new Error(`intentional failure for status test (seq=${attempts})`);
-      }
+    const providerName = evt.provider?.toLowerCase?.() ?? "";
+    console.log(`handler topic=${evt.topic} provider=${providerName} type=${evt.type}`);
 
-      console.log(`handler success seq=${attempts} topic=${evt.topic} provider=${evt.provider} type=${evt.type}`);
-      console.log(`topic=${evt.topic} provider=${evt.provider} type=${evt.type}`);
-      console.log(`metadata=${JSON.stringify(evt.metadata ?? {})}`);
-      const payloadText = evt.payload?.toString("utf8") ?? "";
-      if (payloadText) {
-        try {
-          const payloadJson = JSON.parse(payloadText);
-          console.log(`payload=${JSON.stringify(payloadJson)}`);
-        } catch {
-          console.log(`payload=${payloadText}`);
-        }
-      }
-      if (evt.normalized) {
-        console.log(`normalized=${JSON.stringify(evt.normalized)}`);
-      }
-
+    if (providerName === "github") {
       const gh = GitHubClient(evt);
       if (!gh) {
-        console.log(`github client not available for provider=${evt.provider} (installation may not be configured)`);
+        console.log("github client not available (installation may not be configured)");
         return;
       }
 
@@ -91,16 +92,56 @@ async function main() {
           `github read ok full_name=${repository.full_name} private=${repository.private} default_branch=${repository.default_branch}`,
         );
       } catch (err) {
-        console.log(`github read failed owner=${owner} repo=${repo} err=${err}`);
+        console.log(`github read failed owner=${owner} repo=${repo} err=${String(err)}`);
       }
-    } catch (err) {
-      const wrappedErr = err instanceof Error ? err : new Error(String(err));
-      console.error(`handler failed seq=${attempts} err=${wrappedErr.message}`);
-      throw wrappedErr;
+      return;
     }
+
+    if (providerName === "gitlab") {
+      const gl = GitLabClient(evt);
+      if (!gl) {
+        console.log("gitlab client not available (installation may not be configured)");
+        return;
+      }
+      try {
+        const user = await gl.requestJSON<Record<string, unknown>>("GET", "/user");
+        console.log(`gitlab read ok username=${user.username ?? ""}`);
+      } catch (err) {
+        console.log(`gitlab read failed err=${String(err)}`);
+      }
+      return;
+    }
+
+    if (providerName === "bitbucket") {
+      const bb = BitbucketClient(evt);
+      if (!bb) {
+        console.log("bitbucket client not available (installation may not be configured)");
+        return;
+      }
+      try {
+        const user = await bb.requestJSON<Record<string, unknown>>("GET", "/user");
+        console.log(`bitbucket read ok username=${user.username ?? ""}`);
+      } catch (err) {
+        console.log(`bitbucket read failed err=${String(err)}`);
+      }
+      return;
+    }
+
+    console.log(`unsupported provider=${providerName}; skipping scm call`);
   });
 
   await wk.Run();
+}
+
+function intFromEnv(raw: string | undefined, fallback: number): number {
+  if (!raw) {
+    return fallback;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
 }
 
 function repositoryFromEvent(evt: { normalized?: Record<string, unknown> }): {

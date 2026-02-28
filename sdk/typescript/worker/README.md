@@ -126,13 +126,32 @@ const wk = worker.New(
 const wk = worker.New(
   worker.WithEndpoint("http://localhost:8080"),
   worker.WithClientProvider(worker.NewRemoteSCMClientProvider()),
+  worker.WithConcurrency(4),
+  worker.WithRetryCount(1),
+  worker.WithListener({
+    onMessageFinish: (_ctx, evt, err) => {
+      console.log(`log_id=${evt.metadata.log_id ?? ""} status=${err ? "failed" : "success"}`);
+    },
+  }),
 );
 
 wk.HandleRule("rule-id", async (_ctx, evt) => {
-  const gh = worker.GitHubClient(evt);
-  if (gh) {
-    const repo = await gh.requestJSON("GET", "/repos/org/repo");
-    console.log(repo);
+  switch ((evt.provider || "").toLowerCase()) {
+    case "github": {
+      const gh = worker.GitHubClient(evt);
+      if (gh) await gh.requestJSON("GET", "/user");
+      break;
+    }
+    case "gitlab": {
+      const gl = worker.GitLabClient(evt);
+      if (gl) await gl.requestJSON("GET", "/user");
+      break;
+    }
+    case "bitbucket": {
+      const bb = worker.BitbucketClient(evt);
+      if (bb) await bb.requestJSON("GET", "/user");
+      break;
+    }
   }
 });
 ```

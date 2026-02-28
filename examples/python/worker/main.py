@@ -1,17 +1,24 @@
 import os
 import signal
 import threading
+from typing import Any, cast
 
+import relaymesh_githook as githook_sdk
 from relaymesh_githook import (
+    Listener,
     New,
+    WithConcurrency,
     WithClientProvider,
     WithEndpoint,
+    WithListener,
+    WithLogger,
+    GitLabClient,
+    BitbucketClient,
     GitHubClient,
     NewRemoteSCMClientProvider,
 )
 
 stop = threading.Event()
-attempts = 0
 
 
 def shutdown(_signum, _frame):
@@ -24,10 +31,67 @@ signal.signal(signal.SIGTERM, shutdown)
 endpoint = os.getenv("GITHOOK_ENDPOINT", "https://relaymesh.vercel.app/api/connect")
 rule_id = os.getenv("GITHOOK_RULE_ID", "85101e9f-3bcf-4ed0-b561-750c270ef6c3")
 
-wk = New(
+
+def int_from_env(name, fallback):
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return fallback
+    try:
+        value = int(raw)
+    except Exception:
+        return fallback
+    return value if value > 0 else fallback
+
+
+concurrency = int_from_env("GITHOOK_CONCURRENCY", 4)
+retry_count = int_from_env("GITHOOK_RETRY_COUNT", 1)
+
+
+class ExampleLogger:
+    def printf(self, fmt, *args):
+        rendered = fmt
+        for arg in args:
+            rendered = rendered.replace("%s", str(arg), 1)
+        print(f"example-worker {rendered}")
+
+    def Printf(self, fmt, *args):
+        self.printf(fmt, *args)
+
+
+class ExampleListener(Listener):
+    def on_message_start(self, ctx, evt):
+        print(
+            f"listener start log_id={evt.metadata.get('log_id', '')} provider={evt.provider} topic={evt.topic}"
+        )
+
+    def on_message_finish(self, ctx, evt, err=None):
+        status = "failed" if err else "success"
+        print(
+            f"listener finish log_id={evt.metadata.get('log_id', '')} status={status} err={err or ''}"
+        )
+
+    def on_error(self, ctx, evt, err):
+        log_id = ""
+        provider = ""
+        if evt is not None:
+            provider = evt.provider
+            log_id = evt.metadata.get("log_id", "")
+        print(f"listener error log_id={log_id} provider={provider} err={err}")
+
+
+options = [
     WithEndpoint(endpoint),
     WithClientProvider(NewRemoteSCMClientProvider()),
-)
+    WithConcurrency(concurrency),
+    WithLogger(ExampleLogger()),
+    WithListener(ExampleListener()),
+]
+with_retry_count = getattr(githook_sdk, "WithRetryCount", None)
+if callable(with_retry_count):
+    retry_option = cast(Any, with_retry_count(retry_count))
+    wk = New(*options, retry_option)
+else:
+    wk = New(*options)
 
 
 def repository_from_event(evt):
@@ -49,29 +113,20 @@ def repository_from_event(evt):
 
 
 def handle(ctx, evt):
-    global attempts
-    attempts += 1
-    try:
-        if attempts % 2 == 0:
-            raise RuntimeError(f"intentional failure for status test (seq={attempts})")
+    provider_name = (evt.provider or "").strip().lower()
+    print(
+        f"handler topic={evt.topic} provider={provider_name} type={evt.type} retry_count={retry_count} concurrency={concurrency}"
+    )
 
-        print(
-            f"handler success seq={attempts} topic={evt.topic} provider={evt.provider} type={evt.type}"
-        )
-        print(f"topic={evt.topic} provider={evt.provider} type={evt.type}")
-
+    if provider_name == "github":
         gh = GitHubClient(evt)
         if not gh:
-            print(
-                f"github client not available for provider={evt.provider} (installation may not be configured)"
-            )
+            print("github client not available (installation may not be configured)")
             return
-
         owner, repo = repository_from_event(evt)
         if not owner or not repo:
             print("repository info missing in payload; skipping github read")
             return
-
         try:
             repository = gh.request_json("GET", f"/repos/{owner}/{repo}")
             if isinstance(repository, dict):
@@ -89,9 +144,35 @@ def handle(ctx, evt):
             )
         except Exception as err:
             print(f"github read failed owner={owner} repo={repo} err={err}")
-    except Exception as err:
-        print(f"handler failed seq={attempts} err={err}")
-        raise
+        return
+
+    if provider_name == "gitlab":
+        gl = GitLabClient(evt)
+        if not gl:
+            print("gitlab client not available (installation may not be configured)")
+            return
+        try:
+            user = gl.request_json("GET", "/user")
+            username = user.get("username") if isinstance(user, dict) else None
+            print(f"gitlab read ok username={username}")
+        except Exception as err:
+            print(f"gitlab read failed err={err}")
+        return
+
+    if provider_name == "bitbucket":
+        bb = BitbucketClient(evt)
+        if not bb:
+            print("bitbucket client not available (installation may not be configured)")
+            return
+        try:
+            user = bb.request_json("GET", "/user")
+            username = user.get("username") if isinstance(user, dict) else None
+            print(f"bitbucket read ok username={username}")
+        except Exception as err:
+            print(f"bitbucket read failed err={err}")
+        return
+
+    print(f"unsupported provider={provider_name}; skipping scm call")
 
 
 wk.HandleRule(rule_id, handle)

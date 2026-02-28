@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"log"
 	"strings"
 	"testing"
 	"time"
@@ -9,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/relaymesh/githook/pkg/auth"
 	cloudv1 "github.com/relaymesh/githook/pkg/gen/cloud/v1"
 	"github.com/relaymesh/githook/pkg/storage"
 )
@@ -291,4 +294,103 @@ func TestRuleHelpersAndPagination(t *testing.T) {
 	}); err == nil {
 		t.Fatalf("expected emit count validation error")
 	}
+}
+
+func TestConnectHelperCoverage(t *testing.T) {
+	t.Run("logError handles nil and logger", func(t *testing.T) {
+		logError(nil, "ignored", nil)
+
+		var buf bytes.Buffer
+		logger := log.New(&buf, "", 0)
+		logError(logger, "boom", context.Canceled)
+		if !strings.Contains(buf.String(), "boom") || !strings.Contains(buf.String(), "context canceled") {
+			t.Fatalf("unexpected log output: %q", buf.String())
+		}
+	})
+
+	t.Run("providerConfigFromAuthConfig selects provider", func(t *testing.T) {
+		cfg := auth.Config{
+			GitHub:    auth.ProviderConfig{Key: "gh"},
+			GitLab:    auth.ProviderConfig{Key: "gl"},
+			Bitbucket: auth.ProviderConfig{Key: "bb"},
+		}
+
+		if got := providerConfigFromAuthConfig(cfg, "github"); got.Key != "gh" {
+			t.Fatalf("expected github config")
+		}
+		if got := providerConfigFromAuthConfig(cfg, "gitlab"); got.Key != "gl" {
+			t.Fatalf("expected gitlab config")
+		}
+		if got := providerConfigFromAuthConfig(cfg, "bitbucket"); got.Key != "bb" {
+			t.Fatalf("expected bitbucket config")
+		}
+		if got := providerConfigFromAuthConfig(cfg, "unknown"); got.Key != "gh" {
+			t.Fatalf("expected fallback github config")
+		}
+	})
+
+	t.Run("toProtoRuleRecords converts list", func(t *testing.T) {
+		if got := toProtoRuleRecords(nil); len(got) != 0 {
+			t.Fatalf("expected empty conversion")
+		}
+
+		now := time.Now().UTC()
+		records := []storage.RuleRecord{{
+			ID:               "rule-1",
+			When:             `action == "opened"`,
+			Emit:             []string{"pr.opened"},
+			DriverID:         "driver-1",
+			DriverName:       "amqp",
+			DriverConfigJSON: `{"url":"amqp://localhost"}`,
+			DriverEnabled:    true,
+			CreatedAt:        now,
+			UpdatedAt:        now,
+		}}
+
+		got := toProtoRuleRecords(records)
+		if len(got) != 1 {
+			t.Fatalf("expected 1 converted rule, got %d", len(got))
+		}
+		if got[0].GetId() != "rule-1" || got[0].GetDriverId() != "driver-1" {
+			t.Fatalf("unexpected converted rule: %+v", got[0])
+		}
+		if got[0].GetWhen() == "" || len(got[0].GetEmit()) != 1 || got[0].GetEmit()[0] != "pr.opened" {
+			t.Fatalf("unexpected converted rule payload: %+v", got[0])
+		}
+	})
+
+	t.Run("event log enum converters", func(t *testing.T) {
+		intervalCases := []cloudv1.EventLogTimeseriesInterval{
+			cloudv1.EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_HOUR,
+			cloudv1.EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_DAY,
+			cloudv1.EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_WEEK,
+		}
+		for _, in := range intervalCases {
+			if _, err := eventLogIntervalFromProto(in); err != nil {
+				t.Fatalf("interval conversion failed for %v: %v", in, err)
+			}
+		}
+		if _, err := eventLogIntervalFromProto(cloudv1.EventLogTimeseriesInterval_EVENT_LOG_TIMESERIES_INTERVAL_UNSPECIFIED); err == nil {
+			t.Fatalf("expected invalid interval error")
+		}
+
+		groupCases := []cloudv1.EventLogBreakdownGroup{
+			cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_PROVIDER,
+			cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_EVENT,
+			cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_RULE_ID,
+			cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_RULE_WHEN,
+			cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_TOPIC,
+			cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_ID,
+			cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_NAMESPACE_NAME,
+			cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_INSTALLATION_ID,
+		}
+		for _, in := range groupCases {
+			if _, err := eventLogBreakdownGroupFromProto(in); err != nil {
+				t.Fatalf("group conversion failed for %v: %v", in, err)
+			}
+		}
+		if _, err := eventLogBreakdownGroupFromProto(cloudv1.EventLogBreakdownGroup_EVENT_LOG_BREAKDOWN_GROUP_UNSPECIFIED); err == nil {
+			t.Fatalf("expected invalid group error")
+		}
+	})
 }

@@ -16,6 +16,9 @@ All SDKs are expected to:
 - Consume the same event envelope (`provider`, `topic`, `payload`, `metadata`).
 - Rely on the same rules DSL defined and stored by the server.
 - Keep provider credentials server-side and let the worker fetch short-lived SCM credentials from the server.
+- Support SCM clients for GitHub, GitLab, and Bitbucket.
+- Auto-update event log status (`success`/`failed`) based on handler outcome.
+- Expose runtime controls for retry count, concurrency, listeners, and logger injection.
 
 ## Go Worker Quick Start
 

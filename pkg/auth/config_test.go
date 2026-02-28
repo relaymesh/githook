@@ -34,3 +34,43 @@ func TestOAuth2ConfigScopesString(t *testing.T) {
 		t.Fatalf("expected scopes %v, got %v", wantScopes, cfg.Scopes)
 	}
 }
+
+func TestProviderHelpers(t *testing.T) {
+	t.Run("is github provider", func(t *testing.T) {
+		if !IsGitHubProvider(" GitHub ") {
+			t.Fatalf("expected github provider true")
+		}
+		if IsGitHubProvider("gitlab") {
+			t.Fatalf("expected github provider false")
+		}
+	})
+
+	t.Run("provider config for built-in and extra", func(t *testing.T) {
+		cfg := Config{
+			GitHub:    ProviderConfig{Key: "gh"},
+			GitLab:    ProviderConfig{Key: "gl"},
+			Bitbucket: ProviderConfig{Key: "bb"},
+			Extra: map[string]ProviderConfig{
+				"custom-provider": {Key: "custom"},
+			},
+		}
+
+		if got, ok := cfg.ProviderConfigFor("github"); !ok || got.Key != "gh" {
+			t.Fatalf("unexpected github config: %+v ok=%v", got, ok)
+		}
+		if got, ok := cfg.ProviderConfigFor("gitlab"); !ok || got.Key != "gl" {
+			t.Fatalf("unexpected gitlab config: %+v ok=%v", got, ok)
+		}
+		if got, ok := cfg.ProviderConfigFor("bitbucket"); !ok || got.Key != "bb" {
+			t.Fatalf("unexpected bitbucket config: %+v ok=%v", got, ok)
+		}
+		if got, ok := cfg.ProviderConfigFor("custom_provider"); !ok || got.Key != "custom" {
+			t.Fatalf("unexpected extra config: %+v ok=%v", got, ok)
+		}
+
+		cfg.Extra = nil
+		if got, ok := cfg.ProviderConfigFor("missing"); ok || got.Key != "" {
+			t.Fatalf("expected missing provider not found")
+		}
+	})
+}
