@@ -29,12 +29,12 @@ type Store struct {
 
 type row struct {
 	ID              string    `gorm:"column:id;size:64;primaryKey"`
-	TenantID        string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_namespace,priority:1"`
-	Provider        string    `gorm:"column:provider;size:32;not null;uniqueIndex:idx_namespace,priority:2"`
-	InstanceKey     string    `gorm:"column:provider_instance_key;size:64;uniqueIndex:idx_namespace,priority:3"`
+	TenantID        string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_namespace,priority:1;index:idx_ns_tenant_provider,priority:1;index:idx_ns_tenant_instance_key,priority:1;index:idx_ns_tenant_account,priority:1;index:idx_ns_tenant_installation,priority:1"`
+	Provider        string    `gorm:"column:provider;size:32;not null;uniqueIndex:idx_namespace,priority:2;index:idx_ns_tenant_provider,priority:2"`
+	InstanceKey     string    `gorm:"column:provider_instance_key;size:64;uniqueIndex:idx_namespace,priority:3;index:idx_ns_tenant_instance_key,priority:2"`
 	RepoID          string    `gorm:"column:repo_id;size:128;not null;uniqueIndex:idx_namespace,priority:4"`
-	AccountID       string    `gorm:"column:account_id;size:128;not null"`
-	InstallationID  string    `gorm:"column:installation_id;size:128"`
+	AccountID       string    `gorm:"column:account_id;size:128;not null;index:idx_ns_tenant_account,priority:2"`
+	InstallationID  string    `gorm:"column:installation_id;size:128;index:idx_ns_tenant_installation,priority:2"`
 	Owner           string    `gorm:"column:owner;size:255"`
 	RepoName        string    `gorm:"column:repo_name;size:255"`
 	FullName        string    `gorm:"column:full_name;size:255"`

@@ -29,8 +29,8 @@ type Store struct {
 
 type row struct {
 	ID             string     `gorm:"column:id;size:64;primaryKey"`
-	TenantID       string     `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_installation,priority:1;index:idx_installation_provider_installation_updated,priority:1;index:idx_installation_provider_installation_instance_updated,priority:1"`
-	Provider       string     `gorm:"column:provider;size:32;not null;uniqueIndex:idx_installation,priority:2;index:idx_installation_provider_installation_updated,priority:2;index:idx_installation_provider_installation_instance_updated,priority:2"`
+	TenantID       string     `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_installation,priority:1;index:idx_installation_provider_installation_updated,priority:1;index:idx_installation_provider_installation_instance_updated,priority:1;index:idx_installation_tenant_provider,priority:1"`
+	Provider       string     `gorm:"column:provider;size:32;not null;uniqueIndex:idx_installation,priority:2;index:idx_installation_provider_installation_updated,priority:2;index:idx_installation_provider_installation_instance_updated,priority:2;index:idx_installation_tenant_provider,priority:2"`
 	AccountID      string     `gorm:"column:account_id;size:128;not null;uniqueIndex:idx_installation,priority:3"`
 	AccountName    string     `gorm:"column:account_name;size:255"`
 	InstallationID string     `gorm:"column:installation_id;size:128;not null;uniqueIndex:idx_installation,priority:4;index:idx_installation_provider_installation_updated,priority:3;index:idx_installation_provider_installation_instance_updated,priority:3"`

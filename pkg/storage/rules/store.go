@@ -30,8 +30,8 @@ type Store struct {
 }
 
 type row struct {
-	ID          string    `gorm:"column:id;size:64;primaryKey"`
-	TenantID    string    `gorm:"column:tenant_id;size:64;not null;default:'';index;index:idx_rules_tenant_created,priority:1"`
+	ID          string    `gorm:"column:id;size:64;primaryKey;index:idx_rules_tenant_id,priority:2"`
+	TenantID    string    `gorm:"column:tenant_id;size:64;not null;default:'';index;index:idx_rules_tenant_created,priority:1;index:idx_rules_tenant_id,priority:1"`
 	When        string    `gorm:"column:when;type:text;not null"`
 	EmitJSON    string    `gorm:"column:emit_json;type:text"`
 	Emit        string    `gorm:"column:emit;type:text"`
