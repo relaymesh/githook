@@ -70,10 +70,19 @@ func (s *DriversService) UpsertDriver(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("storage not configured"))
 	}
 	driver := req.Msg.GetDriver()
+	name := strings.TrimSpace(driver.GetName())
+	configJSON := strings.TrimSpace(driver.GetConfigJson())
+
+	// Validate driver config before persisting — fail fast on bad config.
+	if err := validateDriverConfig(name, configJSON); err != nil {
+		logError(s.Logger, "driver config validation failed", err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
 	record, err := s.Store.UpsertDriver(ctx, storage.DriverRecord{
 		ID:         strings.TrimSpace(driver.GetId()),
-		Name:       strings.TrimSpace(driver.GetName()),
-		ConfigJSON: strings.TrimSpace(driver.GetConfigJson()),
+		Name:       name,
+		ConfigJSON: configJSON,
 		Enabled:    driver.GetEnabled(),
 	})
 	if err != nil {
@@ -83,23 +92,21 @@ func (s *DriversService) UpsertDriver(
 	if s.Cache != nil {
 		if err := s.Cache.Refresh(ctx); err != nil {
 			logError(s.Logger, "driver cache refresh failed", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("driver cache refresh failed"))
 		}
 	}
 	resp := &cloudv1.UpsertDriverResponse{
 		Driver: toProtoDriverRecord(record),
 	}
-	if err := ensureDriverBrokerReady(ctx, record); err != nil {
-		logError(s.Logger, "driver broker validation failed", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("driver broker validation failed"))
-	}
 	return connect.NewResponse(resp), nil
 }
 
-func ensureDriverBrokerReady(ctx context.Context, record *storage.DriverRecord) error {
-	if record == nil {
-		return nil
+// validateDriverConfig validates a driver config before persisting.
+func validateDriverConfig(name, configJSON string) error {
+	if name == "" {
+		return errors.New("driver name is required")
 	}
-	cfg, err := driverspkg.ConfigFromDriver(record.Name, record.ConfigJSON)
+	cfg, err := driverspkg.ConfigFromDriver(name, configJSON)
 	if err != nil {
 		return err
 	}

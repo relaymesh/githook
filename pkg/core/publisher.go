@@ -50,7 +50,14 @@ func RegisterPublisherDriver(name string, factory PublisherFactory) {
 
 // NewPublisher creates a new publisher based on the provided configuration.
 // It can create multiple publishers if multiple drivers are configured.
+// For context-aware publisher creation, use NewPublisherWithContext.
 func NewPublisher(cfg RelaybusConfig) (Publisher, error) {
+	return NewPublisherWithContext(context.Background(), cfg)
+}
+
+// NewPublisherWithContext creates a new publisher with context support.
+// The context is used to cancel retry loops when the caller disconnects.
+func NewPublisherWithContext(ctx context.Context, cfg RelaybusConfig) (Publisher, error) {
 	drivers := cfg.Drivers
 	if len(drivers) == 0 && cfg.Driver != "" {
 		drivers = []string{cfg.Driver}
@@ -60,7 +67,7 @@ func NewPublisher(cfg RelaybusConfig) (Publisher, error) {
 	builtDrivers := make([]string, 0, len(drivers))
 	for _, driver := range drivers {
 		retryCfg := driverRetryConfig(cfg, driver)
-		pub, err := retryPublisherBuild(func() (Publisher, error) {
+		pub, err := retryPublisherBuild(ctx, func() (Publisher, error) {
 			return newSinglePublisher(cfg, driver, retryCfg)
 		})
 		if err != nil {
@@ -243,7 +250,7 @@ func validatePublisherDriver(cfg RelaybusConfig, driver string) error {
 	}
 }
 
-func retryPublisherBuild(build func() (Publisher, error)) (Publisher, error) {
+func retryPublisherBuild(ctx context.Context, build func() (Publisher, error)) (Publisher, error) {
 	const attempts = 10
 	const delay = 2 * time.Second
 
@@ -254,7 +261,11 @@ func retryPublisherBuild(build func() (Publisher, error)) (Publisher, error) {
 			return pub, nil
 		}
 		lastErr = err
-		time.Sleep(delay)
+		select {
+		case <-ctx.Done():
+			return nil, errors.Join(lastErr, ctx.Err())
+		case <-time.After(delay):
+		}
 	}
 	return nil, lastErr
 }

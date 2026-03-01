@@ -45,10 +45,10 @@ func (c *Cache) Refresh(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return c.refreshTenant(tenantKey, records)
+	return c.refreshTenant(ctx, tenantKey, records)
 }
 
-func (c *Cache) refreshTenant(tenantID string, records []storage.DriverRecord) error {
+func (c *Cache) refreshTenant(ctx context.Context, tenantID string, records []storage.DriverRecord) error {
 	cfg, err := ConfigFromRecords(c.base, records)
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func (c *Cache) refreshTenant(tenantID string, records []storage.DriverRecord) e
 		c.config.Delete(tenantID)
 		return nil
 	}
-	pub, err := core.NewPublisher(cfg)
+	pub, err := core.NewPublisherWithContext(ctx, cfg)
 	if err != nil {
 		return err
 	}

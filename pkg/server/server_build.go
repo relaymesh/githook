@@ -262,6 +262,7 @@ func BuildHandler(ctx context.Context, config core.Config, logger *log.Logger, m
 		MaxAge: int(2 * time.Hour / time.Second),
 	})
 	appHandler := applyMiddlewares(mux, middlewares)
+	appHandler = requestLogMiddleware(logger)(appHandler)
 	handler := h2c.NewHandler(corsHandler.Handler(appHandler), &http2.Server{})
 
 	return handler, cleanup, nil

@@ -135,7 +135,7 @@ func TestCacheRefreshTenantClearsPublisherWhenNoDrivers(t *testing.T) {
 	cache.pub.Set(globalDriverKey, pub)
 	cache.config.Set(globalDriverKey, core.RelaybusConfig{Driver: "amqp"})
 
-	if err := cache.refreshTenant(globalDriverKey, nil); err != nil {
+	if err := cache.refreshTenant(context.Background(), globalDriverKey, nil); err != nil {
 		t.Fatalf("refresh tenant: %v", err)
 	}
 	if !pub.closed {
@@ -173,7 +173,7 @@ func TestCachePublisherForUsesCachedPublisherAndRefreshError(t *testing.T) {
 
 func TestCacheRefreshTenantConfigError(t *testing.T) {
 	cache := NewCache(nil, core.RelaybusConfig{}, nil)
-	err := cache.refreshTenant(globalDriverKey, []storage.DriverRecord{{
+	err := cache.refreshTenant(context.Background(), globalDriverKey, []storage.DriverRecord{{
 		Name:       "unsupported",
 		Enabled:    true,
 		ConfigJSON: `{}`,
