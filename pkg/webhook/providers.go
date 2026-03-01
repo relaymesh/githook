@@ -45,6 +45,7 @@ func (gitHubProvider) NewHandler(cfg auth.ProviderConfig, opts HandlerOptions) (
 		opts.DriverStore,
 		opts.RulesStrict,
 		opts.DynamicDriverCache,
+		cfg,
 	)
 }
 

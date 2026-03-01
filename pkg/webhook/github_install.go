@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	gh "github.com/google/go-github/v57/github"
 	"github.com/relaymesh/githook/pkg/storage"
 
 	ghprovider "github.com/relaymesh/githook/pkg/providers/github"
@@ -155,7 +156,27 @@ func (h *GitHubHandler) applyInstallSystemRules(ctx context.Context, eventName s
 		}
 
 		repos := extractGitHubRepos(raw, eventName)
+		var repoClient *ghprovider.Client
+		var repoClientErr error
+		webBaseURL := h.githubWebBaseURL()
 		for _, repo := range repos {
+			repo = ensureGitHubRepoOwner(repo)
+			if needsGitHubRepoEnrichment(repo) {
+				if repoClient == nil && repoClientErr == nil {
+					repoClient, repoClientErr = h.newGitHubInstallationClient(ctx, installationID)
+					if repoClientErr != nil && h.logger != nil {
+						h.logger.Printf("github repo client init failed: %v", repoClientErr)
+					}
+				}
+				if repoClient != nil {
+					if enriched, err := enrichRepoFromGitHub(ctx, repoClient, repo); err == nil {
+						repo = enriched
+					} else if h.logger != nil {
+						h.logger.Printf("github repo %s enrich failed: %v", repo.ID, err)
+					}
+				}
+			}
+			repo = applyGitHubRepoDefaults(repo, webBaseURL)
 			namespace := storage.NamespaceRecord{
 				TenantID:            recordTenantID(record),
 				Provider:            "github",
@@ -291,6 +312,111 @@ func extractGitHubRemovedRepoIDs(raw []byte, eventName string) []string {
 		out = append(out, strconv.FormatInt(repo.ID, 10))
 	}
 	return out
+}
+
+func (h *GitHubHandler) newGitHubInstallationClient(ctx context.Context, installationID string) (*ghprovider.Client, error) {
+	if h == nil {
+		return nil, fmt.Errorf("github handler is nil")
+	}
+	appCfg := h.providerConfig.App
+	if appCfg.AppID == 0 || (strings.TrimSpace(appCfg.PrivateKeyPath) == "" && strings.TrimSpace(appCfg.PrivateKeyPEM) == "") {
+		return nil, fmt.Errorf("github app config missing")
+	}
+	instID, err := strconv.ParseInt(installationID, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	client, err := ghprovider.NewAppClient(ctx, ghprovider.AppConfig{
+		AppID:          appCfg.AppID,
+		PrivateKeyPath: appCfg.PrivateKeyPath,
+		PrivateKeyPEM:  appCfg.PrivateKeyPEM,
+		BaseURL:        h.providerConfig.API.BaseURL,
+	}, instID)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func enrichRepoFromGitHub(ctx context.Context, client *ghprovider.Client, repo githubRepo) (githubRepo, error) {
+	repoID, err := strconv.ParseInt(repo.ID, 10, 64)
+	if err != nil {
+		return repo, err
+	}
+	fullRepo, _, err := client.Repositories.GetByID(ctx, repoID)
+	if err != nil {
+		return repo, err
+	}
+	if fullRepo == nil {
+		return repo, nil
+	}
+	return mergeGitHubRepo(repo, fullRepo), nil
+}
+
+func mergeGitHubRepo(base githubRepo, full *gh.Repository) githubRepo {
+	if full == nil {
+		return base
+	}
+	if base.Owner == "" && full.Owner != nil {
+		base.Owner = full.Owner.GetLogin()
+	}
+	if base.Name == "" {
+		base.Name = full.GetName()
+	}
+	if base.FullName == "" {
+		base.FullName = full.GetFullName()
+	}
+	if base.Visibility == "" {
+		if full.GetPrivate() {
+			base.Visibility = "private"
+		} else {
+			base.Visibility = "public"
+		}
+	}
+	if base.DefaultBranch == "" {
+		base.DefaultBranch = full.GetDefaultBranch()
+	}
+	if base.HTMLURL == "" {
+		base.HTMLURL = full.GetHTMLURL()
+	}
+	if base.SSHURL == "" {
+		base.SSHURL = full.GetSSHURL()
+	}
+	return base
+}
+
+func ensureGitHubRepoOwner(repo githubRepo) githubRepo {
+	if repo.Owner != "" || repo.FullName == "" {
+		return repo
+	}
+	parts := strings.SplitN(repo.FullName, "/", 2)
+	if len(parts) == 2 && parts[0] != "" {
+		repo.Owner = parts[0]
+	}
+	return repo
+}
+
+func applyGitHubRepoDefaults(repo githubRepo, webBaseURL string) githubRepo {
+	base := strings.TrimRight(webBaseURL, "/")
+	if base == "" {
+		base = "https://github.com"
+	}
+	if repo.HTMLURL == "" && repo.FullName != "" {
+		repo.HTMLURL = fmt.Sprintf("%s/%s", base, repo.FullName)
+	}
+	if repo.SSHURL == "" && repo.FullName != "" {
+		host := strings.TrimPrefix(strings.TrimPrefix(base, "https://"), "http://")
+		host = strings.TrimSuffix(host, "/")
+		if host == "" {
+			host = "github.com"
+		}
+		repo.SSHURL = fmt.Sprintf("git@%s:%s.git", host, repo.FullName)
+	}
+	return repo
+}
+
+func needsGitHubRepoEnrichment(repo githubRepo) bool {
+	return repo.Owner == "" || repo.DefaultBranch == "" || repo.HTMLURL == "" || repo.SSHURL == ""
 }
 
 func recordAccountID(record *storage.InstallRecord, providerID int64) string {

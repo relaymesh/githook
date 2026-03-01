@@ -6,9 +6,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/go-playground/webhooks/v6/github"
 
+	"github.com/relaymesh/githook/pkg/auth"
 	"github.com/relaymesh/githook/pkg/core"
 	"github.com/relaymesh/githook/pkg/drivers"
 	"github.com/relaymesh/githook/pkg/storage"
@@ -19,6 +21,7 @@ type GitHubHandler struct {
 	hook           *github.Webhook
 	fallbackHook   *github.Webhook
 	secret         string
+	providerConfig auth.ProviderConfig
 	rules          *core.RuleEngine
 	publisher      core.Publisher
 	logger         *log.Logger
@@ -83,7 +86,7 @@ var githubEvents = []github.Event{
 }
 
 // NewGitHubHandler creates a new GitHubHandler.
-func NewGitHubHandler(secret string, rules *core.RuleEngine, publisher core.Publisher, logger *log.Logger, maxBody int64, debugEvents bool, store storage.Store, namespaces storage.NamespaceStore, logs storage.EventLogStore, ruleStore storage.RuleStore, driverStore storage.DriverStore, rulesStrict bool, dynamicDrivers *drivers.DynamicPublisherCache) (*GitHubHandler, error) {
+func NewGitHubHandler(secret string, rules *core.RuleEngine, publisher core.Publisher, logger *log.Logger, maxBody int64, debugEvents bool, store storage.Store, namespaces storage.NamespaceStore, logs storage.EventLogStore, ruleStore storage.RuleStore, driverStore storage.DriverStore, rulesStrict bool, dynamicDrivers *drivers.DynamicPublisherCache, cfg auth.ProviderConfig) (*GitHubHandler, error) {
 	hook, err := github.New(github.Options.Secret(secret))
 	if err != nil {
 		return nil, err
@@ -100,6 +103,7 @@ func NewGitHubHandler(secret string, rules *core.RuleEngine, publisher core.Publ
 		hook:           hook,
 		fallbackHook:   fallbackHook,
 		secret:         secret,
+		providerConfig: cfg,
 		rules:          rules,
 		publisher:      publisher,
 		logger:         logger,
@@ -113,6 +117,26 @@ func NewGitHubHandler(secret string, rules *core.RuleEngine, publisher core.Publ
 		rulesStrict:    rulesStrict,
 		dynamicDrivers: dynamicDrivers,
 	}, nil
+}
+
+func (h *GitHubHandler) githubWebBaseURL() string {
+	if h == nil {
+		return "https://github.com"
+	}
+	if base := strings.TrimRight(h.providerConfig.API.WebBaseURL, "/"); base != "" {
+		return base
+	}
+	apiBase := strings.TrimSpace(h.providerConfig.API.BaseURL)
+	if apiBase == "" || apiBase == "https://api.github.com" {
+		return "https://github.com"
+	}
+	trimmed := strings.TrimSuffix(apiBase, "/api/v3")
+	trimmed = strings.TrimSuffix(trimmed, "/api")
+	trimmed = strings.TrimRight(trimmed, "/")
+	if trimmed == "" {
+		return "https://github.com"
+	}
+	return trimmed
 }
 
 // ServeHTTP handles an incoming HTTP request.

@@ -31,9 +31,9 @@ type Store struct {
 const globalTenantID = ""
 
 type row struct {
-	TenantID   string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_driver,priority:1;uniqueIndex:idx_driver_id,priority:1"`
+	TenantID   string    `gorm:"column:tenant_id;size:64;not null;default:'';uniqueIndex:idx_driver,priority:1;uniqueIndex:idx_driver_id,priority:1;index:idx_driver_tenant,priority:1;index:idx_driver_tenant_name,priority:1"`
 	ID         string    `gorm:"column:id;size:64;not null;default:'';uniqueIndex:idx_driver_id,priority:2"`
-	Name       string    `gorm:"column:name;size:64;not null;uniqueIndex:idx_driver,priority:2"`
+	Name       string    `gorm:"column:name;size:64;not null;uniqueIndex:idx_driver,priority:2;index:idx_driver_tenant_name,priority:2"`
 	ConfigJSON string    `gorm:"column:config_json;type:text"`
 	Enabled    bool      `gorm:"column:enabled;not null;default:true"`
 	CreatedAt  time.Time `gorm:"column:created_at;autoCreateTime"`
