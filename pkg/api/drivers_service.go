@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -90,10 +91,11 @@ func (s *DriversService) UpsertDriver(
 		return nil, connect.NewError(connect.CodeInternal, errors.New("upsert driver failed"))
 	}
 	if s.Cache != nil {
-		if err := s.Cache.Refresh(ctx); err != nil {
+		refreshCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		if err := s.Cache.Refresh(refreshCtx); err != nil {
 			logError(s.Logger, "driver cache refresh failed", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("driver cache refresh failed"))
 		}
+		cancel()
 	}
 	resp := &cloudv1.UpsertDriverResponse{
 		Driver: toProtoDriverRecord(record),
@@ -126,9 +128,11 @@ func (s *DriversService) DeleteDriver(
 		return nil, connect.NewError(connect.CodeInternal, errors.New("delete driver failed"))
 	}
 	if s.Cache != nil {
-		if err := s.Cache.Refresh(ctx); err != nil {
+		refreshCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		if err := s.Cache.Refresh(refreshCtx); err != nil {
 			logError(s.Logger, "driver cache refresh failed", err)
 		}
+		cancel()
 	}
 	return connect.NewResponse(&cloudv1.DeleteDriverResponse{}), nil
 }
