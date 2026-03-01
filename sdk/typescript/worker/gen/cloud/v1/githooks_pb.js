@@ -981,7 +981,20 @@ export const ReplayEventLogRequest = /*@__PURE__*/ proto3.makeMessageType(
   "cloud.v1.ReplayEventLogRequest",
   () => [
     { no: 1, name: "log_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "driver_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message cloud.v1.ReplayPublishResult
+ */
+export const ReplayPublishResult = /*@__PURE__*/ proto3.makeMessageType(
+  "cloud.v1.ReplayPublishResult",
+  () => [
+    { no: 1, name: "rule_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "topic", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "driver_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "error_message", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 
@@ -992,8 +1005,7 @@ export const ReplayEventLogResponse = /*@__PURE__*/ proto3.makeMessageType(
   "cloud.v1.ReplayEventLogResponse",
   () => [
     { no: 1, name: "log_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "topic", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "driver_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "results", kind: "message", T: ReplayPublishResult, repeated: true },
   ],
 );
 

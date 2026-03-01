@@ -1134,12 +1134,17 @@ message UpdateEventLogStatusResponse {}
 
 message ReplayEventLogRequest {
   string log_id = 1 [(buf.validate.field).string.min_len = 1];
+}
 
-  string driver_name = 2 [(buf.validate.field).string.min_len = 1];
+message ReplayPublishResult {
+  string rule_id = 1;
+  string topic = 2;
+  string driver_name = 3;
+  string status = 4;
+  string error_message = 5;
 }
 
 message ReplayEventLogResponse {
   string log_id = 1;
-  string topic = 2;
-  string driver_name = 3;
+  repeated ReplayPublishResult results = 2;
 }

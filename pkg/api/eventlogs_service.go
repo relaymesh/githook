@@ -2,20 +2,23 @@ package api
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
+	"encoding/hex"
 	"errors"
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
-	"github.com/dop251/goja"
 
+	"github.com/google/uuid"
 	"github.com/relaymesh/githook/pkg/core"
 	driverspkg "github.com/relaymesh/githook/pkg/drivers"
 	cloudv1 "github.com/relaymesh/githook/pkg/gen/cloud/v1"
 	"github.com/relaymesh/githook/pkg/storage"
+	"github.com/relaymesh/githook/pkg/webhook"
 )
 
 const (
@@ -307,12 +310,8 @@ func (s *EventLogsService) ReplayEventLog(
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request is required"))
 	}
 	logID := strings.TrimSpace(req.Msg.GetLogId())
-	driverName := strings.TrimSpace(req.Msg.GetDriverName())
 	if logID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("log_id is required"))
-	}
-	if driverName == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("driver_name is required"))
 	}
 
 	record, err := s.Store.GetEventLog(ctx, logID)
@@ -323,202 +322,201 @@ func (s *EventLogsService) ReplayEventLog(
 	if record == nil {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("event log not found"))
 	}
-	topic := strings.TrimSpace(record.Topic)
-	if topic == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("event log topic is empty"))
-	}
-
-	driverRecord, err := s.DriverStore.GetDriver(ctx, driverName)
-	if err != nil {
-		logError(s.Logger, "get driver failed", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("get driver failed"))
-	}
-	if driverRecord == nil {
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("driver not found"))
-	}
-	if !driverRecord.Enabled {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("driver is disabled"))
-	}
-
-	publisher := s.Publisher
-	if publisher == nil {
-		cfg, err := driverspkg.ConfigFromDriver(driverRecord.Name, driverRecord.ConfigJSON)
-		if err != nil {
-			logError(s.Logger, "driver config parse failed", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("driver config parse failed"))
-		}
-		publisher, err = core.NewPublisher(cfg)
-		if err != nil {
-			logError(s.Logger, "publisher init failed", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("publisher init failed"))
-		}
-		defer func() { _ = publisher.Close() }()
-	}
-
-	event, err := replayEventFromLog(*record)
+	event, err := webhook.BuildReplayEvent(*record)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-
-	rules, err := s.matchReplayRules(ctx, event)
-	if err != nil {
-		logError(s.Logger, "replay match failed", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("replay match failed"))
+	if strings.TrimSpace(event.TenantID) == "" {
+		event.TenantID = storage.TenantFromContext(ctx)
 	}
+
+	rules := webhook.MatchRulesForEvent(ctx, event, storage.TenantFromContext(ctx), s.RuleStore, s.DriverStore, s.RulesStrict, s.Logger)
 	if len(rules) == 0 {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("no matching rules for event log"))
 	}
+	ruleMatches := webhook.RuleMatchesFromMatchedRules(rules)
+	if len(ruleMatches) == 0 {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("no matched topics for event log"))
+	}
+	replayRecords := buildReplayEventLogRecords(event, ruleMatches)
+	if err := s.Store.CreateEventLogs(ctx, replayRecords); err != nil {
+		logError(s.Logger, "replay event log write failed", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("replay event log write failed"))
+	}
 
-	published := 0
-	for _, rule := range rules {
-		transformed, err := replayApplyTransform(event, rule.TransformJS)
-		if err != nil {
-			logError(s.Logger, "replay transform failed", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("replay transform failed"))
+	publisher := s.Publisher
+	publishers := map[string]core.Publisher{}
+
+	results := make([]*cloudv1.ReplayPublishResult, 0, len(ruleMatches))
+	for idx, rule := range ruleMatches {
+		driverName := strings.TrimSpace(rule.DriverName)
+		if driverName == "" {
+			driverName = strings.TrimSpace(rule.DriverID)
 		}
-		if err := publisher.PublishForDrivers(ctx, rule.Topic, transformed, []string{driverRecord.Name}); err != nil {
-			logError(s.Logger, "replay publish failed", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("replay publish failed"))
-		}
-		published++
+		results = append(results, &cloudv1.ReplayPublishResult{RuleId: rule.RuleID, Topic: rule.Topic, DriverName: driverName, Status: "queued"})
+		_ = idx
 	}
-	if published == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("event log payload is empty"))
-	}
+
+	tenantCtx := storage.WithTenant(context.Background(), storage.TenantFromContext(ctx))
+	go s.runReplayAsync(tenantCtx, event, ruleMatches, replayRecords, publisher, publishers)
 
 	return connect.NewResponse(&cloudv1.ReplayEventLogResponse{
-		LogId:      record.ID,
-		Topic:      topic,
-		DriverName: driverRecord.Name,
+		LogId:   record.ID,
+		Results: results,
 	}), nil
 }
 
-func replayEventFromLog(record storage.EventLogRecord) (core.Event, error) {
-	body := append([]byte(nil), record.Body...)
-	if len(body) == 0 {
-		if len(record.TransformedBody) > 0 {
-			body = append([]byte(nil), record.TransformedBody...)
-		} else {
-			return core.Event{}, errors.New("event log payload is empty")
-		}
+func (s *EventLogsService) runReplayAsync(ctx context.Context, event core.Event, matches []core.RuleMatch, records []storage.EventLogRecord, sharedPublisher core.Publisher, publishers map[string]core.Publisher) {
+	if s == nil || s.Store == nil {
+		return
 	}
-	var rawObj map[string]interface{}
-	if err := json.Unmarshal(body, &rawObj); err != nil {
-		return core.Event{}, errors.New("event log payload is invalid json")
-	}
-	return core.Event{
-		Provider:       record.Provider,
-		Name:           record.Name,
-		RequestID:      record.RequestID,
-		StateID:        record.StateID,
-		TenantID:       record.TenantID,
-		InstallationID: record.InstallationID,
-		NamespaceID:    record.NamespaceID,
-		NamespaceName:  record.NamespaceName,
-		RawPayload:     body,
-		RawObject:      rawObj,
-		Data:           core.Flatten(rawObj),
-		LogID:          record.ID,
-	}, nil
-}
-
-func (s *EventLogsService) matchReplayRules(ctx context.Context, event core.Event) ([]core.RuleMatch, error) {
-	records, err := s.RuleStore.ListRules(ctx)
-	if err != nil {
-		return nil, err
-	}
-	rules := make([]core.Rule, 0, len(records))
-	for _, record := range records {
-		if strings.TrimSpace(record.When) == "" || len(record.Emit) == 0 {
-			continue
+	defer func() {
+		if sharedPublisher != nil {
+			return
 		}
-		driverID := strings.TrimSpace(record.DriverID)
-		if driverID == "" {
-			continue
-		}
-		driverName := strings.TrimSpace(record.DriverName)
-		if driverName == "" {
-			driver, derr := s.DriverStore.GetDriverByID(ctx, driverID)
-			if derr != nil || driver == nil || strings.TrimSpace(driver.Name) == "" {
+		for _, pub := range publishers {
+			if pub == nil {
 				continue
 			}
-			driverName = strings.TrimSpace(driver.Name)
+			_ = pub.Close()
 		}
-		rules = append(rules, core.Rule{
-			ID:          record.ID,
-			When:        record.When,
-			Emit:        core.EmitList(record.Emit),
-			DriverID:    driverID,
-			TransformJS: strings.TrimSpace(record.TransformJS),
-			DriverName:  driverName,
+	}()
+
+	for idx, rule := range matches {
+		if idx >= len(records) {
+			continue
+		}
+		replayLogID := records[idx].ID
+		driverRecord, err := s.replayResolveDriverRecord(ctx, rule)
+		if err != nil {
+			_ = s.Store.UpdateEventLogStatus(ctx, replayLogID, "failed", err.Error())
+			continue
+		}
+		transformed, err := webhook.ApplyRuleTransform(event, rule.TransformJS)
+		if err != nil {
+			_ = s.Store.UpdateEventLogStatus(ctx, replayLogID, "failed", err.Error())
+			continue
+		}
+		_ = s.Store.UpdateEventLogTransformedPayload(ctx, replayLogID, transformed.RawPayload)
+
+		pub := sharedPublisher
+		if pub == nil {
+			name := strings.TrimSpace(driverRecord.Name)
+			if existing, ok := publishers[name]; ok {
+				pub = existing
+			} else {
+				cfg, cfgErr := driverspkg.ConfigFromDriver(driverRecord.Name, driverRecord.ConfigJSON)
+				if cfgErr != nil {
+					_ = s.Store.UpdateEventLogStatus(ctx, replayLogID, "failed", cfgErr.Error())
+					continue
+				}
+				created, createErr := core.NewPublisher(cfg)
+				if createErr != nil {
+					_ = s.Store.UpdateEventLogStatus(ctx, replayLogID, "failed", createErr.Error())
+					continue
+				}
+				publishers[name] = created
+				pub = created
+			}
+		}
+		publishCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		err = pub.PublishForDrivers(publishCtx, rule.Topic, transformed, []string{driverRecord.Name})
+		cancel()
+		if err != nil {
+			_ = s.Store.UpdateEventLogStatus(ctx, replayLogID, "failed", err.Error())
+			continue
+		}
+		_ = s.Store.UpdateEventLogStatus(ctx, replayLogID, "success", "")
+	}
+}
+
+func buildReplayEventLogRecords(event core.Event, matches []core.RuleMatch) []storage.EventLogRecord {
+	body := append([]byte(nil), event.RawPayload...)
+	bodyHash := ""
+	if len(body) > 0 {
+		bodyHash = webhookHashBody(body)
+	}
+	records := make([]storage.EventLogRecord, 0, len(matches))
+	for _, match := range matches {
+		driverName := strings.TrimSpace(match.DriverName)
+		if driverName == "" {
+			driverName = strings.TrimSpace(match.DriverID)
+		}
+		records = append(records, storage.EventLogRecord{
+			ID:             uuid.NewString(),
+			Provider:       event.Provider,
+			Name:           event.Name,
+			RequestID:      event.RequestID,
+			StateID:        event.StateID,
+			InstallationID: event.InstallationID,
+			NamespaceID:    event.NamespaceID,
+			NamespaceName:  event.NamespaceName,
+			Topic:          match.Topic,
+			RuleID:         match.RuleID,
+			RuleWhen:       match.RuleWhen,
+			Drivers:        []string{driverName},
+			Headers:        cloneReplayHeaders(event.Headers),
+			Body:           body,
+			BodyHash:       bodyHash,
+			Status:         "queued",
+			Matched:        true,
 		})
 	}
-	if len(rules) == 0 {
-		return nil, nil
+	return records
+}
+
+func webhookHashBody(body []byte) string {
+	if len(body) == 0 {
+		return ""
 	}
-	engine, err := core.NewRuleEngine(core.RulesConfig{Rules: rules, Strict: s.RulesStrict, Logger: s.Logger})
+	sum := sha256.Sum256(body)
+	return hex.EncodeToString(sum[:])
+}
+
+func cloneReplayHeaders(headers map[string][]string) map[string][]string {
+	if len(headers) == 0 {
+		return nil
+	}
+	out := make(map[string][]string, len(headers))
+	for key, values := range headers {
+		if len(values) == 0 {
+			continue
+		}
+		out[key] = append([]string(nil), values...)
+	}
+	return out
+}
+
+func (s *EventLogsService) replayResolveDriverRecord(ctx context.Context, match core.RuleMatch) (*storage.DriverRecord, error) {
+	name := strings.TrimSpace(match.DriverName)
+	if name != "" {
+		record, err := s.DriverStore.GetDriver(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		if record == nil {
+			return nil, errors.New("driver not found")
+		}
+		if !record.Enabled {
+			return nil, errors.New("driver is disabled")
+		}
+		return record, nil
+	}
+	driverID := strings.TrimSpace(match.DriverID)
+	if driverID == "" {
+		return nil, errors.New("driver_id is required")
+	}
+	record, err := s.DriverStore.GetDriverByID(ctx, driverID)
 	if err != nil {
 		return nil, err
 	}
-	matched := engine.EvaluateRulesWithLogger(event, s.Logger)
-	out := make([]core.RuleMatch, 0, len(matched))
-	for _, mr := range matched {
-		for _, topic := range mr.Emit {
-			out = append(out, core.RuleMatch{Topic: topic, DriverID: mr.DriverID, DriverName: mr.DriverName, RuleID: mr.ID, RuleWhen: mr.When, TransformJS: mr.TransformJS})
-		}
+	if record == nil {
+		return nil, errors.New("driver not found")
 	}
-	return out, nil
-}
-
-func replayApplyTransform(event core.Event, transformJS string) (core.Event, error) {
-	transformJS = strings.TrimSpace(transformJS)
-	if transformJS == "" {
-		return event, nil
+	if !record.Enabled {
+		return nil, errors.New("driver is disabled")
 	}
-	vm := goja.New()
-	if _, err := vm.RunString("var transform = " + transformJS); err != nil {
-		return event, err
-	}
-	transform, ok := goja.AssertFunction(vm.Get("transform"))
-	if !ok {
-		return event, errors.New("transform_js must define a function")
-	}
-	var payload any
-	if err := json.Unmarshal(event.RawPayload, &payload); err != nil {
-		return event, err
-	}
-	ctx := map[string]any{
-		"provider":        event.Provider,
-		"name":            event.Name,
-		"request_id":      event.RequestID,
-		"state_id":        event.StateID,
-		"tenant_id":       event.TenantID,
-		"installation_id": event.InstallationID,
-		"namespace_id":    event.NamespaceID,
-		"namespace_name":  event.NamespaceName,
-		"data":            event.Data,
-		"payload":         payload,
-	}
-	if err := vm.Set("event", ctx); err != nil {
-		return event, err
-	}
-	result, err := transform(goja.Undefined(), vm.ToValue(payload), vm.ToValue(ctx))
-	if err != nil {
-		return event, err
-	}
-	exported := result.Export()
-	if m, ok := exported.(map[string]any); ok {
-		if p, exists := m["payload"]; exists {
-			exported = p
-		}
-	}
-	out, err := json.Marshal(exported)
-	if err != nil {
-		return event, err
-	}
-	event.RawPayload = out
-	event.RawObject = nil
-	return event, nil
+	return record, nil
 }
 
 func decodePageToken(token string) (int, error) {

@@ -246,15 +246,21 @@ func TestEventLogsServiceLifecycle(t *testing.T) {
 		t.Fatalf("update status: %v", err)
 	}
 
-	replayResp, err := service.ReplayEventLog(ctx, connect.NewRequest(&cloudv1.ReplayEventLogRequest{LogId: "id-1", DriverName: "http"}))
+	replayResp, err := service.ReplayEventLog(ctx, connect.NewRequest(&cloudv1.ReplayEventLogRequest{LogId: "id-1"}))
 	if err != nil {
 		t.Fatalf("replay event log: %v", err)
 	}
-	if replayResp.Msg.GetLogId() != "id-1" || replayResp.Msg.GetTopic() != "relaybus.demo" || replayResp.Msg.GetDriverName() != "http" {
+	if replayResp.Msg.GetLogId() != "id-1" || len(replayResp.Msg.GetResults()) == 0 {
 		t.Fatalf("unexpected replay response: %+v", replayResp.Msg)
 	}
 	if replayPublisher.published != 1 || replayPublisher.lastTopic != "relaybus.demo" || replayPublisher.lastEvent.RawPayload == nil {
-		t.Fatalf("expected replay publish called once, got published=%d topic=%s", replayPublisher.published, replayPublisher.lastTopic)
+		deadline := time.Now().Add(2 * time.Second)
+		for replayPublisher.published == 0 && time.Now().Before(deadline) {
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+	if replayPublisher.published != 1 || replayPublisher.lastTopic != "relaybus.demo" || replayPublisher.lastEvent.RawPayload == nil {
+		t.Fatalf("expected replay publish called once asynchronously, got published=%d topic=%s", replayPublisher.published, replayPublisher.lastTopic)
 	}
 	if !strings.Contains(string(replayPublisher.lastEvent.RawPayload), `"replayed":true`) {
 		t.Fatalf("expected replay transform output, got %s", string(replayPublisher.lastEvent.RawPayload))
@@ -272,7 +278,7 @@ func TestEventLogsServiceReplayValidation(t *testing.T) {
 		t.Fatalf("expected invalid argument for empty replay request")
 	}
 
-	if _, err := service.ReplayEventLog(ctx, connect.NewRequest(&cloudv1.ReplayEventLogRequest{LogId: "missing", DriverName: "http"})); connect.CodeOf(err) != connect.CodeNotFound {
+	if _, err := service.ReplayEventLog(ctx, connect.NewRequest(&cloudv1.ReplayEventLogRequest{LogId: "missing"})); connect.CodeOf(err) != connect.CodeNotFound {
 		t.Fatalf("expected not found for missing log")
 	}
 }

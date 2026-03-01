@@ -55,6 +55,10 @@ func applyRuleTransform(event core.Event, transformJS string) (core.Event, error
 	return event, nil
 }
 
+func ApplyRuleTransform(event core.Event, transformJS string) (core.Event, error) {
+	return applyRuleTransform(event, transformJS)
+}
+
 func transformEventContext(event core.Event, payload any) map[string]any {
 	ctx := map[string]any{
 		"provider":              event.Provider,

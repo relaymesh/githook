@@ -3245,11 +3245,6 @@ export declare class ReplayEventLogRequest extends Message<ReplayEventLogRequest
    */
   logId: string;
 
-  /**
-   * @generated from field: string driver_name = 2;
-   */
-  driverName: string;
-
   constructor(data?: PartialMessage<ReplayEventLogRequest>);
 
   static readonly runtime: typeof proto3;
@@ -3266,13 +3261,13 @@ export declare class ReplayEventLogRequest extends Message<ReplayEventLogRequest
 }
 
 /**
- * @generated from message cloud.v1.ReplayEventLogResponse
+ * @generated from message cloud.v1.ReplayPublishResult
  */
-export declare class ReplayEventLogResponse extends Message<ReplayEventLogResponse> {
+export declare class ReplayPublishResult extends Message<ReplayPublishResult> {
   /**
-   * @generated from field: string log_id = 1;
+   * @generated from field: string rule_id = 1;
    */
-  logId: string;
+  ruleId: string;
 
   /**
    * @generated from field: string topic = 2;
@@ -3283,6 +3278,45 @@ export declare class ReplayEventLogResponse extends Message<ReplayEventLogRespon
    * @generated from field: string driver_name = 3;
    */
   driverName: string;
+
+  /**
+   * @generated from field: string status = 4;
+   */
+  status: string;
+
+  /**
+   * @generated from field: string error_message = 5;
+   */
+  errorMessage: string;
+
+  constructor(data?: PartialMessage<ReplayPublishResult>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "cloud.v1.ReplayPublishResult";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReplayPublishResult;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ReplayPublishResult;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ReplayPublishResult;
+
+  static equals(a: ReplayPublishResult | PlainMessage<ReplayPublishResult> | undefined, b: ReplayPublishResult | PlainMessage<ReplayPublishResult> | undefined): boolean;
+}
+
+/**
+ * @generated from message cloud.v1.ReplayEventLogResponse
+ */
+export declare class ReplayEventLogResponse extends Message<ReplayEventLogResponse> {
+  /**
+   * @generated from field: string log_id = 1;
+   */
+  logId: string;
+
+  /**
+   * @generated from field: repeated cloud.v1.ReplayPublishResult results = 2;
+   */
+  results: ReplayPublishResult[];
 
   constructor(data?: PartialMessage<ReplayEventLogResponse>);
 
