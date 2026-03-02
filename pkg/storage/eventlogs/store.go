@@ -26,8 +26,8 @@ type Store struct {
 }
 
 type row struct {
-	ID              string    `gorm:"column:id;size:64;primaryKey"`
-	TenantID        string    `gorm:"column:tenant_id;size:64;not null;default:'';index;index:idx_event_logs_tenant_created,priority:1;index:idx_event_logs_tenant_provider_created,priority:1;index:idx_event_logs_tenant_status_created,priority:1;index:idx_event_logs_tenant_matched_created,priority:1;index:idx_el_tenant_rule_id,priority:1;index:idx_el_tenant_installation,priority:1;index:idx_el_tenant_namespace,priority:1;index:idx_el_tenant_name_created,priority:1;index:idx_el_tenant_topic_created,priority:1;index:idx_el_tenant_request,priority:1"`
+	ID              string    `gorm:"column:id;size:64;primaryKey;index:idx_el_tenant_created_id,priority:3,sort:desc"`
+	TenantID        string    `gorm:"column:tenant_id;size:64;not null;default:'';index;index:idx_event_logs_tenant_created,priority:1;index:idx_event_logs_tenant_provider_created,priority:1;index:idx_event_logs_tenant_status_created,priority:1;index:idx_event_logs_tenant_matched_created,priority:1;index:idx_el_tenant_rule_id,priority:1;index:idx_el_tenant_installation,priority:1;index:idx_el_tenant_namespace,priority:1;index:idx_el_tenant_name_created,priority:1;index:idx_el_tenant_topic_created,priority:1;index:idx_el_tenant_request,priority:1;index:idx_el_tenant_created_id,priority:1"`
 	Provider        string    `gorm:"column:provider;size:32;not null;index;index:idx_event_logs_tenant_provider_created,priority:2"`
 	Name            string    `gorm:"column:name;size:128;not null;index;index:idx_el_tenant_name_created,priority:2"`
 	RequestID       string    `gorm:"column:request_id;size:128;index;index:idx_el_tenant_request,priority:2"`
@@ -47,7 +47,7 @@ type row struct {
 	Status          string    `gorm:"column:status;size:32;not null;default:'queued';index;index:idx_event_logs_tenant_status_created,priority:2"`
 	ErrorMessage    string    `gorm:"column:error_message;type:text"`
 	LatencyMS       int64     `gorm:"column:latency_ms;not null;default:0;index"`
-	CreatedAt       time.Time `gorm:"column:created_at;autoCreateTime;index;index:idx_event_logs_tenant_created,priority:2,sort:desc;index:idx_event_logs_tenant_provider_created,priority:3,sort:desc;index:idx_event_logs_tenant_status_created,priority:3,sort:desc;index:idx_event_logs_tenant_matched_created,priority:3,sort:desc;index:idx_el_tenant_name_created,priority:3,sort:desc;index:idx_el_tenant_topic_created,priority:3,sort:desc"`
+	CreatedAt       time.Time `gorm:"column:created_at;autoCreateTime;index;index:idx_event_logs_tenant_created,priority:2,sort:desc;index:idx_event_logs_tenant_provider_created,priority:3,sort:desc;index:idx_event_logs_tenant_status_created,priority:3,sort:desc;index:idx_event_logs_tenant_matched_created,priority:3,sort:desc;index:idx_el_tenant_name_created,priority:3,sort:desc;index:idx_el_tenant_topic_created,priority:3,sort:desc;index:idx_el_tenant_created_id,priority:2,sort:desc"`
 	UpdatedAt       time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
 }
 
