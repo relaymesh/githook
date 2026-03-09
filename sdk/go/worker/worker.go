@@ -45,7 +45,7 @@ func New(opts ...Option) *Worker {
 		codec:         DefaultCodec{},
 		retry:         NoRetry{},
 		logger:        stdLogger{},
-		concurrency:   1,
+		concurrency:   10,
 		retryCount:    0,
 		topicHandlers: make(map[string]Handler),
 		topicDrivers:  make(map[string]string),
