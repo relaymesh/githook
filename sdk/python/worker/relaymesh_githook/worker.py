@@ -83,7 +83,7 @@ class Worker:
         self.retry = options.retry or NoRetry()
         self.retry_count = _normalize_retry_count(options.retry_count)
         self.logger = options.logger or _StdLogger()
-        self.concurrency = max(1, int(options.concurrency or 1))
+        self.concurrency = max(1, int(options.concurrency or 10))
         self.middleware = list(options.middleware or [])
         self.listeners = list(options.listeners or [])
         self.client_provider = options.client_provider
