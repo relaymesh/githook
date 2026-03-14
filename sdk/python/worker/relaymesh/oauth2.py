@@ -40,17 +40,17 @@ def resolve_oauth2_config(explicit: Optional[OAuth2Config]) -> Optional[OAuth2Co
     if explicit is not None:
         _normalize_oauth2_mode(explicit.mode)
         return explicit
-    token_url = _env_value("GITHOOK_OAUTH2_TOKEN_URL")
+    token_url = _env_value("RELAYMESH_OAUTH2_TOKEN_URL")
     if not token_url:
         return None
     return OAuth2Config(
         enabled=True,
         mode="client_credentials",
         token_url=token_url,
-        client_id=_env_value("GITHOOK_OAUTH2_CLIENT_ID"),
-        client_secret=_env_value("GITHOOK_OAUTH2_CLIENT_SECRET"),
-        scopes=_split_csv(_env_value("GITHOOK_OAUTH2_SCOPES")),
-        audience=_env_value("GITHOOK_OAUTH2_AUDIENCE"),
+        client_id=_env_value("RELAYMESH_OAUTH2_CLIENT_ID"),
+        client_secret=_env_value("RELAYMESH_OAUTH2_CLIENT_SECRET"),
+        scopes=_split_csv(_env_value("RELAYMESH_OAUTH2_SCOPES")),
+        audience=_env_value("RELAYMESH_OAUTH2_AUDIENCE"),
     )
 
 

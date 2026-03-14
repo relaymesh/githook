@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def read_version() -> str:
-    raw = (os.getenv("GITHOOK_PY_VERSION") or "").strip()
+    raw = (os.getenv("RELAYMESH_PY_VERSION") or "").strip()
     if raw.startswith("v"):
         raw = raw[1:]
     return raw or "0.0.17"

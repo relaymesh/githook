@@ -1,6 +1,6 @@
 # TypeScript Worker SDK
 
-This SDK consumes githook events from Relaybus and decodes the protobuf
+This SDK consumes relaymesh events from Relaybus and decodes the protobuf
 `EventPayload` into a usable `Event` object.
 
 Supported drivers: amqp, kafka, nats.
@@ -43,7 +43,7 @@ process.on("SIGINT", () => controller.abort());
 process.on("SIGTERM", () => controller.abort());
 
 const wk = worker.New(
-  worker.WithEndpoint("https://githook-app.vercel.app/api/connect"),
+  worker.WithEndpoint("https://relaymesh.vercel.app/api/connect"),
 );
 
 wk.HandleRule("85101e9f-3bcf-4ed0-b561-750c270ef6c3", (ctx, evt) => {
@@ -78,7 +78,7 @@ async function main() {
   const wk = worker.New(
     worker.WithSubscriber(subscriber),
     worker.WithEndpoint("http://localhost:8080"),
-    worker.WithAPIKey(process.env.GITHOOK_API_KEY ?? ""),
+    worker.WithAPIKey(process.env.RELAYMESH_API_KEY ?? ""),
     worker.WithTopics("pr.opened.ready"),
   );
 
@@ -112,10 +112,10 @@ const wk = worker.New(
   worker.WithOAuth2Config({
     enabled: true,
     mode: "client_credentials",
-    clientId: process.env.GITHOOK_OAUTH2_CLIENT_ID ?? "",
-    clientSecret: process.env.GITHOOK_OAUTH2_CLIENT_SECRET ?? "",
-    tokenUrl: process.env.GITHOOK_OAUTH2_TOKEN_URL ?? "",
-    scopes: ["githook.read", "githook.write"],
+    clientId: process.env.RELAYMESH_OAUTH2_CLIENT_ID ?? "",
+    clientSecret: process.env.RELAYMESH_OAUTH2_CLIENT_SECRET ?? "",
+    tokenUrl: process.env.RELAYMESH_OAUTH2_TOKEN_URL ?? "",
+    scopes: ["relaymesh.read", "relaymesh.write"],
   }),
 );
 ```

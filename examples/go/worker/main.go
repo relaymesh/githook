@@ -21,16 +21,16 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	endpoint := os.Getenv("GITHOOK_ENDPOINT")
+	endpoint := os.Getenv("RELAYMESH_ENDPOINT")
 	if endpoint == "" {
 		endpoint = "https://relaymesh.vercel.app/api/connect"
 	}
-	ruleID := os.Getenv("GITHOOK_RULE_ID")
+	ruleID := os.Getenv("RELAYMESH_RULE_ID")
 	if ruleID == "" {
 		ruleID = "85101e9f-3bcf-4ed0-b561-750c270ef6c3"
 	}
-	concurrency := intFromEnv("GITHOOK_CONCURRENCY", 4)
-	retryCount := intFromEnv("GITHOOK_RETRY_COUNT", 1)
+	concurrency := intFromEnv("RELAYMESH_CONCURRENCY", 4)
+	retryCount := intFromEnv("RELAYMESH_RETRY_COUNT", 1)
 
 	wk := worker.New(
 		worker.WithEndpoint(endpoint),

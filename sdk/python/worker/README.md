@@ -108,7 +108,7 @@ wk = New(
             client_id="your-client-id",
             client_secret="your-client-secret",
             token_url="https://issuer.example.com/oauth/token",
-            scopes=["githook.read", "githook.write"],
+            scopes=["relaymesh.read", "relaymesh.write"],
         )
     )
 )
@@ -118,6 +118,6 @@ wk = New(
 
 The worker will read defaults from:
 
-- `GITHOOK_ENDPOINT` or `GITHOOK_API_BASE_URL`
-- `GITHOOK_API_KEY`
-- `GITHOOK_TENANT_ID`
+- `RELAYMESH_ENDPOINT` or `RELAYMESH_API_BASE_URL`
+- `RELAYMESH_API_KEY`
+- `RELAYMESH_TENANT_ID`

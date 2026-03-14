@@ -20,8 +20,8 @@ func newRulesCmd() *cobra.Command {
 		Use:   "rules",
 		Short: "Rule engine helpers",
 		Long:  "Manage rules stored in the server and test rule expressions against webhook payloads.",
-		Example: "  githook --endpoint http://localhost:8080 rules list\n" +
-			"  githook --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml",
+		Example: "  relaymesh --endpoint http://localhost:8080 rules list\n" +
+			"  relaymesh --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml",
 	}
 	cmd.AddCommand(newRulesMatchCmd())
 	cmd.AddCommand(newRulesListCmd())
@@ -41,7 +41,7 @@ func newRulesMatchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "match",
 		Short:   "Match rules against an event payload",
-		Example: "  githook --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml",
+		Example: "  relaymesh --endpoint http://localhost:8080 rules match --payload-file payload.json --rules-file rules.yaml",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if payloadFile == "" || rulesFile == "" {
 				return fmt.Errorf("payload-file and rules-file are required")
@@ -101,7 +101,7 @@ func newRulesListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "List stored rules",
-		Example: "  githook --endpoint http://localhost:8080 rules list",
+		Example: "  relaymesh --endpoint http://localhost:8080 rules list",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -125,7 +125,7 @@ func newRulesGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get",
 		Short:   "Get a rule by ID",
-		Example: "  githook --endpoint http://localhost:8080 rules get --id <rule-id>",
+		Example: "  relaymesh --endpoint http://localhost:8080 rules get --id <rule-id>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := requireNonEmpty("id", id); err != nil {
 				return err
@@ -156,7 +156,7 @@ func newRulesCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "create",
 		Short:   "Create a new rule",
-		Example: "  githook --endpoint http://localhost:8080 rules create --when 'action == \"opened\"' --emit pr.opened.ready",
+		Example: "  relaymesh --endpoint http://localhost:8080 rules create --when 'action == \"opened\"' --emit pr.opened.ready",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if when == "" || len(emits) == 0 {
 				return fmt.Errorf("when and at least one emit are required")
@@ -201,7 +201,7 @@ func newRulesUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "update",
 		Short:   "Update an existing rule",
-		Example: "  githook --endpoint http://localhost:8080 rules update --id <rule-id> --when 'action == \"closed\"' --emit pr.merged",
+		Example: "  relaymesh --endpoint http://localhost:8080 rules update --id <rule-id> --when 'action == \"closed\"' --emit pr.merged",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if id == "" || when == "" || len(emits) == 0 {
 				return fmt.Errorf("id, when, and at least one emit are required")
@@ -244,7 +244,7 @@ func newRulesDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete",
 		Short:   "Delete a rule",
-		Example: "  githook --endpoint http://localhost:8080 rules delete --id <rule-id>",
+		Example: "  relaymesh --endpoint http://localhost:8080 rules delete --id <rule-id>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := requireNonEmpty("id", id); err != nil {
 				return err

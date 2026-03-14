@@ -16,13 +16,13 @@ relaymesh is a multi-tenant webhook router for GitHub, GitLab, and Bitbucket. It
 ## Install 🧰
 
 ```bash
-brew install relaymesh/homebrew-formula/githook
+brew install relaymesh/homebrew-formula/relaymesh
 ```
 
 Or from source:
 
 ```bash
-go build -o githook ./main.go
+go build -o relaymesh ./main.go
 ```
 
 ## Quick start (local) 🚀
@@ -30,7 +30,7 @@ go build -o githook ./main.go
 1) Start the server:
 
 ```bash
-githook serve --config config.yaml
+relaymesh serve --config config.yaml
 ```
 
 Minimal `config.yaml`:
@@ -43,7 +43,7 @@ endpoint: http://localhost:8080
 
 storage:
   driver: postgres
-  dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
+  dsn: postgres://relaymesh:relaymesh@localhost:5432/relaymesh?sslmode=disable
   dialect: postgres
   auto_migrate: true
 ```
@@ -51,7 +51,7 @@ storage:
 2) Register a provider instance (YAML):
 
 ```bash
-githook --endpoint http://localhost:8080 providers create \
+relaymesh --endpoint http://localhost:8080 providers create \
   --provider github \
   --config-file github.yaml
 ```
@@ -72,7 +72,7 @@ webhook:
 3) Create a driver config (YAML):
 
 ```bash
-githook --endpoint http://localhost:8080 drivers create \
+relaymesh --endpoint http://localhost:8080 drivers create \
   --name amqp \
   --config-file amqp.yaml
 ```
@@ -81,20 +81,20 @@ Example `amqp.yaml`:
 
 ```yaml
 url: amqp://guest:guest@localhost:5672/
-exchange: githook.events
+exchange: relaymesh.events
 routing_key_template: "{topic}"
 ```
 
 4) Create a rule:
 
 ```bash
-githook --endpoint http://localhost:8080 rules create \
+relaymesh --endpoint http://localhost:8080 rules create \
   --when 'action == "opened"' \
   --emit pr.opened \
   --driver-id <driver-id>
 ```
 
-`--driver-id` is the driver record ID (see `githook drivers list`).
+`--driver-id` is the driver record ID (see `relaymesh drivers list`).
 
 5) Point your provider webhook to:
 

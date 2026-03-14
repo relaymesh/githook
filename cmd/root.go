@@ -7,13 +7,13 @@ func NewRootCmd() *cobra.Command {
 	apiBaseURL = ""
 	configPath = "config.yaml"
 	root := &cobra.Command{
-		Use:   "githook",
+		Use:   "relaymesh",
 		Short: "Webhook router + worker SDK for Git providers",
-		Long: "github.com/relaymesh/relaymeshs routes GitHub/GitLab/Bitbucket webhooks to Relaybus topics and provides a worker SDK " +
+		Long: "github.com/relaymesh/relaymesh routes GitHub/GitLab/Bitbucket webhooks to Relaybus topics and provides a worker SDK " +
 			"for processing events with provider-aware clients.",
-		Example: "  githook serve --config config.yaml\n" +
-			"  githook --endpoint http://localhost:8080 installations list --provider github\n" +
-			"  githook --endpoint http://localhost:8080 namespaces update --provider gitlab",
+		Example: "  relaymesh serve --config config.yaml\n" +
+			"  relaymesh --endpoint http://localhost:8080 installations list --provider github\n" +
+			"  relaymesh --endpoint http://localhost:8080 namespaces update --provider gitlab",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return cmd.Help()
 		},

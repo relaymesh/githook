@@ -31,13 +31,13 @@ import (
   "context"
   "os"
 
-  "githook/sdk/go/worker"
+  "github.com/relaymesh/relaymesh/sdk/go/worker"
 )
 
 func main() {
   wk := worker.New(
-    worker.WithEndpoint(os.Getenv("GITHOOK_ENDPOINT")),
-    worker.WithAPIKey(os.Getenv("GITHOOK_API_KEY")),
+    worker.WithEndpoint(os.Getenv("RELAYMESH_ENDPOINT")),
+    worker.WithAPIKey(os.Getenv("RELAYMESH_API_KEY")),
   )
 
   wk.HandleRule("rule-id", func(ctx context.Context, evt *worker.Event) error {

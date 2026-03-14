@@ -14,7 +14,7 @@ Each example demonstrates:
 
 Useful environment variables:
 
-- `GITHOOK_ENDPOINT` (default `https://relaymesh.vercel.app/api/connect`)
-- `GITHOOK_RULE_ID`
-- `GITHOOK_CONCURRENCY` (default `4`)
-- `GITHOOK_RETRY_COUNT` (default `1`)
+- `RELAYMESH_ENDPOINT` (default `https://relaymesh.vercel.app/api/connect`)
+- `RELAYMESH_RULE_ID`
+- `RELAYMESH_CONCURRENCY` (default `4`)
+- `RELAYMESH_RETRY_COUNT` (default `1`)

@@ -21,9 +21,9 @@ func newProvidersCmd() *cobra.Command {
 		Use:   "providers",
 		Short: "Manage providers",
 		Long:  "Manage per-tenant provider instances stored on the server.",
-		Example: "  githook --endpoint http://localhost:8080 providers list\n" +
-			"  githook --endpoint http://localhost:8080 providers list --provider github\n" +
-			"  githook --endpoint http://localhost:8080 providers create --provider github --config-file github.yaml",
+		Example: "  relaymesh --endpoint http://localhost:8080 providers list\n" +
+			"  relaymesh --endpoint http://localhost:8080 providers list --provider github\n" +
+			"  relaymesh --endpoint http://localhost:8080 providers create --provider github --config-file github.yaml",
 	}
 	cmd.AddCommand(newProviderInstancesListCmd())
 	cmd.AddCommand(newProviderInstancesGetCmd())
@@ -39,8 +39,8 @@ func newProviderInstancesListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List provider instances",
-		Example: "  githook --endpoint http://localhost:8080 providers list\n" +
-			"  githook --endpoint http://localhost:8080 providers list --provider github",
+		Example: "  relaymesh --endpoint http://localhost:8080 providers list\n" +
+			"  relaymesh --endpoint http://localhost:8080 providers list --provider github",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -66,7 +66,7 @@ func newProviderInstancesGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get",
 		Short:   "Get a provider instance",
-		Example: "  githook --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>",
+		Example: "  relaymesh --endpoint http://localhost:8080 providers get --provider github --hash <instance-hash>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := requireNonEmpty("provider", provider); err != nil {
 				return err
@@ -100,7 +100,7 @@ func newProviderInstancesCreateCmd() *cobra.Command {
 	return newProviderInstancesUpsertCmd(
 		"create",
 		"Create a provider instance",
-		"  githook --endpoint http://localhost:8080 providers create --provider github --config-file github.yaml\n"+
+		"  relaymesh --endpoint http://localhost:8080 providers create --provider github --config-file github.yaml\n"+
 			"  # With redirect_base_url and private_key_path in the config file:\n"+
 			"  # github.yaml:\n"+
 			"  # redirect_base_url: https://app.example.com/oauth/complete\n"+
@@ -117,7 +117,7 @@ func newProviderInstancesUpdateCmd() *cobra.Command {
 	return newProviderInstancesUpsertCmd(
 		"update",
 		"Update a provider instance",
-		"  githook --endpoint http://localhost:8080 providers update --provider github --config-file github.yaml",
+		"  relaymesh --endpoint http://localhost:8080 providers update --provider github --config-file github.yaml",
 	)
 }
 
@@ -125,7 +125,7 @@ func newProviderInstancesSetCmd() *cobra.Command {
 	cmd := newProviderInstancesUpsertCmd(
 		"set",
 		"Create a provider instance",
-		"  githook --endpoint http://localhost:8080 providers set --provider github --config-file github.yaml",
+		"  relaymesh --endpoint http://localhost:8080 providers set --provider github --config-file github.yaml",
 	)
 	hideDeprecatedAlias(cmd, "use create or update")
 	return cmd
@@ -281,7 +281,7 @@ func newProviderInstancesDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete",
 		Short:   "Delete a provider instance",
-		Example: "  githook --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>",
+		Example: "  relaymesh --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := requireNonEmpty("provider", provider); err != nil {
 				return err

@@ -26,7 +26,7 @@ Copy the HTTPS forwarding URL (e.g., `https://abc123.ngrok-free.app`). Keep ngro
 ## 3) Create a Bitbucket OAuth consumer
 
 1. **Workspace settings** → **OAuth consumers** → **Add consumer**
-2. **Name**: `githook-local`
+2. **Name**: `relaymesh-local`
 3. **Callback URL**: `https://<your-ngrok-url>/auth/bitbucket/callback`
 4. **Permissions**: `repository` (read/write)
 5. Save and copy the **Key** and **Secret**
@@ -42,7 +42,7 @@ endpoint: https://<your-ngrok-url>
 
 storage:
   driver: postgres
-  dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
+  dsn: postgres://relaymesh:relaymesh@localhost:5432/relaymesh?sslmode=disable
   dialect: postgres
   auto_migrate: true
 
@@ -76,7 +76,7 @@ oauth:
 Create the instance:
 
 ```bash
-githook --endpoint http://localhost:8080 providers create \
+relaymesh --endpoint http://localhost:8080 providers create \
   --provider bitbucket \
   --config-file bitbucket.yaml
 ```
@@ -86,21 +86,21 @@ You can override the redirect URL with `--redirect-base-url` if needed.
 ## 6) Create a driver + rule
 
 ```bash
-githook --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml
+relaymesh --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml
 
-githook --endpoint http://localhost:8080 rules create \
+relaymesh --endpoint http://localhost:8080 rules create \
   --when 'action == "opened"' \
   --emit pr.opened \
   --driver-id <driver-id>
 ```
 
-`--driver-id` is the driver record ID (see `githook drivers list`).
+`--driver-id` is the driver record ID (see `relaymesh drivers list`).
 
 Optional updates:
 
 ```bash
-githook --endpoint http://localhost:8080 drivers update --name amqp --config-file amqp.yaml
-githook --endpoint http://localhost:8080 providers delete --provider bitbucket --hash <instance-hash>
+relaymesh --endpoint http://localhost:8080 drivers update --name amqp --config-file amqp.yaml
+relaymesh --endpoint http://localhost:8080 providers delete --provider bitbucket --hash <instance-hash>
 ```
 
 ## 7) Complete OAuth onboarding
@@ -108,7 +108,7 @@ githook --endpoint http://localhost:8080 providers delete --provider bitbucket -
 Get the provider instance hash:
 
 ```bash
-githook --endpoint http://localhost:8080 providers list --provider bitbucket
+relaymesh --endpoint http://localhost:8080 providers list --provider bitbucket
 ```
 
 Open the OAuth URL:

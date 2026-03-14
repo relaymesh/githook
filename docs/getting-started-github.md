@@ -45,7 +45,7 @@ endpoint: https://<your-ngrok-url>
 
 storage:
   driver: postgres
-  dsn: postgres://githook:githook@localhost:5432/githook?sslmode=disable
+  dsn: postgres://relaymesh:relaymesh@localhost:5432/relaymesh?sslmode=disable
   dialect: postgres
   auto_migrate: true
 
@@ -84,7 +84,7 @@ oauth:
 Create the instance:
 
 ```bash
-githook --endpoint http://localhost:8080 providers create \
+relaymesh --endpoint http://localhost:8080 providers create \
   --provider github \
   --config-file github.yaml
 ```
@@ -94,21 +94,21 @@ You can override the redirect URL with `--redirect-base-url` if needed.
 ## 6) Create a driver + rule
 
 ```bash
-githook --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml
+relaymesh --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml
 
-githook --endpoint http://localhost:8080 rules create \
+relaymesh --endpoint http://localhost:8080 rules create \
   --when 'action == "opened"' \
   --emit pr.opened \
   --driver-id <driver-id>
 ```
 
-`--driver-id` is the driver record ID (see `githook drivers list`).
+`--driver-id` is the driver record ID (see `relaymesh drivers list`).
 
 Optional updates:
 
 ```bash
-githook --endpoint http://localhost:8080 drivers update --name amqp --config-file amqp.yaml
-githook --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>
+relaymesh --endpoint http://localhost:8080 drivers update --name amqp --config-file amqp.yaml
+relaymesh --endpoint http://localhost:8080 providers delete --provider github --hash <instance-hash>
 ```
 
 ## 7) Install the GitHub App
@@ -116,7 +116,7 @@ githook --endpoint http://localhost:8080 providers delete --provider github --ha
 Get the provider instance hash:
 
 ```bash
-githook --endpoint http://localhost:8080 providers list --provider github
+relaymesh --endpoint http://localhost:8080 providers list --provider github
 ```
 
 Open the install URL:

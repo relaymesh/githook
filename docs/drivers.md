@@ -1,6 +1,6 @@
 # Driver Configuration
 
-Drivers describe how githook publishes events and how workers subscribe to them.
+Drivers describe how relaymesh publishes events and how workers subscribe to them.
 Driver configs are stored on the server per tenant and managed via the CLI.
 
 Driver config files contain only driver fields (no `relaybus:` wrapper). The CLI reads YAML and sends JSON to the API.
@@ -29,7 +29,7 @@ Example:
 
 ```yaml
 url: amqp://guest:guest@localhost:5672/
-exchange: githook.events
+exchange: relaymesh.events
 routing_key_template: "{topic}"
 ```
 
@@ -46,7 +46,7 @@ Example:
 
 ```yaml
 url: nats://localhost:4222
-subject_prefix: githook
+subject_prefix: relaymesh
 ```
 
 ## Kafka
@@ -62,16 +62,16 @@ Example:
 ```yaml
 brokers:
   - localhost:29092
-topic_prefix: githook.
-group_id: githook-worker
+topic_prefix: relaymesh.
+group_id: relaymesh-worker
 ```
 
 ## CLI usage
 
 ```bash
-githook --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml
-githook --endpoint http://localhost:8080 drivers update --name amqp --config-file amqp.yaml
-githook --endpoint http://localhost:8080 drivers list
-githook --endpoint http://localhost:8080 drivers get --name amqp
-githook --endpoint http://localhost:8080 drivers delete --name amqp
+relaymesh --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml
+relaymesh --endpoint http://localhost:8080 drivers update --name amqp --config-file amqp.yaml
+relaymesh --endpoint http://localhost:8080 drivers list
+relaymesh --endpoint http://localhost:8080 drivers get --name amqp
+relaymesh --endpoint http://localhost:8080 drivers delete --name amqp
 ```

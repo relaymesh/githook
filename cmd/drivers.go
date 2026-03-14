@@ -18,8 +18,8 @@ func newDriversCmd() *cobra.Command {
 		Use:   "drivers",
 		Short: "Manage driver configs",
 		Long:  "Manage Relaybus driver configs stored on the server.",
-		Example: "  githook --endpoint http://localhost:8080 drivers list\n" +
-			"  githook --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml",
+		Example: "  relaymesh --endpoint http://localhost:8080 drivers list\n" +
+			"  relaymesh --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml",
 	}
 	cmd.AddCommand(newDriversListCmd())
 	cmd.AddCommand(newDriversGetCmd())
@@ -34,7 +34,7 @@ func newDriversListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Short:   "List driver configs",
-		Example: "  githook --endpoint http://localhost:8080 drivers list",
+		Example: "  relaymesh --endpoint http://localhost:8080 drivers list",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -57,7 +57,7 @@ func newDriversGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get",
 		Short:   "Get a driver config",
-		Example: "  githook --endpoint http://localhost:8080 drivers get --name amqp",
+		Example: "  relaymesh --endpoint http://localhost:8080 drivers get --name amqp",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if strings.TrimSpace(name) == "" {
 				return fmt.Errorf("name is required")
@@ -84,7 +84,7 @@ func newDriversCreateCmd() *cobra.Command {
 	return newDriversUpsertCmd(
 		"create",
 		"Create a driver config",
-		"  githook --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml",
+		"  relaymesh --endpoint http://localhost:8080 drivers create --name amqp --config-file amqp.yaml",
 	)
 }
 
@@ -92,7 +92,7 @@ func newDriversUpdateCmd() *cobra.Command {
 	return newDriversUpsertCmd(
 		"update",
 		"Update a driver config",
-		"  githook --endpoint http://localhost:8080 drivers update --name amqp --config-file amqp.yaml",
+		"  relaymesh --endpoint http://localhost:8080 drivers update --name amqp --config-file amqp.yaml",
 	)
 }
 
@@ -100,7 +100,7 @@ func newDriversSetCmd() *cobra.Command {
 	cmd := newDriversUpsertCmd(
 		"set",
 		"Create or update a driver config",
-		"  githook --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml",
+		"  relaymesh --endpoint http://localhost:8080 drivers set --name amqp --config-file amqp.yaml",
 	)
 	hideDeprecatedAlias(cmd, "use create or update")
 	return cmd
@@ -156,7 +156,7 @@ func newDriversDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete",
 		Short:   "Delete a driver config",
-		Example: "  githook --endpoint http://localhost:8080 drivers delete --name amqp",
+		Example: "  relaymesh --endpoint http://localhost:8080 drivers delete --name amqp",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := requireNonEmpty("name", name); err != nil {
 				return err

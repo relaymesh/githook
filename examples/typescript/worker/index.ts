@@ -15,12 +15,12 @@ import {
 } from "@relaymesh/sdk";
 
 async function main() {
-  const endpoint = process.env.GITHOOK_ENDPOINT ?? "https://relaymesh.vercel.app/api/connect";
-  const ruleId = process.env.GITHOOK_RULE_ID ?? "85101e9f-3bcf-4ed0-b561-750c270ef6c3";
-  const apiKey = process.env.GITHOOK_API_KEY ?? "";
-  const tenantId = process.env.GITHOOK_TENANT_ID ?? "";
-  const concurrency = intFromEnv(process.env.GITHOOK_CONCURRENCY, 4);
-  const retryCount = intFromEnv(process.env.GITHOOK_RETRY_COUNT, 1);
+  const endpoint = process.env.RELAYMESH_ENDPOINT ?? "https://relaymesh.vercel.app/api/connect";
+  const ruleId = process.env.RELAYMESH_RULE_ID ?? "85101e9f-3bcf-4ed0-b561-750c270ef6c3";
+  const apiKey = process.env.RELAYMESH_API_KEY ?? "";
+  const tenantId = process.env.RELAYMESH_TENANT_ID ?? "";
+  const concurrency = intFromEnv(process.env.RELAYMESH_CONCURRENCY, 4);
+  const retryCount = intFromEnv(process.env.RELAYMESH_RETRY_COUNT, 1);
   console.log(
     `config endpoint=${endpoint} apiKeySet=${apiKey.length > 0} tenantId=${tenantId || "(empty)"} concurrency=${concurrency} retryCount=${retryCount}`,
   );

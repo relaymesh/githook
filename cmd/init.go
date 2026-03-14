@@ -16,7 +16,7 @@ endpoint: http://localhost:8080
 
 storage:
   driver: postgres
-  dsn: postgres://user:pass@localhost:5432/githook?sslmode=disable
+  dsn: postgres://user:pass@localhost:5432/relaymesh?sslmode=disable
   auto_migrate: true
 
 redirect_base_url: http://localhost:8080
@@ -66,9 +66,9 @@ func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Create a starter config file",
-		Example: "  githook init --config server.yaml --profile server\n" +
-			"  githook init --config cli.yaml --profile cli\n" +
-			"  githook init --config worker.yaml --profile worker",
+		Example: "  relaymesh init --config server.yaml --profile server\n" +
+			"  relaymesh init --config cli.yaml --profile cli\n" +
+			"  relaymesh init --config worker.yaml --profile worker",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			path := strings.TrimSpace(configPath)
 			if path == "" {

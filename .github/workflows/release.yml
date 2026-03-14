@@ -56,7 +56,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push githook image
+      - name: Build and push relaymesh image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -64,8 +64,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/relaymesh/githook:${{ github.ref_name }}
-            ghcr.io/relaymesh/githook:latest
+            ghcr.io/relaymesh/relaymesh:${{ github.ref_name }}
+            ghcr.io/relaymesh/relaymesh:latest
 
   npm:
     runs-on: ubuntu-latest
@@ -103,7 +103,7 @@ jobs:
           python setup.py sdist bdist_wheel
         working-directory: sdk/python/worker
         env:
-          GITHOOK_PY_VERSION: ${{ github.ref_name }}
+          RELAYMESH_PY_VERSION: ${{ github.ref_name }}
       - name: Publish PyPI package
         env:
           TWINE_USERNAME: __token__

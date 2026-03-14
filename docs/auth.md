@@ -11,7 +11,7 @@ auth:
   oauth2:
     enabled: true
     issuer: https://<your-idp>/oauth2/default
-    audience: api://githook
+    audience: api://relaymesh
 ```
 
 - `issuer` is required for auto-discovery.
@@ -22,11 +22,11 @@ auth:
 
 The CLI reads `auth.oauth2` from `--config` (default: `config.yaml`) and applies auth automatically:
 
-1) If `GITHOOK_API_KEY` is set, the CLI uses `x-api-key` and skips OAuth2.
+1) If `RELAYMESH_API_KEY` is set, the CLI uses `x-api-key` and skips OAuth2.
 2) If OAuth2 is enabled, the CLI uses a cached access token if available.
 3) If no cached token exists:
    - `mode: client_credentials` or `mode: auto` → the CLI requests a token and caches it.
-   - `mode: auth_code` → run `githook auth` to login and cache a token.
+   - `mode: auth_code` → run `relaymesh auth` to login and cache a token.
 4) The CLI sends `Authorization: Bearer <token>` for all RPC calls.
 
 The token cache lives under your OS cache directory, for example:
@@ -42,7 +42,7 @@ auth:
   oauth2:
     enabled: true
     issuer: https://<your-idp>/oauth2/default
-    audience: api://githook
+    audience: api://relaymesh
     mode: client_credentials
     client_id: ${OAUTH_CLIENT_ID}
     client_secret: ${OAUTH_CLIENT_SECRET}
@@ -56,7 +56,7 @@ auth:
   oauth2:
     enabled: true
     issuer: https://<your-idp>/oauth2/default
-    audience: api://githook
+    audience: api://relaymesh
     mode: auth_code
     client_id: ${OAUTH_CLIENT_ID}
     client_secret: ${OAUTH_CLIENT_SECRET}
@@ -66,7 +66,7 @@ auth:
 Run:
 
 ```bash
-githook auth
+relaymesh auth
 ```
 
 This opens a browser, completes login via a local loopback callback, and stores the token for later CLI calls.

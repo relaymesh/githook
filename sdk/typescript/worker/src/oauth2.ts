@@ -31,7 +31,7 @@ export function resolveOAuth2Config(explicit?: OAuth2Config): OAuth2Config | und
     normalizeOAuth2Mode(explicit.mode);
     return explicit;
   }
-  const tokenUrl = envValue("GITHOOK_OAUTH2_TOKEN_URL");
+  const tokenUrl = envValue("RELAYMESH_OAUTH2_TOKEN_URL");
   if (!tokenUrl) {
     return undefined;
   }
@@ -39,10 +39,10 @@ export function resolveOAuth2Config(explicit?: OAuth2Config): OAuth2Config | und
     enabled: true,
     mode: "client_credentials",
     tokenUrl,
-    clientId: envValue("GITHOOK_OAUTH2_CLIENT_ID"),
-    clientSecret: envValue("GITHOOK_OAUTH2_CLIENT_SECRET"),
-    scopes: splitCSV(envValue("GITHOOK_OAUTH2_SCOPES")),
-    audience: envValue("GITHOOK_OAUTH2_AUDIENCE"),
+    clientId: envValue("RELAYMESH_OAUTH2_CLIENT_ID"),
+    clientSecret: envValue("RELAYMESH_OAUTH2_CLIENT_SECRET"),
+    scopes: splitCSV(envValue("RELAYMESH_OAUTH2_SCOPES")),
+    audience: envValue("RELAYMESH_OAUTH2_AUDIENCE"),
   };
 }
 

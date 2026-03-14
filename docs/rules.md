@@ -5,15 +5,15 @@ Rules decide which webhook events get published. Rules are stored on the server 
 ## Manage rules
 
 ```bash
-githook --endpoint http://localhost:8080 rules list
+relaymesh --endpoint http://localhost:8080 rules list
 
-githook --endpoint http://localhost:8080 rules create \
+relaymesh --endpoint http://localhost:8080 rules create \
   --when 'action == "opened" && pull_request.draft == false' \
   --emit pr.opened.ready \
   --driver-id <driver-id>
 ```
 
-`--driver-id` must be a driver record ID (see `githook drivers list`).
+`--driver-id` must be a driver record ID (see `relaymesh drivers list`).
 
 ## Rule shape
 
@@ -71,7 +71,7 @@ driver_id: <driver-id>
 Use `rules match` without storing rules:
 
 ```bash
-githook --endpoint http://localhost:8080 rules match \
+relaymesh --endpoint http://localhost:8080 rules match \
   --payload-file payload.json \
   --rules-file rules.yaml
 ```
@@ -89,7 +89,7 @@ rules:
 When strict mode is enabled (`rules_strict` in server config), any rule that references a missing field is skipped. You can test strict mode locally with:
 
 ```bash
-githook --endpoint http://localhost:8080 rules match --strict --payload-file payload.json --rules-file rules.yaml
+relaymesh --endpoint http://localhost:8080 rules match --strict --payload-file payload.json --rules-file rules.yaml
 ```
 
 ## Driver targeting

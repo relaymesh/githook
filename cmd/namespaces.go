@@ -17,8 +17,8 @@ func newNamespacesCmd() *cobra.Command {
 		Use:   "namespaces",
 		Short: "Manage git namespaces",
 		Long:  "List, update, and toggle webhooks for provider namespaces (repos/projects).",
-		Example: "  githook --endpoint http://localhost:8080 namespaces list --provider github\n" +
-			"  githook --endpoint http://localhost:8080 namespaces update --provider gitlab",
+		Example: "  relaymesh --endpoint http://localhost:8080 namespaces list --provider github\n" +
+			"  relaymesh --endpoint http://localhost:8080 namespaces update --provider gitlab",
 	}
 	cmd.AddCommand(newNamespacesListCmd())
 	cmd.AddCommand(newNamespacesUpdateCmd())
@@ -36,7 +36,7 @@ func newNamespacesListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "List namespaces",
-		Example: "  githook --endpoint http://localhost:8080 namespaces list --provider github",
+		Example: "  relaymesh --endpoint http://localhost:8080 namespaces list --provider github",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts, err := connectClientOptions()
 			if err != nil {
@@ -72,7 +72,7 @@ func newNamespacesUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "update",
 		Short:   "Update namespaces from the provider",
-		Example: "  githook --endpoint http://localhost:8080 namespaces update --provider gitlab",
+		Example: "  relaymesh --endpoint http://localhost:8080 namespaces update --provider gitlab",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := requireNonEmpty("provider", provider); err != nil {
 				return err
@@ -103,7 +103,7 @@ func newNamespacesSyncCmd() *cobra.Command {
 	cmd := newNamespacesUpdateCmd()
 	cmd.Use = "sync"
 	cmd.Short = "Sync namespaces from the provider"
-	cmd.Example = "  githook --endpoint http://localhost:8080 namespaces sync --provider gitlab"
+	cmd.Example = "  relaymesh --endpoint http://localhost:8080 namespaces sync --provider gitlab"
 	hideDeprecatedAlias(cmd, "use update")
 	return cmd
 }
@@ -112,7 +112,7 @@ func newNamespacesWebhookCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "webhook",
 		Short:   "Manage namespace webhook state",
-		Example: "  githook --endpoint http://localhost:8080 namespaces webhook get --provider gitlab --repo-id <repo-id>",
+		Example: "  relaymesh --endpoint http://localhost:8080 namespaces webhook get --provider gitlab --repo-id <repo-id>",
 	}
 	cmd.AddCommand(newNamespacesWebhookGetCmd())
 	cmd.AddCommand(newNamespacesWebhookUpdateCmd())
@@ -127,7 +127,7 @@ func newNamespacesWebhookGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get",
 		Short:   "Get namespace webhook state",
-		Example: "  githook --endpoint http://localhost:8080 namespaces webhook get --provider gitlab --repo-id <repo-id>",
+		Example: "  relaymesh --endpoint http://localhost:8080 namespaces webhook get --provider gitlab --repo-id <repo-id>",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := requireNonEmpty("provider", provider); err != nil {
 				return err
@@ -167,7 +167,7 @@ func newNamespacesWebhookUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "update",
 		Short:   "Enable or disable a namespace webhook",
-		Example: "  githook --endpoint http://localhost:8080 namespaces webhook update --provider gitlab --repo-id <repo-id> --enabled",
+		Example: "  relaymesh --endpoint http://localhost:8080 namespaces webhook update --provider gitlab --repo-id <repo-id> --enabled",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := requireNonEmpty("provider", provider); err != nil {
 				return err
@@ -205,7 +205,7 @@ func newNamespacesWebhookSetCmdAlias() *cobra.Command {
 	cmd := newNamespacesWebhookUpdateCmd()
 	cmd.Use = "set"
 	cmd.Short = "Enable or disable a namespace webhook"
-	cmd.Example = "  githook --endpoint http://localhost:8080 namespaces webhook set --provider gitlab --repo-id <repo-id> --enabled"
+	cmd.Example = "  relaymesh --endpoint http://localhost:8080 namespaces webhook set --provider gitlab --repo-id <repo-id> --enabled"
 	hideDeprecatedAlias(cmd, "use update")
 	return cmd
 }

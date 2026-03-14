@@ -217,10 +217,10 @@ def resolve_endpoint(explicit: str) -> str:
     trimmed = (explicit or "").strip()
     if trimmed:
         return trimmed.rstrip("/")
-    env_endpoint = _env_value("GITHOOK_ENDPOINT")
+    env_endpoint = _env_value("RELAYMESH_ENDPOINT")
     if env_endpoint:
         return env_endpoint
-    env_base = _env_value("GITHOOK_API_BASE_URL")
+    env_base = _env_value("RELAYMESH_API_BASE_URL")
     if env_base:
         return env_base
     return "http://localhost:8080"
@@ -230,14 +230,14 @@ def resolve_api_key(explicit: str) -> str:
     trimmed = (explicit or "").strip()
     if trimmed:
         return trimmed
-    return _env_value("GITHOOK_API_KEY")
+    return _env_value("RELAYMESH_API_KEY")
 
 
 def resolve_tenant_id(explicit: str) -> str:
     trimmed = (explicit or "").strip()
     if trimmed:
         return trimmed
-    return _env_value("GITHOOK_TENANT_ID")
+    return _env_value("RELAYMESH_TENANT_ID")
 
 
 def _normalize_installation(record: Dict[str, Any]) -> InstallationRecord:
@@ -336,8 +336,14 @@ def _parse_datetime(record: Dict[str, Any], *keys: str) -> Optional[datetime.dat
             except ValueError:
                 continue
         if isinstance(value, dict) and "seconds" in value:
+            seconds_value = value.get("seconds")
+            if isinstance(seconds_value, (int, float)):
+                seconds = int(seconds_value)
+            elif isinstance(seconds_value, str) and seconds_value.strip():
+                seconds = int(seconds_value)
+            else:
+                continue
             try:
-                seconds = int(value.get("seconds"))
                 return datetime.datetime.fromtimestamp(
                     seconds, tz=datetime.timezone.utc
                 )

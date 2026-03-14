@@ -4,15 +4,15 @@ import threading
 from typing import Any, cast
 from urllib.parse import quote
 
-import relaymesh.worker as relaymesh_sdk
-from relaymesh.listener import Listener
-from relaymesh.scm_client_provider import (
+from sdk.python.worker.relaymesh import worker as relaymesh_sdk
+from sdk.python.worker.relaymesh.listener import Listener
+from sdk.python.worker.relaymesh.scm_client_provider import (
     BitbucketClient,
     GitHubClient,
     GitLabClient,
     NewRemoteSCMClientProvider,
 )
-from relaymesh.worker import (
+from sdk.python.worker.relaymesh.worker import (
     New,
     WithClientProvider,
     WithConcurrency,
@@ -31,8 +31,8 @@ def shutdown(_signum, _frame):
 signal.signal(signal.SIGINT, shutdown)
 signal.signal(signal.SIGTERM, shutdown)
 
-endpoint = os.getenv("GITHOOK_ENDPOINT", "https://relaymesh.vercel.app/api/connect")
-rule_id = os.getenv("GITHOOK_RULE_ID", "85101e9f-3bcf-4ed0-b561-750c270ef6c3")
+endpoint = os.getenv("RELAYMESH_ENDPOINT", "https://relaymesh.vercel.app/api/connect")
+rule_id = os.getenv("RELAYMESH_RULE_ID", "85101e9f-3bcf-4ed0-b561-750c270ef6c3")
 
 
 def int_from_env(name, fallback):
@@ -46,8 +46,8 @@ def int_from_env(name, fallback):
     return value if value > 0 else fallback
 
 
-concurrency = int_from_env("GITHOOK_CONCURRENCY", 4)
-retry_count = int_from_env("GITHOOK_RETRY_COUNT", 1)
+concurrency = int_from_env("RELAYMESH_CONCURRENCY", 4)
+retry_count = int_from_env("RELAYMESH_RETRY_COUNT", 1)
 
 
 class ExampleLogger:

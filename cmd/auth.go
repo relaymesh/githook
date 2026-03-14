@@ -29,7 +29,7 @@ func newAuthCmd() *cobra.Command {
 		Short: "Authentication helper",
 		Long: "Fetch or store OAuth2 tokens for CLI use. " +
 			"When auth_code is configured, it runs the browser login flow; otherwise it fetches a client-credentials token.",
-		Example: "  githook auth",
+		Example: "  relaymesh auth",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, err := loadCLIConfig()
 			if err != nil {
